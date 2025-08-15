@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Shopify Orders → Ship</title>
+    <style>
+        :root{
+          --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --ok:#065F46; --warn:#B45309; --err:#B91C1C; --radius:12px;
+        }
+        *{box-sizing:border-box}
+        body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+        header{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid var(--stroke);height:64px;padding:0 20px}
+        .logo{width:32px;height:32px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700}
+        main{max-width:1200px;margin:24px auto;padding:0 20px}
+        .view{display:none}.view.active{display:block}
+        .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius)}
+        .row{display:flex;gap:12px;flex-wrap:wrap}
+        .btn{height:36px;padding:0 12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
+        .btn.secondary{background:#fff;color:var(--text);border:1px solid var(--stroke)}
+        .btn.small{height:30px;border-radius:8px}
+        .field{display:grid;gap:6px}
+        .field input,.field select,.field textarea{height:36px;padding:0 10px;border:1px solid var(--stroke);border-radius:10px;background:#fff}
+        .field textarea{height:72px;padding:8px 10px;resize:vertical}
+        .hint{color:var(--muted);font-size:12px}
+        .ok{color:var(--ok);font-size:12px}.error{color:var(--err);font-size:12px}
+        table{width:100%;border-collapse:separate;border-spacing:0}
+        th,td{padding:12px 14px;border-bottom:1px solid var(--stroke);vertical-align:top}
+        th{font-size:12px;color:var(--muted);text-align:left;background:#fff}
+        tr{cursor:pointer} tr:hover{background:#fff8f2}
+        .status{padding:4px 8px;border-radius:999px;font-size:12px;background:#FFF3E6;color:#9A4D00;display:inline-block}
+        .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--stroke);background:#fff;margin-right:4px}
+        .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;background:#FFF3E6;color:#9A4D00;margin-right:6px}
+        .grid{display:grid;gap:12px}
+        .grid.cols2{grid-template-columns:1fr 1fr}
+        .grid.cols3{grid-template-columns:repeat(3,1fr)}
+        .grid.cols4{grid-template-columns:repeat(4,1fr)}
+        .split-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .package{border:1px dashed var(--stroke);border-radius:10px;padding:10px}
+        .package h4{margin:6px 0 10px 0;font-size:13px}
+
+        /* Media capture */
+        .cam-wrap{display:grid;grid-template-columns:360px 1fr;gap:12px}
+        video, canvas{width:100%;max-width:360px;border-radius:12px;border:1px solid var(--stroke);background:#000}
+        .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+        .thumb{position:relative;width:96px;height:96px;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;background:#F3F4F6}
+        .thumb img, .thumb video{width:100%;height:100%;object-fit:cover}
+        .rm{position:absolute;right:4px;top:4px;background:#fff;border:1px solid #E5E7EB;border-radius:50%;width:22px;height:22px;line-height:20px;text-align:center;cursor:pointer}
+        .cap-note{font-size:12px;color:#6B7280;text-align:center;margin-top:4px}
+        .control{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid #E5E7EB;border-radius:8px;background:#F9FAFB}
+    </style>
+</head>
+<body>
+<header>
+    <div class="logo">GM</div>
+    <div style="font-weight:600">Orders — Dispatched / Packed</div>
+</header>
+
+<main>
+    <!-- VIEW 1: Orders list -->
+    <section id="listView" class="view active">
+        <div class="row" style="margin-bottom:12px">
+            <input id="search" type="search" placeholder="Search by order # or customer" style="flex:1;min-width:260px">
+            <select id="statusFilter">
+                <option value="">Status: Dispatched + Packed</option>
+                <option value="Dispatched">Dispatched</option>
+                <option value="Packed">Packed</option>
+            </select>
+            <button class="btn" id="refreshBtn">Refresh</button>
+        </div>
+
+        <div class="card">
+            <table id="ordersTable">
+                <thead>
+                <tr>
+                    <th style="width:120px">Order #</th>
+                    <th>Customer</th>
+                    <th style="width:160px">Date</th>
+                    <th style="width:120px">Total</th>
+                    <th style="width:160px">Courier (last)</th>
+                    <th style="width:140px">Status</th>
+                    <th style="width:80px">Items</th>
+                    <th style="width:170px">Notes</th>
+                </tr>
+                </thead>
+                <tbody><!-- rows injected --></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- VIEW 2: Order detail -->
+    <section id="detailView" class="view">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="row" style="align-items:center">
+                <button class="btn secondary" id="backBtn">← Back</button>
+                <div style="font-weight:700;margin-left:8px" id="detailTitle">Order #—</div>
+            </div>
+            <div class="row">
+                <button class="btn small" id="actionSave">Save Draft</button>
+                <button class="btn small" id="actionLabel">Generate Label</button>
+                <button class="btn small" id="actionPickup">Book Pickup</button>
+                <button class="btn small" id="actionShip">Mark Shipped</button>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="grid cols2" style="margin-bottom:12px">
+            <div class="card" style="padding:12px">
+                <div class="row" style="align-items:center">
+                    <div class="field" style="min-width:200px">
+                        <div class="hint">Customer</div>
+                        <div id="customerName" style="font-weight:600"></div>
+                        <div class="hint" id="customerEmail"></div>
+                        <div class="hint" id="customerPhone"></div>
+                        <div class="hint" id="customerAddress"></div>
+                    </div>
+                    <div class="field">
+                        <div class="hint">Customer Tier</div>
+                        <div id="customerTier" class="pill"></div>
+                    </div>
+                    <div class="field">
+                        <div class="hint">Pincode Avg Delivery</div>
+                        <div id="avgDelivery" class="pill">N/A</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="padding:12px">
+                <div class="row">
+                    <div class="pill" id="orderStatus"></div>
+                    <div class="pill" id="orderGift"></div>
+                    <div class="pill" id="orderNote"></div>
+                    <div class="pill">Items: <b id="orderItems" style="margin-left:6px"></b></div>
+                    <div class="pill">Total: <b id="orderTotal" style="margin-left:6px"></b></div>
+                </div>
+                <div class="row" style="margin-top:10px;align-items:center">
+                    <label class="hint">Ship from warehouse</label>
+                    <select id="warehouse">
+                        <option value="Primary">Primary</option>
+                        <option value="Secondary">Secondary</option>
+                        <option value="Bangalore">Bangalore</option>
+                        <option value="Delhi">Delhi</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Courier options -->
+        <div class="card" style="padding:12px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:6px">All Courier Options (cost + ETA)</div>
+            <table id="courierTable">
+                <thead>
+                <tr>
+                    <th>Courier</th><th>Service</th><th style="width:120px">ETA</th>
+                    <th style="width:110px">Cost</th><th style="width:140px">COD</th><th style="width:120px">Select</th>
+                </tr>
+                </thead>
+                <tbody><!-- injected --></tbody>
+            </table>
+        </div>
+
+        <!-- Line items + split -->
+        <div class="grid cols2" style="margin-bottom:12px">
+            <div class="card" style="padding:12px">
+                <div style="font-weight:600;margin-bottom:6px">Line Items (assign to packages)</div>
+                <div id="lineItems"><!-- injected --></div>
+            </div>
+            <div class="card" style="padding:12px">
+                <div style="font-weight:600;margin-bottom:6px">Split Order</div>
+                <div class="split-columns">
+                    <div class="package">
+                        <h4>Package A</h4>
+                        <div id="pkgA" class="grid"></div>
+                    </div>
+                    <div class="package">
+                        <h4>Package B</h4>
+                        <div id="pkgB" class="grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product media (webcam photos per item) -->
+        <div class="card" style="padding:12px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:6px">Product Images (Webcam Only)</div>
+
+            <div class="cam-wrap">
+                <div>
+                    <video id="camPhoto" playsinline autoplay muted></video>
+                    <canvas id="photoCanvas" hidden></canvas>
+                    <div class="row" style="margin-top:8px">
+                        <button class="btn small" id="startPhotoCam">Start Camera</button>
+                        <button class="btn small" id="stopPhotoCam" disabled>Stop</button>
+                        <div class="control" id="zoomCtlPhoto" hidden>
+                            <span class="hint">Zoom</span>
+                            <input type="range" id="zoomPhoto" min="1" max="1" step="0.1" value="1">
+                        </div>
+                        <div class="control">
+                            <span class="hint">Quality</span>
+                            <select id="photoQuality">
+                                <option value="0.92" selected>High</option>
+                                <option value="0.98">Very High</option>
+                                <option value="0.80">Medium</option>
+                            </select>
+                        </div>
+                        <button class="btn small" id="takePhoto" disabled>Take Photo</button>
+                        <select id="photoTarget" class="btn small" style="background:#fff;color:#111;border:1px solid #E5E7EB">
+                            <!-- per-item options injected -->
+                        </select>
+                    </div>
+                    <div class="hint" id="photoMsg">Use HTTPS/localhost and allow camera.</div>
+                </div>
+
+                <div>
+                    <div class="hint" style="margin-bottom:6px">Captured Photos</div>
+                    <div id="photoGallery" class="thumbs"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Packaging video + dimensions -->
+        <div class="grid cols2" style="margin-bottom:12px">
+            <div class="card" style="padding:12px">
+                <div style="font-weight:600;margin-bottom:6px">Final Packaging — Video Capture</div>
+                <div class="cam-wrap" style="grid-template-columns:360px 1fr">
+                    <div>
+                        <video id="camVideo" playsinline autoplay muted></video>
+                        <div class="row" style="margin-top:8px">
+                            <button class="btn small" id="startVideoCam">Start Camera</button>
+                            <button class="btn small" id="stopVideoCam" disabled>Stop</button>
+                            <button class="btn small" id="recStart" disabled>Start Rec</button>
+                            <button class="btn small" id="recStop" disabled>Stop Rec</button>
+                        </div>
+                        <div class="hint" id="videoMsg">Recording saves as WebM in most browsers.</div>
+                    </div>
+
+                    <div>
+                        <div class="hint" style="margin-bottom:6px">Captured Packaging Videos</div>
+                        <div id="videoGallery" class="thumbs"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="padding:12px">
+                <div style="font-weight:600;margin-bottom:6px">Packaging Dimensions</div>
+                <div class="grid cols4">
+                    <div class="field"><label class="hint">Length (cm)</label><input id="lenCm" type="number" min="0" value="20"></div>
+                    <div class="field"><label class="hint">Width (cm)</label><input id="widCm" type="number" min="0" value="15"></div>
+                    <div class="field"><label class="hint">Height (cm)</label><input id="heiCm" type="number" min="0" value="10"></div>
+                    <div class="field"><label class="hint">Dead wt (kg)</label><input id="deadWt" type="number" step="0.01" min="0" value="0.80"></div>
+                </div>
+                <div class="row" style="margin-top:8px">
+                    <div>Volumetric weight: <b id="volWt">0.60</b> kg</div>
+                    <div class="hint">Vol wt = (L×W×H)/5000</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact & address validations + pincode DB avg -->
+        <div class="card" style="padding:12px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:6px">Contact & Address</div>
+            <div class="grid cols3">
+                <div class="field"><label class="hint">Phone (India)</label><input id="phoneInput" placeholder="10 digits starting 6-9"></div>
+                <div class="field"><label class="hint">Address</label><input id="addressInput" placeholder="Min 9 characters"></div>
+                <div class="field"><label class="hint">Pincode</label><input id="pincodeInput" placeholder="6-digit"></div>
+            </div>
+            <div class="row" style="margin-top:8px">
+                <span id="phoneMsg" class="hint"></span>
+                <span id="addrMsg" class="hint" style="margin-left:16px"></span>
+                <span id="pinMsg" class="hint" style="margin-left:16px"></span>
+                <button class="btn secondary right" id="validateBtn">Validate</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    /* ------------------ Mock Data ------------------ */
+    const ORDERS = [
+      { id:"#100045", status:"Packed", date:"2025-08-10", total:1899, courier:"Delhivery",
+        note:"Please call before delivery", gift:false,
+        customer:{ name:"Deepthi Rao", email:"deepthi@example.com", phone:"+91 9876543210",
+          address:"403, Sunrise Apts, Bandra West, Mumbai 400050", pincode:"400050" },
+        items:[
+          {sku:"ZORO-01", name:"Zoro Figure", qty:1, weight:0.45},
+          {sku:"LUFF-02", name:"Luffy Keychain", qty:2, weight:0.08}
+        ],
+        pastOrders: 2
+      },
+      { id:"#100046", status:"Dispatched", date:"2025-08-11", total:999, courier:"BlueDart",
+        note:"", gift:true,
+        customer:{ name:"Arjun Mehta", email:"arjun@example.com", phone:"+91 9123456789",
+          address:"21, Palm Grove, Pune 411001", pincode:"411001" },
+        items:[ {sku:"KEY-DBZ", name:"DBZ Keychain", qty:3, weight:0.05} ],
+        pastOrders: 6
+      },
+      { id:"#100047", status:"Packed", date:"2025-08-12", total:1299, courier:"Ecom Express",
+        note:"Gift wrap pls", gift:true,
+        customer:{ name:"Priya Iyer", email:"priya@example.com", phone:"+91 9988776655",
+          address:"12, MG Road, Bengaluru 560001", pincode:"560001" },
+        items:[ {sku:"NARU-TEE", name:"Naruto Tee L", qty:1, weight:0.25} ],
+        pastOrders: 1
+      },
+    ];
+
+    const COURIERS = [
+      {name:"BlueDart", service:"Priority", eta:"1-3 days", cost:160, cod:true},
+      {name:"Delhivery", service:"Express", eta:"2-4 days", cost:135, cod:true},
+      {name:"Xpressbees", service:"Surface", eta:"4-7 days", cost:99, cod:false},
+      {name:"Ecom Express", service:"Air", eta:"2-3 days", cost:149, cod:true}
+    ];
+
+    // Mock DB for pincode historical delivery times (days)
+    const PINCODE_HISTORY = { "400050":[2,3,3,2], "411001":[4,5], "560001":[3] };
+
+    /* ------------------ Utility + State ------------------ */
+    const listView = document.getElementById("listView");
+    const detailView = document.getElementById("detailView");
+    const tbody = document.querySelector("#ordersTable tbody");
+    const search = document.getElementById("search");
+    const statusFilter = document.getElementById("statusFilter");
+    document.getElementById("refreshBtn").addEventListener("click", renderList);
+
+    function classifyCustomer(n){
+      if(n<=1) return "New";
+      if(n===2) return "Good (delivered order)";
+      if(n>2 && n<=5) return "Premium";
+      return "Extremely Premium";
+    }
+    function avgDaysForPincode(pin){
+      const arr = PINCODE_HISTORY[pin]||[];
+      if(arr.length < 2) return null;
+      const sum = arr.reduce((a,b)=>a+b,0);
+      return (sum/arr.length).toFixed(1)+" days";
+    }
+
+    /* ------------------ List Screen ------------------ */
+    function renderList(){
+      const q = (search.value||"").toLowerCase();
+      const f = statusFilter.value;
+      const rows = ORDERS
+        .filter(o => ["Dispatched","Packed"].includes(o.status))
+        .filter(o => !f || o.status===f)
+        .filter(o => !q || (o.id+o.customer.name).toLowerCase().includes(q));
+      tbody.innerHTML = rows.map(o => `
+        <tr data-id="${o.id}">
+          <td>${o.id}</td>
+          <td>${o.customer.name}</td>
+          <td>${o.date}</td>
+          <td>Rs ${o.total}</td>
+          <td>${o.courier||"-"}</td>
+          <td><span class="status">${o.status}</span></td>
+          <td>${o.items.reduce((n,i)=>n+i.qty,0)}</td>
+          <td>
+            ${o.gift ? '<span class="tag">Gift</span>' : ''}
+            ${o.note ? '<span class="tag">Note</span>' : ''}
+          </td>
+        </tr>
+      `).join("");
+    }
+    renderList();
+
+    tbody.addEventListener("click", (e)=>{
+      const tr = e.target.closest("tr"); if(!tr) return;
+      const order = ORDERS.find(o=>o.id===tr.dataset.id);
+      openDetail(order);
+    });
+
+    /* ------------------ Detail Screen ------------------ */
+    const detailTitle = document.getElementById("detailTitle");
+    const customerName = document.getElementById("customerName");
+    const customerEmail = document.getElementById("customerEmail");
+    const customerPhone = document.getElementById("customerPhone");
+    const customerAddress = document.getElementById("customerAddress");
+    const customerTier = document.getElementById("customerTier");
+    const orderStatus = document.getElementById("orderStatus");
+    const orderGift = document.getElementById("orderGift");
+    const orderNote = document.getElementById("orderNote");
+    const orderItems = document.getElementById("orderItems");
+    const orderTotal = document.getElementById("orderTotal");
+    const avgDelivery = document.getElementById("avgDelivery");
+    const courierTbody = document.querySelector("#courierTable tbody");
+    const lineItemsDiv = document.getElementById("lineItems");
+    const pkgA = document.getElementById("pkgA");
+    const pkgB = document.getElementById("pkgB");
+    const warehouse = document.getElementById("warehouse");
+
+    document.getElementById("backBtn").addEventListener("click", ()=>{
+      detailView.classList.remove("active");
+      listView.classList.add("active");
+    });
+
+    function openDetail(o){
+      listView.classList.remove("active");
+      detailView.classList.add("active");
+      detailTitle.textContent = `${o.id} — ${o.customer.name}`;
+      customerName.textContent = o.customer.name;
+      customerEmail.textContent = o.customer.email;
+      customerPhone.textContent = o.customer.phone;
+      customerAddress.textContent = `${o.customer.address} (Pin: ${o.customer.pincode})`;
+      customerTier.textContent = classifyCustomer(o.pastOrders);
+      orderStatus.textContent = o.status;
+      orderGift.textContent = o.gift ? "Gift wrap: Yes" : "Gift wrap: No";
+      orderNote.textContent = o.note ? "Note present" : "No note";
+      orderItems.textContent = o.items.reduce((n,i)=>n+i.qty,0);
+      orderTotal.textContent = `Rs ${o.total}`;
+      avgDelivery.textContent = avgDaysForPincode(o.customer.pincode) || "N/A";
+
+      // Courier options
+      courierTbody.innerHTML = COURIERS.map(c=>`
+        <tr>
+          <td>${c.name}</td><td>${c.service}</td><td>${c.eta}</td>
+          <td>Rs ${c.cost}</td><td>${c.cod ? "Yes" : "No"}</td>
+          <td><button class="btn small" onclick="selectCourier('${c.name}','${c.service}',${c.cost})">Select</button></td>
+        </tr>
+      `).join("");
+
+      // Line items + assignments
+      lineItemsDiv.innerHTML = o.items.map(it=>`
+        <div class="row" style="align-items:center;border:1px solid #E5E7EB;border-radius:10px;padding:8px">
+          <div style="flex:1">
+            <div style="font-weight:600">${it.name}</div>
+            <div class="hint">SKU: ${it.sku} • Qty: ${it.qty} • ${it.weight} kg</div>
+          </div>
+          <select data-sku="${it.sku}" class="assignSel">
+            <option value="A">Pkg A</option>
+            <option value="B">Pkg B</option>
+          </select>
+        </div>
+      `).join("");
+      pkgA.innerHTML = ""; pkgB.innerHTML = ""; detailUpdatePackages();
+
+      // Prefill validations
+      document.getElementById("phoneInput").value   = o.customer.phone.replace(/^\+91\s?/, '').replace(/\D/g,'').slice(-10);
+      document.getElementById("addressInput").value = o.customer.address;
+      document.getElementById("pincodeInput").value = o.customer.pincode;
+
+      // Populate photo target dropdown with item names
+      const photoTarget = document.getElementById("photoTarget");
+      photoTarget.innerHTML = o.items.map(it=>`<option value="item:${it.sku}">Item: ${it.name}</option>`).join("") + `<option value="item:OTHER">Item: Other</option>`;
+    }
+
+    /* split */
+    function detailUpdatePackages(){
+      const assigns = [...document.querySelectorAll(".assignSel")].map(sel => ({
+        sku: sel.dataset.sku, to: sel.value,
+        name: sel.closest(".row").querySelector("div[style*='font-weight:600']").textContent
+      }));
+      pkgA.innerHTML = assigns.filter(a=>a.to==="A").map(a=>`<div class="pill">• ${a.name}</div>`).join("") || '<div class="hint">No items in A</div>';
+      pkgB.innerHTML = assigns.filter(a=>a.to==="B").map(a=>`<div class="pill">• ${a.name}</div>`).join("") || '<div class="hint">No items in B</div>';
+    }
+    document.addEventListener("change",(e)=>{ if(e.target.matches(".assignSel")) detailUpdatePackages(); });
+
+    /* courier select */
+    function selectCourier(name, svc, cost){ alert(`Selected: ${name} – ${svc} (Rs ${cost})`); }
+
+    /* packaging calc */
+    ["lenCm","widCm","heiCm"].forEach(id=>document.getElementById(id).addEventListener("input", ()=>{
+      const L=+document.getElementById("lenCm").value||0;
+      const W=+document.getElementById("widCm").value||0;
+      const H=+document.getElementById("heiCm").value||0;
+      document.getElementById("volWt").textContent = ((L*W*H)/5000).toFixed(2);
+    }));
+
+    /* validations */
+    const phoneInput = document.getElementById("phoneInput");
+    const addressInput = document.getElementById("addressInput");
+    const pincodeInput = document.getElementById("pincodeInput");
+    const phoneMsg = document.getElementById("phoneMsg");
+    const addrMsg = document.getElementById("addrMsg");
+    const pinMsg = document.getElementById("pinMsg");
+    document.getElementById("validateBtn").addEventListener("click", runValidations);
+    function validPhone10India(v){ return /^[6-9]\d{9}$/.test(v); }
+    function validAddress(v){ return (v||"").replace(/\s/g,"").length > 8; }
+    function validPincode(v){ return /^\d{6}$/.test(v); }
+    function runValidations(){
+      const ph = phoneInput.value.trim(), ad = addressInput.value.trim(), pc = pincodeInput.value.trim();
+      phoneMsg.textContent = validPhone10India(ph) ? "Phone OK" : "Invalid Indian mobile (10 digits, starts 6-9)";
+      phoneMsg.className = validPhone10India(ph) ? "ok" : "error";
+      addrMsg.textContent = validAddress(ad) ? "Address OK" : "Address must be > 8 characters";
+      addrMsg.className = validAddress(ad) ? "ok" : "error";
+      pinMsg.textContent = validPincode(pc) ? "Pincode OK" : "Invalid pincode (6 digits)";
+      pinMsg.className = validPincode(pc) ? "ok" : "error";
+      // mock DB avg
+      document.getElementById("avgDelivery").textContent = avgDaysForPincode(pc) || "N/A";
+    }
+
+    /* ------------------ Webcam: Product Photos (high-res + zoom) ------------------ */
+    const videoPhoto = document.getElementById("camPhoto");
+    const photoCanvas = document.getElementById("photoCanvas");
+    const startPhotoCam = document.getElementById("startPhotoCam");
+    const stopPhotoCam = document.getElementById("stopPhotoCam");
+    const zoomCtlPhoto = document.getElementById("zoomCtlPhoto");
+    const zoomPhoto = document.getElementById("zoomPhoto");
+    const takePhotoBtn = document.getElementById("takePhoto");
+    const photoMsg = document.getElementById("photoMsg");
+    const photoGallery = document.getElementById("photoGallery");
+    const photoTargetSel = document.getElementById("photoTarget");
+
+    let photoStream=null, photoTrack=null;
+    const PHOTO_CAPTURES=[]; // {blob,url,target}
+
+    startPhotoCam.addEventListener("click", async ()=>{
+      try{
+        if (photoStream) photoStream.getTracks().forEach(t=>t.stop());
+        photoStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width:  { ideal: 4032 },
+            height: { ideal: 3024 },
+            focusMode: "continuous",
+            facingMode: { ideal: "environment" }
+          },
+          audio: false
+        });
+        videoPhoto.srcObject = photoStream;
+        photoTrack = photoStream.getVideoTracks()[0];
+        takePhotoBtn.disabled = false;
+        stopPhotoCam.disabled = true; // enable after track established a bit
+        stopPhotoCam.disabled = false;
+        startPhotoCam.disabled = true;
+        // zoom support
+        const caps = photoTrack.getCapabilities ? photoTrack.getCapabilities() : {};
+        if (caps.zoom){
+          zoomPhoto.min = caps.zoom.min || 1;
+          zoomPhoto.max = caps.zoom.max || 1;
+          zoomPhoto.step = caps.zoom.step || 0.1;
+          zoomPhoto.value = photoTrack.getSettings().zoom || zoomPhoto.min;
+          zoomCtlPhoto.hidden = false;
+        } else {
+          zoomCtlPhoto.hidden = true;
+        }
+        photoMsg.textContent = "Camera started.";
+        photoMsg.style.color = "#065F46";
+      }catch(e){
+        photoMsg.textContent = "Camera error: "+e.message+" (use HTTPS/localhost and allow permissions)";
+        photoMsg.style.color = "#B91C1C";
+      }
+    });
+
+    stopPhotoCam.addEventListener("click", ()=>{
+      if (photoStream) photoStream.getTracks().forEach(t=>t.stop());
+      videoPhoto.srcObject = null; photoStream=null; photoTrack=null;
+      takePhotoBtn.disabled = true; startPhotoCam.disabled = false; stopPhotoCam.disabled = true;
+    });
+
+    zoomPhoto.addEventListener("input", async ()=>{
+      if (!photoTrack) return;
+      try{ await photoTrack.applyConstraints({ advanced:[{ zoom: parseFloat(zoomPhoto.value) }] }); }catch(e){}
+    });
+
+    takePhotoBtn.addEventListener("click", ()=>{
+      if (!photoTrack) return;
+      const s = photoTrack.getSettings ? photoTrack.getSettings() : {};
+      const w = s.width || 1920, h = s.height || 1080;
+      photoCanvas.width = w; photoCanvas.height = h;
+      const ctx = photoCanvas.getContext("2d", { alpha:false });
+      ctx.drawImage(videoPhoto, 0, 0, w, h);
+      const q = parseFloat(document.getElementById("photoQuality").value || "0.92");
+      photoCanvas.toBlob(blob=>{
+        if(!blob) return;
+        const url = URL.createObjectURL(blob);
+        const target = photoTargetSel.value;
+        PHOTO_CAPTURES.push({blob, url, target});
+        renderPhotoThumbs();
+      }, "image/jpeg", q);
+    });
+
+    function renderPhotoThumbs(){
+      photoGallery.innerHTML = "";
+      PHOTO_CAPTURES.forEach((c, idx)=>{
+        const wrap = document.createElement("div");
+        wrap.style.display="grid"; wrap.style.gap="4px";
+        const cell = document.createElement("div"); cell.className="thumb";
+        const img = document.createElement("img"); img.src=c.url; cell.appendChild(img);
+        const rm = document.createElement("div"); rm.className="rm"; rm.textContent="×";
+        rm.onclick=()=>{ URL.revokeObjectURL(c.url); PHOTO_CAPTURES.splice(idx,1); renderPhotoThumbs(); };
+        cell.appendChild(rm);
+        const note = document.createElement("div"); note.className="cap-note";
+        note.textContent = c.target.startsWith("item:") ? c.target.replace("item:","Item: ") : "Packaging";
+        wrap.appendChild(cell); wrap.appendChild(note); photoGallery.appendChild(wrap);
+      });
+    }
+
+    /* ------------------ Webcam: Packaging Video Recorder ------------------ */
+    const camVideo = document.getElementById("camVideo");
+    const startVideoCam = document.getElementById("startVideoCam");
+    const stopVideoCam  = document.getElementById("stopVideoCam");
+    const recStart      = document.getElementById("recStart");
+    const recStop       = document.getElementById("recStop");
+    const videoMsg      = document.getElementById("videoMsg");
+    const videoGallery  = document.getElementById("videoGallery");
+
+    let vidStream=null, vidRecorder=null, vidChunks=[];
+    const VIDEO_CAPTURES=[]; // {blob,url,target:"packaging"}
+
+    startVideoCam.addEventListener("click", async ()=>{
+      try{
+        if (vidStream) vidStream.getTracks().forEach(t=>t.stop());
+        vidStream = await navigator.mediaDevices.getUserMedia({
+          video: { width:{ideal:1920}, height:{ideal:1080}, facingMode:{ideal:"environment"} }, audio:false
+        });
+        camVideo.srcObject = vidStream;
+        startVideoCam.disabled = true; stopVideoCam.disabled = false; recStart.disabled=false; recStop.disabled=true;
+        videoMsg.textContent = "Video camera ready.";
+        videoMsg.style.color = "#065F46";
+      }catch(e){
+        videoMsg.textContent = "Camera error: "+e.message; videoMsg.style.color = "#B91C1C";
+      }
+    });
+    stopVideoCam.addEventListener("click", ()=>{
+      if (vidStream) vidStream.getTracks().forEach(t=>t.stop());
+      camVideo.srcObject = null; vidStream=null;
+      startVideoCam.disabled = false; stopVideoCam.disabled = true; recStart.disabled=true; recStop.disabled=true;
+    });
+
+    recStart.addEventListener("click", ()=>{
+      if (!vidStream) return;
+      vidChunks=[];
+      const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" :
+                   (MediaRecorder.isTypeSupported("video/webm;codecs=vp8") ? "video/webm;codecs=vp8" : "video/webm");
+      vidRecorder = new MediaRecorder(vidStream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+      vidRecorder.ondataavailable = e => { if (e.data && e.data.size) vidChunks.push(e.data); };
+      vidRecorder.onstop = ()=>{
+        const blob = new Blob(vidChunks, { type: vidRecorder.mimeType || "video/webm" });
+        const url = URL.createObjectURL(blob);
+        VIDEO_CAPTURES.push({ blob, url, target:"packaging" });
+        renderVideoThumbs();
+      };
+      vidRecorder.start();
+      recStart.disabled=true; recStop.disabled=false; videoMsg.textContent="Recording… click Stop Rec";
+    });
+    recStop.addEventListener("click", ()=>{
+      if (vidRecorder && vidRecorder.state!=="inactive") vidRecorder.stop();
+      recStart.disabled=false; recStop.disabled=true;
+    });
+    function renderVideoThumbs(){
+      videoGallery.innerHTML = "";
+      VIDEO_CAPTURES.forEach((v, idx)=>{
+        const wrap = document.createElement("div"); wrap.style.display="grid"; wrap.style.gap="4px";
+        const cell = document.createElement("div"); cell.className="thumb";
+        const vid = document.createElement("video"); vid.src=v.url; vid.controls=true; vid.muted=true;
+        cell.appendChild(vid);
+        const rm = document.createElement("div"); rm.className="rm"; rm.textContent="×";
+        rm.onclick=()=>{ URL.revokeObjectURL(v.url); VIDEO_CAPTURES.splice(idx,1); renderVideoThumbs(); };
+        cell.appendChild(rm);
+        const note = document.createElement("div"); note.className="cap-note"; note.textContent="Packaging";
+        wrap.appendChild(cell); wrap.appendChild(note); videoGallery.appendChild(wrap);
+      });
+    }
+
+    /* ------------------ Actions (mock) ------------------ */
+    ["actionSave","actionLabel","actionPickup","actionShip"].forEach(id=>{
+      document.getElementById(id).addEventListener("click", ()=>{
+        const photos = PHOTO_CAPTURES.map(({target,blob})=>({target, size: blob.size}));
+        const videos = VIDEO_CAPTURES.map(({target,blob})=>({target, size: blob.size}));
+        alert(`${id.replace('action','Action: ')}\nPhotos: ${photos.length}\nVideos: ${videos.length}`);
+        // TODO: upload via multipart/form-data to your backend, grouped by target
+      });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .btn-box {
+            width: 100%;
+            height: 150px;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
+    <button id="homeButton" onclick="goBack()" style="position: fixed; top: 10px; left: 60px;background-color:#28a745;color:#ffff">Home</button>
+</div>
+
+<div class="container">
+    <h1 class="text-center my-4">Inventory Management</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <a href="/v1/inventory/productNotListed"
+               class="btn btn-primary btn-box d-flex align-items-center justify-content-center">Product Not Listed</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/update"
+               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Update Quantity</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/checkProductLocation"
+               class="btn btn-success btn-box d-flex align-items-center justify-content-center">Check Product
+                Location</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/shiftProductLocation"
+               class="btn btn-info btn-box d-flex align-items-center justify-content-center">Shift Product Location</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/printBarcode"
+               class="btn btn-warning btn-box d-flex align-items-center justify-content-center">Print Barcode</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/verifyBarcode"
+               class="btn btn-danger btn-box d-flex align-items-center justify-content-center">Verify Barcode</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/productImageVerification"
+               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Product Image
+                Verification</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/uploadShopifyInventory"
+               class="btn btn-box d-flex align-items-center justify-content-center" style="background:brown;color:white;">Upload Shopify Inventory</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/exportInventory"
+               class="btn btn-box d-flex align-items-center justify-content-center" style="background:brown;color:white;">Export Inventory</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inbound"
+               class="btn btn-box d-flex align-items-center justify-content-center" style="background:purple;color:white;">Inbound Inventory</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inbound/inboundreport"
+               class="btn btn-box d-flex align-items-center justify-content-center" style="background:orange;color:white;">Inbound Report</a>
+        </div>
+
+
+    </div>
+</div>
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+</body>
+
+</html>

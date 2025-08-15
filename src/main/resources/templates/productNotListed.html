@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Not Listed</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 10px;
+        }
+        input[type="text"],
+        input[type="file"],
+        input[type="number"],
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .gallery img {
+            max-height: 100px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #typeField {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .submit-button-div {
+            margin-top: 20px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div>
+    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
+    <button id="homeButton" onclick="goBack()" style="position: fixed; top: 10px; left: 60px;background-color:#28a745;color:#ffff">Home</button>
+</div>
+
+<div class="container">
+    <h1>Product Not Listed</h1>
+    <form th:action="@{/v1/inventory/notListed}" method="post" enctype="multipart/form-data">
+        <div>
+            <label for="productName">Product Name:</label>
+            <input type="text" id="productName" name="productName" required>
+        </div>
+        <div>
+            <label for="location">Storage:</label>
+            <input type="text" id="location" name="location" required>
+        </div>
+        <div>
+            <label for="quantity">Quantity:</label>
+            <input type="number" id ="quantity" name="quantity" required>
+        </div>
+        <div>
+            <label for="inboundDate">Inbound Date:</label>
+            <input type="date" id="inboundDate" name="inboundDate" required>
+        </div>
+        <div>
+            <label for="isElectronics">Is Electronics:</label>
+            <input type="checkbox" id="isElectronics" name="isElectronics" onchange="toggleTypeField()">
+        </div>
+
+        <div id="typeField" style="display: none;">
+            <label for="type">Type:</label>
+            <select id="type" name="type">
+
+                <option value="cell">Cell Operated</option>
+                <option value="battery">Battery Operated</option>
+                <option value="power">Power Operated</option>
+                <option value="usb">USB Operated</option>
+                <option value="others">Others</option>
+            </select>
+        </div>
+        <div>
+            <label for="images">Upload Images:</label>
+            <input type="file" id="images" name="images" accept="image/*" multiple required onchange="previewImages()">
+        </div>
+        <div class="gallery" id="gallery"></div>
+
+        <div class="submit-button-div">
+            <button type="submit">Submit</button>
+        </div>
+    </form>
+</div>
+<script>
+    function previewImages() {
+        var gallery = document.getElementById('gallery');
+        gallery.innerHTML = '';
+        var files = document.getElementById('images').files;
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = document.createElement('img');
+                img.src = e.target.result;
+                gallery.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+
+    function toggleTypeField() {
+        var isElectronics = document.getElementById('isElectronics').checked;
+        var typeField = document.getElementById('typeField');
+        if(isElectronics){
+            typeField.style.display = 'block';
+        } else {
+            typeField.style.display = 'none';
+        }
+    }
+    function goBack() {
+        window.history.back();
+    }
+</script>
+</body>
+</html>

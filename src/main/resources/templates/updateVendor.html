@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Details</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .list-group-item {
+            cursor: pointer;
+        }
+        .table-container {
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Search Vendor</h2>
+    <div class="form-group">
+        <label for="vendorName">Vendor Name</label>
+        <input type="text" class="form-control" id="vendorName" placeholder="Enter vendor name" oninput="debounceFetchVendor()">
+        <ul class="list-group" id="vendorDropdown" style="display: none;"></ul>
+    </div>
+
+    <div id="vendorDetails" style="display: none; margin-top: 2rem;">
+        <h4>Vendor Details</h4>
+        <p><strong>Vendor Name:</strong> <span id="vendorNameDetail"></span></p>
+        <p><strong>Outstanding Balance:</strong> <span id="outstandingBalance"></span></p>
+        <p><strong>Outstanding Balance On:</strong> <span id="outstandingBalanceDate"></span></p>
+    </div>
+
+    <div class="table-container">
+        <h4>Inbound Details</h4>
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>Inbound ID</th>
+                <th>Inbound Date</th>
+                <th>No. of Cartons</th>
+                <th>Status</th>
+                <th>Bill Amount</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody id="inboundTableBody">
+            <!-- Data will be dynamically populated -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Update Balance Modal -->
+<div class="modal" id="updateBalanceModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Balance</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeModal()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="updateBalanceForm">
+                    <div class="form-group">
+                        <label for="updatedBalance">Updated Balance</label>
+                        <input type="number" class="form-control" id="updatedBalance" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="updatedBalanceDate">Updated Balance On</label>
+                        <input type="date" class="form-control" id="updatedBalanceDate" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="submitUpdateBalance()">Save</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Purchase Amount Modal -->
+<div class="modal" id="updatePurchaseAmountModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Purchase Amount</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closePurchaseAmountModal()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="updatePurchaseAmountForm">
+                    <div class="form-group">
+                        <label for="inboundId">Updated Purchase Amount</label>
+                        <input type="number" class="form-control" id="inboundId" required disabled>
+                        <label for="updatedPurchaseAmount">Updated Purchase Amount</label>
+                        <input type="number" class="form-control" id="updatedPurchaseAmount" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="submitUpdatePurchaseAmount()">OK</button>
+                <button type="button" class="btn btn-secondary" onclick="closePurchaseAmountModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let debounceTimer;
+
+    function debounceFetchVendor() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchVendorDetails, 500); // 500ms delay
+    }
+
+    function fetchVendorDetails() {
+        const vendorName = document.getElementById('vendorName').value.trim();
+        if (vendorName.length < 3) return;
+
+        const vendorDropdown = document.getElementById('vendorDropdown');
+        vendorDropdown.style.display = 'none';
+        vendorDropdown.innerHTML = '';
+
+        fetch('/v1/vendor/search/' + vendorName)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    data.forEach(vendor => {
+                        const item = document.createElement('a');
+                        item.classList.add('list-group-item', 'list-group-item-action');
+                        item.textContent = vendor.vendorName;
+                        item.onclick = () => selectVendor(vendor);
+                        vendorDropdown.appendChild(item);
+                    });
+                    vendorDropdown.style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Error fetching vendor details:', error));
+    }
+
+    function selectVendor(vendor) {
+        document.getElementById('vendorName').value = vendor.vendorName;
+        document.getElementById('vendorDropdown').style.display = 'none';
+
+        document.getElementById('vendorDetails').style.display = 'block';
+        document.getElementById('vendorNameDetail').textContent = vendor.vendorName;
+        document.getElementById('outstandingBalance').textContent = vendor.outstandingBalance;
+        document.getElementById('outstandingBalanceDate').textContent = vendor.outstandingBalanceDate;
+
+        fetchInboundDetails(vendor.vendorName);
+    }
+
+    function fetchInboundDetails(vendorName) {
+        fetch('/v1/inbound/getInboundData/' + vendorName)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('inboundTableBody');
+                tableBody.innerHTML = '';
+
+                if (data && data.length > 0) {
+                    data.forEach(inbound => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td id='${inbound.id}'>${inbound.id}</td>
+                            <td>${inbound.receivedDate}</td>
+                            <td>${inbound.numberOfBoxes}</td>
+                            <td>${inbound.status}</td>
+                               <td>${inbound.totalPurchaseAmount}</td>
+                            <td><button class="btn btn-primary btn-sm" onclick="openUpdatePurchaseAmount(${inbound.id})">Update PA</button></td>
+                            <td><button class="btn btn-primary btn-sm" onclick="openUpdatePurchaseAmount(${inbound.id})">Close Order</button></td>
+
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => console.error('Error fetching inbound details:', error));
+    }
+
+    function openUpdateBalanceModal() {
+        document.getElementById('updateBalanceModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('updateBalanceModal').style.display = 'none';
+    }
+
+    function submitUpdateBalance() {
+        const updatedBalance = document.getElementById('updatedBalance').value;
+        const updatedBalanceDate = document.getElementById('updatedBalanceDate').value;
+
+        if (!updatedBalance || !updatedBalanceDate) {
+            alert('Please fill all fields.');
+            return;
+        }
+
+        const data = { updatedBalance, updatedBalanceDate };
+
+        fetch('/v1/vendor/updateBalance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to update balance');
+            alert('Balance updated successfully');
+            closeModal();
+        })
+        .catch(error => console.error('Error updating balance:', error));
+    }
+
+    function openUpdatePurchaseAmount(inboundId) {
+        document.getElementById('updatePurchaseAmountModal').style.display = 'block';
+        document.getElementById('inboundId').value = inboundId; // Set the inbound ID in the modal
+    }
+
+     function closePurchaseAmountModal() {
+        document.getElementById('updatePurchaseAmountModal').style.display = 'none';
+    }
+
+    function submitUpdatePurchaseAmount() {
+    const updatedPurchaseAmount = document.getElementById('updatedPurchaseAmount').value;
+    const inboundId = document.getElementById('inboundId').value; // Assuming there's an input field for inboundId
+
+    if (!updatedPurchaseAmount || !inboundId) {
+        alert('Please enter the updated purchase amount and inbound ID.');
+        return;
+    }
+
+    const data = {
+        inboundId: inboundId,
+        purchaseAmount: updatedPurchaseAmount
+    };
+
+    fetch('/v1/inbound/updatePurchaseAmount', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to update purchase amount');
+        alert('Purchase amount updated successfully');
+        closePurchaseAmountModal();
+    })
+    .catch(error => console.error('Error updating purchase amount:', error));
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Upload CSV</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .container {
+            margin-top: 50px;
+        }
+        .btn-upload {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .btn-upload:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
+    <button id="homeButton" onclick="goBack()" style="position: fixed; top: 10px; left: 60px;background-color:#28a745;color:#ffff">Home</button>
+</div>
+
+<div class="container">
+    <h1 class="text-center my-4">Upload CSV File</h1>
+    <form id="uploadForm" action="/v1/report/uploadJSONL" method="post" enctype="multipart/form-data" onsubmit="return validateFile()">
+        <div class="form-group">
+            <label for="fileInput">Choose CSV file</label>
+            <input type="file" class="form-control" id="fileInput" name="file" accept=".jsonl">
+        </div>
+        <button type="submit" class="btn btn-upload">Upload</button>
+    </form>
+</div>
+<script>
+    function validateFile() {
+        const fileInput = document.getElementById('fileInput');
+        const filePath = fileInput.value;
+        const allowedExtensions = /(\.jsonl)$/i;
+        if (!allowedExtensions.exec(filePath)) {
+            alert('Please upload a file with .jsonl extension.');
+            fileInput.value = '';
+            return false;
+        }
+        return true;
+    }
+    function goBack() {
+        window.history.back(); // Navigate to the previous page
+    }
+</script>
+</body>
+</html>

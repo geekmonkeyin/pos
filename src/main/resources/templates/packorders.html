@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Scan Order</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            padding: 1rem;
+            margin: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        input, button {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .scan-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .scan-group input {
+            flex: 1;
+        }
+        .icon-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-button::before {
+            content: "\1F50D"; /* Unicode for magnifying glass */
+            margin-right: 0.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .button-group button {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .verified { background-color: #28a745; color: #fff; }
+        .reverse { background-color: #ffc107; color: #000; }
+        .cancelled { background-color: #dc3545; color: #fff; }
+        .changeawb { background-color: #17a2b8; color: #fff; }
+        @media (max-width: 600px) {
+            .icon-button {
+                font-size: 1rem;
+                padding: 0.5rem;
+            }
+            img {
+                width: 90px;
+                height: 90px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Scan Order</h2>
+    <div class="scan-group">
+        <input type="text" id="awbInput" placeholder="Scan AWB" onfocus="Android.performScan()" />
+        <button class="icon-button" onclick="scanProduct()">Scan</button>
+    </div>
+    <div>
+        <label>Order ID:</label>
+        <input type="text" id="orderId" readonly />
+    </div>
+    <div id="productTable"></div>
+    <div class="button-group">
+        <button class="verified">✔ Verified</button>
+        <button class="reverse">↩ Reverse</button>
+        <button class="cancelled">✖ Cancelled</button>
+        <button class="changeawb">🔁 Change AWB</button>
+    </div>
+</div>
+
+<script>
+    function scanProduct() {
+        if (typeof Android !== "undefined" && Android.performProductScan) {
+            Android.performProductScan();
+        }
+    }
+
+    function fetchOrderByAwb(awb) {
+        fetch(`/v1/order/packorder/getOrderByAwb/`+awb)
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.orderId) return;
+                document.getElementById("orderId").value = data.orderId;
+                renderProducts(data);
+            })
+            .catch(err => console.error("Error fetching order by AWB:", err));
+    }
+
+    document.getElementById("awbInput").addEventListener("change", function() {
+        const awb = this.value;
+         if (!awb) {
+                alert("AWB is required. Please scan or enter AWB.");
+                 return;
+         }
+        fetchOrderByAwb(awb);
+    });
+
+    function renderProducts(data) {
+        const table = document.getElementById("productTable");
+        if (!data.packedProducts || !data.actualProducts) {
+            table.innerHTML = "<p>No product details available.</p>";
+            return;
+        }
+
+        let html = '<h3>Product Comparison</h3>';
+        html += '<table><thead><tr><th>Packed Product</th><th>Actual Product</th></tr></thead><tbody>';
+
+        const maxLength = Math.max(data.packedProducts.length, data.actualProducts.length);
+        for (let i = 0; i < maxLength; i++) {
+            const packed = data.packedProducts[i] || {};
+            const actual = data.actualProducts[i] || {};
+
+            html += `<tr>
+                        <td><img src="${packed.imageUrl || ''}" alt="Packed" /></td>
+                        <td><img src="${actual.imageUrl || ''}" alt="Actual" /></td>
+                    </tr>`;
+        }
+
+        html += '</tbody></table>';
+        table.innerHTML = html;
+    }
+</script>
+</body>
+</html>

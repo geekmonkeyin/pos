@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Order History</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+        th {
+            background-color: #343a40;
+            color: #ffffff;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back and Home Buttons -->
+    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
+    <button id="homeButton" onclick="goHome()" style="position: fixed; top: 10px; left: 80px;">Home</button>
+
+    <div class="container">
+        <h2 class="text-center my-4">Order History</h2>
+
+        <!-- Search Order -->
+        <div class="form-group">
+            <label for="searchOrder">Search Order ID:</label>
+            <input type="text" id="searchOrder" class="form-control" placeholder="Enter order ID">
+            <div id="spinner" style="display: none;">Loading...</div>
+        </div>
+
+        <!-- Order Details -->
+        <div id="orderDetails" style="display: none;">
+            <h4>Order Details</h4>
+            <p><strong>Order ID:</strong> <span id="orderId"></span></p>
+            <p><strong>Customer Phone:</strong> <span id="customerPhone"></span></p>
+            <p><strong>Last Updated:</strong> <span id="lastUpdated"></span></p>
+            <p><strong>Next Update:</strong> <span id="nextUpdate"></span></p>
+            <p><strong>Next Status:</strong> <span id="nextStatus"></span></p>
+
+            <!-- Event History -->
+            <h4>Event History</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Status</th>
+                        <th>Sent At</th>
+                    </tr>
+                </thead>
+                <tbody id="eventHistory"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const backButton = document.getElementById('backButton');
+            const homeButton = document.getElementById('homeButton');
+            if (window.location.pathname === '/home' || window.location.pathname === '/') {
+                backButton.style.display = 'none'; // Hide back button on the home page
+            }
+
+            document.getElementById('searchOrder').addEventListener('input', function () {
+                const query = this.value.trim();
+                if (!query) {
+                    document.getElementById('orderDetails').style.display = 'none';
+                    return;
+                }
+
+                enableSpinner(true);
+                fetch(`/v1/report/notificationbyorderid/`+query)
+                    .then(response => response.json())
+                    .then(data => {
+                        displayOrderDetails(data);
+                        enableSpinner(false);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        enableSpinner(false);
+                    });
+            });
+        });
+
+        function displayOrderDetails(order) {
+            document.getElementById('orderDetails').style.display = 'block';
+            document.getElementById('orderId').textContent = order._id;
+            document.getElementById('customerPhone').textContent = order.customerPhone;
+            document.getElementById('lastUpdated').textContent = new Date(order.lastUpdated.$date).toLocaleString();
+            document.getElementById('nextUpdate').textContent = order.nextUpdate;
+            document.getElementById('nextStatus').textContent = order.nextStatus;
+
+            const eventHistory = document.getElementById('eventHistory');
+            eventHistory.innerHTML = '';
+            for (const [event, details] of Object.entries(order.events)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${event}</td>
+                    <td>${details.status}</td>
+                    <td>${new Date(details.sentAt).toLocaleString()}</td>
+                `;
+                eventHistory.appendChild(row);
+            }
+        }
+
+        function enableSpinner(enable) {
+            document.getElementById('spinner').style.display = enable ? 'block' : 'none';
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        function goHome() {
+            window.location.href = '/home';
+        }
+    </script>
+</body>
+</html>

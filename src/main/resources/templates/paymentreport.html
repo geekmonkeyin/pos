@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" th:href="@{../../assets/css/spinner.css}">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <title>Upload Payment</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            color: #333;
+        }
+
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #f9f9f9;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+            outline: none;
+        }
+
+        .form-group input[type="file"] {
+            padding: 5px;
+        }
+
+        .form-group button {
+            width: 100%;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .form-group button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .form-group button:active {
+            background-color: #1c598a;
+            transform: translateY(0);
+        }
+
+        .form-group input[type="file"]::file-selector-button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-group input[type="file"]::file-selector-button:hover {
+            background-color: #2980b9;
+        }
+
+        .form-group input[type="file"]::file-selector-button:active {
+            background-color: #1c598a;
+        }
+
+        .form-container h2 {
+            font-size: 26px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .form-container {
+                padding: 20px;
+            }
+
+            .form-group button {
+                font-size: 14px;
+            }
+        }
+
+        /* Additional styling for dropdown */
+        #vendorDropdown {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            font-size: 14px;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        #vendorDropdown:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+<div class="form-container">
+    <h2>Upload Payment</h2>
+    <form action="/v1/uploadPayment" enctype="multipart/form-data" method="POST">
+        <div class="form-group">
+            <label for="screenshot">Upload Screenshot</label>
+            <input accept="image/*" id="screenshot" name="screenshot" required type="file">
+        </div>
+        <div class="form-group">
+            <label for="paymentTo">Payment To</label>
+            <input id="paymentTo" name="paymentTo" placeholder="Enter payment recipient" required type="text">
+        </div>
+        <div class="form-group">
+            <label for="vendorName">Vendor Name</label>
+            <input id="vendorName" name="vendorName" oninput="debounceFetchVendor()" placeholder="Enter vendor name" required type="text">
+            <ul class="list-group" id="vendorDropdown" style="display: none;"></ul>
+        </div>
+        <div id="vendorSpinner" style="display: none; text-align: center; margin-top: 10px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="amount">Amount</label>
+            <input id="amount" name="amount" placeholder="Enter amount" required type="number">
+        </div>
+        <div class="form-group">
+            <label for="date">Date</label>
+            <input id="date" name="date" required type="date" value="<?= date('Y-m-d') ?>">
+        </div>
+        <div class="form-group">
+            <label for="whatsappNumber">WhatsApp Number</label>
+            <input id="whatsappNumber" name="whatsappNumber" placeholder="Enter WhatsApp number" required type="tel">
+        </div>
+        <div class="form-group">
+            <label for="remarks">Remarks</label>
+            <input id="remarks" name="remarks" placeholder="Enter Remarks" required type="tel">
+        </div>
+        <div class="form-group">
+            <button type="submit">Submit</button>
+        </div>
+    </form>
+</div>
+<script>
+let debounceTimer;
+
+function debounceFetchVendor() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(fetchVendorDetails, 2000); // 2-second delay
+}
+
+function fetchVendorDetails() {
+    const vendorNameInput = document.getElementById('vendorName');
+    const vendorName = vendorNameInput.value.trim();
+
+    if (vendorName.length < 3) return; // Minimum 3 characters required
+
+    const vendorDropdown = document.getElementById('vendorDropdown');
+    const vendorSpinner = document.getElementById('vendorSpinner');
+
+    // Show progress bar
+    vendorSpinner.style.display = 'block';
+
+    fetch('/v1/vendor/search/' + vendorName)
+        .then(response => response.json())
+        .then(data => {
+            vendorDropdown.innerHTML = ''; // Clear previous results
+            vendorSpinner.style.display = 'none'; // Hide progress bar
+
+            if (data && data.length > 0) {
+                data.forEach(vendor => {
+                    const item = document.createElement('a');
+                    item.classList.add('list-group-item', 'list-group-item-action');
+                    item.textContent = vendor.vendorName;
+                    item.onclick = () => selectVendor(vendor);
+                    vendorDropdown.appendChild(item);
+                });
+                vendorDropdown.style.display = 'block'; // Show dropdown
+            } else {
+                vendorDropdown.style.display = 'none'; // Hide dropdown if no results
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching vendor details:', error);
+            vendorSpinner.style.display = 'none'; // Hide progress bar on error
+        });
+}
+
+function selectVendor(vendor) {
+    const vendorNameInput = document.getElementById('vendorName');
+    const whatsappNumberInput = document.getElementById('whatsappNumber');
+    const vendorDropdown = document.getElementById('vendorDropdown');
+
+    vendorNameInput.value = vendor.vendorName;
+    whatsappNumberInput.value = vendor.vendorContact; // Assuming `vendorContact` contains WhatsApp number
+    vendorDropdown.style.display = 'none'; // Hide dropdown after selection
+}
+</script>
+</body>
+</html>

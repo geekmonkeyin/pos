@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Products without storage</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Product List</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Sno</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Stock</th>
+                    <th>Storage</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="inventory,iterStat: ${reportDetailsList}">
+                    <td th:text="${iterStat.index + 1}"></td>
+                    <td th:text="${inventory.productVariantId}"></td>
+                    <td th:text="${inventory.productTitle}"></td>
+                    <td th:text="${inventory.quantity}"></td>
+                    <td th:text="${inventory.storage}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

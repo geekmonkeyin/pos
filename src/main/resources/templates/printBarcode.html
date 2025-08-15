@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Update Inventory</title>
+    <link rel="stylesheet" th:href="@{../../assets/css/spinner.css}">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
+    <script th:src="@{../../../assets/scripts/inventory-utils.js}"></script>
+
+    <style>
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .barcode-icon, .edit-icon {
+            cursor: pointer;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+        }
+        .input-group-text {
+            background-color: #007bff;
+            color: white;
+        }
+        .input-group-text:hover {
+            background-color: #0056b3;
+        }
+        .edit-icon {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back and Home Buttons -->
+    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
+    <button id="homeButton" onclick="goHome()" style="position: fixed; top: 10px; left: 80px;">Home</button>
+
+    <div class="container">
+        <h2 class="text-center my-4">Print Barcode</h2>
+
+        <!-- Search Product -->
+        <div class="form-group">
+            <label for="searchProduct">Search Product Name or ID:</label>
+            <input type="text" id="searchProduct" class="form-control" placeholder="Enter product name or ID">
+            <div id="spinner" style="display: none;">Loading...</div>
+        </div>
+
+        <!-- Product List -->
+        <div id="productList" class="list-group" style="display: none;"></div>
+
+        <!-- Product Details -->
+        <div id="productDetails" style="display: none;">
+            <h4>Product Details</h4>
+            <div><img id="productImagePreview" src="" alt="Product Image" style="max-width: 200px; display: none;"></img></div>
+            <p><strong>Quantity:</strong> <span id="quantity"></span></p>
+            <p><strong>Shopify Quantity:</strong> <span id="shopifyQuantity"></span></p>
+            <p><strong>Location:</strong> <span id="location"></span></p>
+            <p><strong>Name:</strong> <span id="name"></span></p>
+
+            <p><strong>Product/Variation Id:</strong> <span id="productVariantId"></span></p>
+        </div>
+
+        <!-- Generate Barcode Button -->
+        <button id="generateBarcodeButton" class="btn btn-primary" style="display: none;">Generate Barcode Label</button>
+    </div>
+
+    <!-- Modal for QR Code -->
+    <div class="modal" id="qrcodeModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">QR Code</h5>
+                    <button type="button" class="close" onclick="closeQRCode()" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+
+                </div>
+                <div class="modal-body text-center">
+                    <div id="qrcode"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeQRCode()">Close</button>
+                    <button type="button" class="btn btn-secondary" onclick="printQRCode()">Print</button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const backButton = document.getElementById('backButton');
+            const homeButton = document.getElementById('homeButton');
+            if (window.location.pathname === '/home' || window.location.pathname === '/') {
+                backButton.style.display = 'none'; // Hide back button on the home page
+            }
+
+            document.getElementById('searchProduct').addEventListener('input', function () {
+                const query = this.value.toLowerCase();
+                const productList = document.getElementById('productList');
+                productList.style.display = query ? 'block' : 'none';
+
+                if (query.length < 3) {
+                    return;
+                }
+
+                enableSpinner(true);
+                fetch(`/v1/inventory/search?query=${query}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        productList.innerHTML = '';
+                        data.forEach(product => {
+                            const item = document.createElement('a');
+                            item.classList.add('list-group-item', 'list-group-item-action');
+                            item.textContent = product.productTitle + ' (' + product.productVariantTitle + ')';
+                            item.onclick = () => displayProductInfo(product);
+                            productList.appendChild(item);
+                        });
+                        enableSpinner(false);
+                    });
+            });
+
+            document.getElementById('generateBarcodeButton').addEventListener('click', function () {
+                const productId = document.getElementById('productVariantId').textContent;
+                const productName = document.getElementById('name').textContent;
+                const quantity = document.getElementById('quantity').textContent;
+
+                const labelCount = prompt('Enter the number of labels to generate:');
+                if (labelCount && !isNaN(labelCount)) {
+                    enableSpinner(true);
+                    //print qr code options
+                    generateQRCode(labelCount);
+
+
+                }
+            });
+        });
+
+        function displayProductInfo(product) {
+            document.getElementById('productList').style.display = 'none';
+            document.getElementById('productDetails').style.display = 'block';
+            document.getElementById('generateBarcodeButton').style.display = 'block';
+            displayImages(product.stockHistory.images);
+            document.getElementById('productImagePreview').src = product.imageUrl || '';
+            document.getElementById('productImagePreview').style.display = product.imageUrl ? 'block' : 'none';
+            document.getElementById('quantity').textContent = product.quantity;
+            document.getElementById('shopifyQuantity').textContent = product.shopifyQuantity;
+            document.getElementById('location').textContent = product.storage;
+            document.getElementById('name').textContent = product.productTitle;
+            document.getElementById('productVariantId').textContent = product.productVariantId || product.productId;
+        }
+
+        function enableSpinner(enable) {
+            document.getElementById('spinner').style.display = enable ? 'block' : 'none';
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        function goHome() {
+            window.location.href = '/home';
+        }
+        function displayImages(images){
+            if(images && images.length > 0){
+                fetchImages(images,'productImagePreview');
+            }
+
+        }
+
+        function generateQRCode(labelCount) {
+            const productId = document.getElementById("productVariantId").textContent;
+            var productName = document.getElementById("name").textContent;
+            if (!productId && !productName) {
+                alert('Product ID is required to generate QR code.');
+                return;
+            }
+
+            // Clear any existing QR code
+            const qrCodeContainer = document.getElementById('qrcode');
+            qrCodeContainer.innerHTML = '';
+
+            // Generate the QR code
+           new QRCode(qrCodeContainer, {
+                text: productId,
+                width: 128,
+                height: 128,
+            });
+
+
+        const textElement = document.createElement('div');
+        textElement.style.textAlign = 'center'; // Center the text
+        textElement.style.marginTop = '10px'; // Add some spacing
+            if (productName.length > 60) {
+                productName = productName.substring(0, 60) + '...'; // Truncate if too long
+            }
+        textElement.textContent = productName; // Set the text content
+            qrCodeContainer.appendChild(textElement);
+
+            // Show the QR code modal
+            document.getElementById('qrcodeModal').style.display = 'block';
+    }
+
+    // Function to close the QR code modal
+    function closeQRCode() {
+        document.getElementById('qrcodeModal').style.display = 'none';
+    }
+
+
+    async function printQRCode() {
+    const qrCodeContainer = document.getElementById('qrcode');
+    const qrCodeImage = qrCodeContainer.querySelector('img');
+    const textElement = qrCodeContainer.querySelector('div');
+    if (!qrCodeImage || !textElement) {
+        alert('No QR code or text found to print.');
+        return;
+    }
+
+    // Get the QR code image as Base64
+    const qrCodeBase64 = qrCodeImage.src;
+    const productText = textElement.textContent;
+
+    // Create a new jsPDF instance
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'in',
+        format: [4,1],
+    });
+
+    // Add QR code image
+    var i = 0;
+    var labels = 2;
+    var initialy = 0.1; // Initial X position
+    for(i = 0; i < labels; i++) {
+
+            const qrCode1X = 0.2; // X position
+            const qrCode1Y = 0.1; // Y position
+
+             const qrCode2X = 1.3; // X position
+            const qrCode2Y = .1; // Y position
+
+
+            const qrCodeSize = .5; // Size of the QR code
+            pdf.addImage(qrCodeBase64, 'PNG', qrCode1X, qrCode1Y, qrCodeSize, qrCodeSize);
+
+            // Add product name and ID as text below the QR code
+            const textX = qrCode1X;
+            const textY = qrCode1Y + qrCodeSize + .1; // Position below the QR code
+            pdf.setFontSize(5);
+            const maxWidth = .7; // Adjust as needed
+
+            const wrappedText = pdf.splitTextToSize(productText, maxWidth);
+            pdf.text(wrappedText, textX, textY);
+
+
+
+
+
+            //add 2nd image
+
+
+
+            pdf.addImage(qrCodeBase64, 'PNG', qrCode2X, qrCode2Y, qrCodeSize, qrCodeSize);
+
+             const text2X = qrCode2X;
+            const text2Y = qrCode2Y + qrCodeSize + .1; // Position below the QR code
+            pdf.setFontSize(5);
+            pdf.text(wrappedText, text2X, text2Y);
+
+
+             //add 3rd image
+
+             const qrCode3X = 2.3; // X position
+            const qrCode3Y = .1; // Y position
+
+            pdf.addImage(qrCodeBase64, 'PNG', qrCode3X, qrCode3Y, qrCodeSize, qrCodeSize);
+
+             const text3X = qrCode3X;
+            const text3Y = qrCode3Y + qrCodeSize + .1; // Position below the QR code
+            pdf.setFontSize(5);
+            pdf.text(wrappedText, text3X, text3Y);
+
+            //4th image
+
+             const qrCode4X = 3.2; // X position
+            const qrCode4Y = .1; // Y position
+
+            pdf.addImage(qrCodeBase64, 'PNG', qrCode4X, qrCode4Y, qrCodeSize, qrCodeSize);
+
+             const text4X = qrCode4X;
+            const text4Y = qrCode4Y + qrCodeSize + .1; // Position below the QR code
+            pdf.setFontSize(5);
+            pdf.text(wrappedText, text4X, text4Y);
+
+    }
+
+
+
+
+    // Open the PDF in a new tab
+    const pdfBlob = pdf.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
+}
+    </script>
+</body>
+</html>

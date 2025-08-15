@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa; /* Light gray background */
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            color: #343a40; /* Dark gray for headings */
+        }
+
+        .btn-box {
+            width: 100%;
+            height: 150px;
+            font-size: 24px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-box:hover {
+            transform: scale(1.05); /* Slight zoom effect */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
+        }
+
+        .btn-primary {
+            background-color: #007bff; /* Blue */
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d; /* Gray */
+            color: #fff;
+        }
+
+        .btn-success {
+            background-color: #28a745; /* Green */
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3; /* Darker blue */
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268; /* Darker gray */
+        }
+
+        .btn-success:hover {
+            background-color: #218838; /* Darker green */
+        }
+
+        #backButton, #homeButton {
+            position: fixed;
+            top: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #backButton {
+            left: 10px;
+            background-color: #6c757d; /* Gray */
+            color: #fff;
+        }
+
+        #backButton:hover {
+            background-color: #5a6268; /* Darker gray */
+        }
+
+        #homeButton {
+            left: 100px;
+            background-color: #28a745; /* Green */
+            color: #fff;
+        }
+
+        #homeButton:hover {
+            background-color: #218838; /* Darker green */
+        }
+
+
+    </style>
+</head>
+<body>
+<div>
+    <button id="backButton" onclick="goBack()">Back</button>
+    <button id="homeButton" onclick="goBack()">Home</button>
+</div>
+
+<div class="container">
+    <h1 class="text-center my-4">Report Management</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <a href="/v1/report/uploadCSV"
+               class="btn btn-primary btn-box d-flex align-items-center justify-content-center">Upload CSV</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/update"
+               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Monthly Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/shopifyreport"
+               class="btn btn-success btn-box d-flex align-items-center justify-content-center">Quarterly Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/shopify/stockmismatchreport"
+               class="btn btn-success btn-box d-flex align-items-center justify-content-center">Mismatched Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/storage"
+               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Visual Storage Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/inventoryfilterreport"
+               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center" style
+            ="background:brown">Inventory Filter Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/dailytasksreport"
+               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center" style
+                       ="background:brown">Daily Tasks Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/whatsappeventsreport"
+               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center" style
+                       ="background:brown">Whatsapp Report</a>
+        </div>
+    </div>
+</div>
+<script>
+    function goBack() {
+        window.history.back(); // Navigate to the previous page
+    }
+</script>
+</body>
+</html>

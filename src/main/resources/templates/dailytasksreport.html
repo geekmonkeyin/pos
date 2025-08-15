@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Task Report</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            color: #343a40;
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+        th {
+            background-color: #343a40;
+            color: #ffffff;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <h1>Daily Task Report</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Task Name</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Device ID</th>
+                <th>Worked On</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="task : ${taskLogs}">
+                <td th:text="${task.taskName}"></td>
+                <td th:text="${task.status}"></td>
+                <td th:text="${task.taskDate}"></td>
+                <td th:text="${task.deviceId}"></td>
+                <td th:text="${task.metaData}"></td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

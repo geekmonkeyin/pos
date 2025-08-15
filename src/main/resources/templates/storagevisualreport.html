@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Visual Report</title>
+    <style>
+        .bin.twenty {
+        }
+
+       body {
+           font-family: Arial, sans-serif;
+           margin: 20px;
+       }
+
+       .rack {
+           border: 2px solid #333;
+           background-color: #f4f4f4;
+           display: inline-block;
+           margin: 15px;
+           padding: 10px;
+           text-align: center;
+           border-radius: 8px;
+           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+       }
+
+       .rack-title {
+           font-weight: bold;
+           margin-bottom: 10px;
+       }
+
+       .bin {
+           width: 60px;
+           height: 60px;
+           border: 2px solid #333;
+           margin: 5px auto;
+           border-radius: 4px;
+           display: inline-block;
+            position: relative;
+           background-color: #f4f4f4; /* Default background */
+            overflow: hidden;
+       }
+
+       .bin .fill {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #87CEEB; /* Light blue for 20% filled */
+    }
+
+    .bin.twenty .fill {
+
+    }
+
+
+       .bin:hover {
+           transform: scale(1.1);
+       }
+
+       .bin.full {
+           background-color: #ff4d4d; /* Red for full */
+       }
+
+       .bin.half {
+           background-color: #ffc107; /* Yellow for half */
+       }
+
+       .bin.empty {
+           background-color: #4caf50; /* Green for empty */
+       }
+
+       .modal {
+           display: none;
+           position: fixed;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           width: 80%;
+           max-width: 600px;
+           background: #fff;
+           border-radius: 8px;
+           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+           z-index: 1000;
+           padding: 20px;
+       }
+
+       .modal-header {
+           font-size: 18px;
+           font-weight: bold;
+           margin-bottom: 10px;
+       }
+
+       .modal-body {
+           max-height: 300px;
+           overflow-y: auto;
+       }
+
+       .modal-close {
+           float: right;
+           cursor: pointer;
+           font-size: 18px;
+           color: #333;
+       }
+
+       .modal-close:hover {
+           color: #ff4d4d;
+       }
+
+       .overlay {
+           display: none;
+           position: fixed;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background: rgba(0, 0, 0, 0.5);
+           z-index: 999;
+       }
+    </style>
+</head>
+<body>
+    <h1>Storage Visual Report</h1>
+    <div id="storageContainer">
+        <!-- Racks and bins will be dynamically populated here -->
+    </div>
+
+    <!-- Modal for displaying bin products -->
+    <div class="overlay" id="overlay"></div>
+    <div class="modal" id="productModal">
+        <span class="modal-close" id="closeModal">&times;</span>
+        <div class="modal-header">Products in Bin</div>
+        <div class="modal-body" id="modalContent">
+            <!-- Product details will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+               // Fetch products in a bin
+        function fetchBinProducts(binId) {
+            fetch(`/storage/bin/${binId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const modalContent = document.getElementById("modalContent");
+                    modalContent.innerHTML = ""; // Clear previous content
+
+                    if (data && data.length > 0) {
+                        data.forEach(product => {
+                            const productDiv = document.createElement("div");
+                            productDiv.textContent = `Product: ${product.name}, Quantity: ${product.quantity}`;
+                            modalContent.appendChild(productDiv);
+                        });
+                    } else {
+                        modalContent.textContent = "No products found in this bin.";
+                    }
+
+                    showModal();
+                })
+                .catch(error => {
+                    console.error("Error fetching bin products:", error);
+                });
+        }
+
+        // Show modal
+        function showModal() {
+            document.getElementById("overlay").style.display = "block";
+            document.getElementById("productModal").style.display = "block";
+        }
+
+        // Close modal
+        document.getElementById("closeModal").addEventListener("click", closeModal);
+        document.getElementById("overlay").addEventListener("click", closeModal);
+
+        function closeModal() {
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("productModal").style.display = "none";
+        }
+
+    // Example data for racks and bins
+    const racks = [
+        { id: 1, title: "Rack 1", bins: [{ id: "RP1", status: "twenty" }, { id: "R2", status: "half" }, { id: "R3", status: "empty" }] },
+        { id: 2, title: "Rack 2", bins: [{ id: "SB1", status: "empty" }, { id: "SB2", status: "full" }, { id: "SB3", status: "half" }] }
+    ];
+
+    // Populate racks and bins
+    const storageContainer = document.getElementById("storageContainer");
+    racks.forEach(rack => {
+        const rackDiv = document.createElement("div");
+        rackDiv.classList.add("rack");
+
+        const rackTitle = document.createElement("div");
+        rackTitle.classList.add("rack-title");
+        rackTitle.textContent = rack.title;
+        rackDiv.appendChild(rackTitle);
+
+        rack.bins.forEach(bin => {
+            const binDiv = document.createElement("div");
+            binDiv.classList.add("bin", bin.status);
+            binDiv.textContent = bin.id;
+            binDiv.dataset.binId = bin.id;
+            binDiv.addEventListener("click", () => fetchBinProducts(bin.id));
+            if(bin.status == "twenty"){
+                const fillDiv = document.createElement("div");
+                fillDiv.classList.add("fill");
+                fillDiv.style.height = "30%"; // Set height to 20%
+                binDiv.appendChild(fillDiv);
+            }
+            rackDiv.appendChild(binDiv);
+        });
+
+        storageContainer.appendChild(rackDiv);
+    });
+    </script>
+</body>
+</html>

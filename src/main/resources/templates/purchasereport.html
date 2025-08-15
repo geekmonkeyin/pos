@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Report</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .filter-form {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .filter-form input, .filter-form button {
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h2>Purchase Report</h2>
+
+    <!-- Filter Form -->
+    <form class="filter-form" id="filterForm">
+        <input type="text" id="vendorName" name="vendorName" placeholder="Vendor Name">
+        <input type="date" id="startDate" name="startDate" placeholder="Start Date">
+        <input type="date" id="endDate" name="endDate" placeholder="End Date">
+        <button type="button" onclick="fetchReport()">Search</button>
+    </form>
+
+    <!-- Report Table -->
+    <table id="reportTable">
+        <thead>
+            <tr>
+                <th>Vendor Name</th>
+                <th>Order ID</th>
+                <th>Amount</th>
+                <th>Order Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be dynamically added here -->
+        </tbody>
+        <tfoot>
+        <tr>
+            <td colspan="2"><strong>Total Amount:</strong></td>
+            <td id="totalAmountCell">0</td>
+            <td colspan="6"></td>
+        </tr>
+        </tfoot>
+    </table>
+
+    <!-- Modal for Update -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal" id="updateModal">
+        <h3>Update Record</h3>
+        <form id="updateForm">
+            <input type="hidden" id="orderId" name="orderId">
+            <div>
+                <label for="vendorNameUpdate">Vendor Name:</label>
+                <input type="text" id="vendorNameUpdate" name="vendorName">
+            </div>
+            <div>
+                <label for="amountUpdate">Amount:</label>
+                <input type="number" id="amountUpdate" name="amount">
+            </div>
+            <div>
+                <label for="orderDateUpdate">Order Date:</label>
+                <input type="date" id="orderDateUpdate" name="orderDate">
+            </div>
+            <button type="button" onclick="submitUpdate()">Submit</button>
+            <button type="button" onclick="closeModal()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        // Fetch report based on filters
+        function fetchReport() {
+            const form = document.getElementById('filterForm');
+            const formData = new FormData(form);
+            const queryParams = new URLSearchParams(formData).toString();
+
+            fetch(`/v1/vendor/purchase/filterReport?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.querySelector('#reportTable tbody');
+                    const totalAmountCell = document.getElementById('totalAmountCell');
+
+                    tableBody.innerHTML = ''; // Clear existing rows
+                    let totalAmount = 0;
+                    data.forEach(order => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${order.vendorName}</td>
+                            <td>${order.orderId}</td>
+                            <td>${order.totalAmount}</td>
+                            <td>${order.orderDate}</td>
+                            <td><button onclick="showUpdateModal(${order.orderId}, '${order.vendorName}', ${order.amount}, '${order.orderDate}')">Update</button></td>
+                        `;
+                        tableBody.appendChild(row);
+                        totalAmount += order.totalAmount;
+
+
+                    });
+                    totalAmountCell.textContent = totalAmount.toFixed(2);
+
+                });
+        }
+
+        // Show update modal
+        function showUpdateModal(orderId, vendorName, amount, orderDate) {
+            document.getElementById('orderId').value = orderId;
+            document.getElementById('vendorNameUpdate').value = vendorName;
+            document.getElementById('amountUpdate').value = amount;
+            document.getElementById('orderDateUpdate').value = orderDate;
+
+            document.getElementById('modalOverlay').style.display = 'block';
+            document.getElementById('updateModal').style.display = 'block';
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('updateModal').style.display = 'none';
+        }
+
+        // Submit update form
+       async function submitUpdate() {
+            const form = document.getElementById('updateForm');
+            //const formData = new FormData(form);
+            const orderId = document.getElementById('orderId').value;
+            const vendorName = document.getElementById('vendorNameUpdate').value;
+            const orderDate = document.getElementById('orderDateUpdate').value;
+            const totalAmount = document.getElementById('amountUpdate').value;
+
+             const purchaseOrder = {
+                orderId,
+                vendorName,
+                orderDate,
+                totalAmount
+            };
+
+
+             try {
+                const response = await fetch('/v1/vendor/purchase/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(purchaseOrder)
+                });
+
+                if (response.ok) {
+                    alert('Purchase order updated successfully!');
+                    fetchReport(); // Refresh the report
+                } else {
+                    const errorMessage = await response.text();
+                    alert(`Failed to update purchase order: ${errorMessage}`);
+                }
+        }
+            catch (error) {
+                console.error('Error updating purchase order:', error);
+                alert('An error occurred while updating the purchase order.');
+            }
+
+            closeModal(); // Close the modal after submission
+        }
+
+    </script>
+</body>
+</html>

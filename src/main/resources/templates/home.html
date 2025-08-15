@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <link rel="stylesheet" th:href="@{../../assets/css/chat-widget.css}" />
+    <script th:src="@{../../assets/scripts/chat-widget.js}"></script>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .btn-box {
+            width: 100%;
+            height: 150px;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .ip-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .ip-address {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .copy-btn {
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .copy-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center my-4">Geekmonkey Analytics</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <a href="/v1/order/create" class="btn btn-primary btn-box d-flex align-items-center justify-content-center">New
+                Order</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/draftOrders" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Draft
+                Orders</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/discount" class="btn btn-success btn-box d-flex align-items-center justify-content-center">Discounts%</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/order" class="btn btn-info btn-box d-flex align-items-center justify-content-center">Orders</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/order/return"
+               class="btn btn-warning btn-box d-flex align-items-center justify-content-center">Return</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/replacement" class="btn btn-danger btn-box d-flex align-items-center justify-content-center">Replacement</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Inventory</a>
+        </div>
+        <div class="col-md-4" >
+            <a href="/v1/report" style="background:#b298ca;" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Reports</a>
+        </div>
+        <div class="col-md-4" >
+            <a href="/v1/vendor" style="background:#b298ca;" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Vendor Management</a>
+        </div>
+        <div class="col-md-4" >
+            <a href="/v1/personal/paymenttracker" style="background:#b298ca;" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Payment Tracker</a>
+        </div>
+    </div>
+</div>
+<div class="ip-container">
+    <h1>Copy link for mobile</h1>
+    <p id="ip-address" class="ip-address">Fetching IP address...</p>
+    <button class="copy-btn" onclick="copyToClipboard()">Copy</button>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+       fetch('/v1/local-ip')
+           .then(response => response.text())
+           .then(data => {
+               document.getElementById('ip-address').textContent = data;
+           })
+           .catch(error => {
+               console.error('Error fetching IP address:', error);
+               document.getElementById('ip-address').textContent = 'Error fetching IP address';
+           });
+   });
+
+
+    function copyToClipboard() {
+        const ipAddress = document.getElementById('ip-address').textContent;
+        const url = `http://${ipAddress}`+':8080/v1/home';
+        navigator.clipboard.writeText(url).then(() => {
+            alert('URL copied to clipboard: ' + url);
+        }).catch(err => {
+            console.error('Error copying to clipboard:', err);
+        });
+    }
+
+</script>
+</body>
+</html>

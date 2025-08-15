@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Tracker</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f6f9;
+        padding: 2rem;
+    }
+    .container {
+        max-width: 900px;
+        margin: auto;
+        background-color: #fff;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    input, button, select {
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+    th, td {
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    .form-section {
+        margin-top: 2rem;
+    }
+    .error {
+        color: red;
+        margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Customer Payment Tracker</h2>
+  <div>
+    <input type="text" id="customerName" placeholder="Enter Customer Name" />
+    <button onclick="fetchHistory()">Search</button>
+  </div>
+
+  <div id="summary"></div>
+  <div id="history"></div>
+  <div class="error" id="error"></div>
+
+  <div class="form-section">
+    <h3>Add New Entry</h3>
+    <select id="type">
+      <option value="receipt">Receipt (They Paid)</option>
+      <option value="payment">Payment (You Paid)</option>
+    </select>
+    <input type="number" id="amount" placeholder="Amount" />
+    <button onclick="addEntry()">Add Entry</button>
+  </div>
+</div>
+
+<script>
+  function fetchHistory() {
+      const name = document.getElementById("customerName").value;
+      const errorDiv = document.getElementById("error");
+      errorDiv.innerHTML = "";
+
+      if (!name.trim()) {
+          errorDiv.innerHTML = "Please enter a customer name.";
+          return;
+      }
+
+      fetch(`/api/payments?name=${encodeURIComponent(name)}`)
+          .then(res => {
+              if (!res.ok) throw new Error("Failed to fetch data");
+              return res.json();
+          })
+          .then(data => {
+              const summary = document.getElementById("summary");
+              const history = document.getElementById("history");
+
+              if (!data || typeof data !== 'object' || !Array.isArray(data.history)) {
+                  throw new Error("Unexpected response format");
+              }
+
+              summary.innerHTML = `<h4>Total Paid: ₹${data.totalPaid || 0} | Total Owed: ₹${data.totalOwed || 0} | Balance: ₹${data.balance || 0}</h4>`;
+
+              const rows = data.history.map(entry => `
+                  <tr>
+                      <td>${entry.date || ''}</td>
+                      <td>${entry.type || ''}</td>
+                      <td>₹${entry.amount || 0}</td>
+                  </tr>
+              `).join('');
+
+              history.innerHTML = `
+                  <h3>Transaction History</h3>
+                  <table>
+                      <thead>
+                          <tr><th>Date</th><th>Type</th><th>Amount</th></tr>
+                      </thead>
+                      <tbody>${rows}</tbody>
+                  </table>
+              `;
+          })
+          .catch(err => {
+              errorDiv.innerHTML = `Error fetching payment history: ${err.message}`;
+          });
+  }
+
+  function addEntry() {
+      const name = document.getElementById("customerName").value;
+      const type = document.getElementById("type").value;
+      const amount = parseFloat(document.getElementById("amount").value);
+      const errorDiv = document.getElementById("error");
+      errorDiv.innerHTML = "";
+
+      if (!name.trim() || isNaN(amount) || amount <= 0) {
+          errorDiv.innerHTML = "Please enter a valid name and amount.";
+          return;
+      }
+
+      fetch(`/api/payments`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, type, amount })
+      })
+      .then(res => {
+          if (!res.ok) throw new Error("Failed to add entry");
+          return res.json();
+      })
+      .then(() => fetchHistory())
+      .catch(err => {
+          errorDiv.innerHTML = `Error adding entry: ${err.message}`;
+      });
+  }
+</script>
+</body>
+</html>

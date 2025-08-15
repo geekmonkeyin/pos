@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Management</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .tile-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 50px;
+        }
+
+        .tile {
+            width: 200px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .tile.create-vendor { background-color: #007bff; }
+        .tile.update-vendor { background-color: #28a745; }
+        .tile.add-payment { background-color: #ffc107; }
+        .tile.show-reports { background-color: #17a2b8; }
+
+        .tile:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Vendor Management</h1>
+        <div class="tile-container">
+            <a href="/v1/vendor/create" class="tile create-vendor">Create</a>
+            <a href="/v1/vendor/update" class="tile update-vendor">Update</a>
+            <a href="/v1/vendor/purchase/order" class="tile update-vendor">Purchase Order</a>
+            <a href="/v1/vendor/payment/add" class="tile add-payment">Add Vendor Payment</a>
+            <a href="/v1/payment/reports" class="tile show-reports">Show All Payment Reports</a>
+            <a href="/v1/vendor/bulkupdate" class="tile show-reports">Bulk update</a>
+            <a href="/v1/vendor/purchase/reports" class="tile show-reports">Show All Purchase Reports</a>
+
+        </div>
+    </div>
+</body>
+</html>

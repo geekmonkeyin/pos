@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Order</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script>
+        let selectedVendorId;
+
+        function fetchVendors(input) {
+            const query = input.value.trim();
+            if (query.length < 3) return; // Minimum 3 characters required
+
+            fetch(`/v1/vendor/search/${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    const vendorList = document.getElementById('vendorList');
+                    vendorList.innerHTML = ''; // Clear previous results
+
+                    data.forEach(data => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'list-group-item';
+                        listItem.textContent = data.vendorName;
+                        listItem.onclick = () => selectVendor(data);
+                        vendorList.appendChild(listItem);
+                    });
+
+                    document.getElementById('vendorListContainer').style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching vendors:', error));
+        }
+
+        function selectVendor(vendor) {
+            document.getElementById('vendorName').value = vendor.vendorName;
+            selectedVendorId = vendor.vendorId; // Store the selected vendor ID
+            document.getElementById('vendorListContainer').style.display = 'none';
+        }
+
+         async function submitPurchaseOrder(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const orderId = document.getElementById('orderId').value;
+            const vendorName = document.getElementById('vendorName').value;
+            const orderDate = document.getElementById('orderDate').value;
+            const totalAmount = document.getElementById('purchaseAmount').value;
+
+            const purchaseOrder = {
+                orderId,
+                vendorName,
+                orderDate,
+                totalAmount
+            };
+
+            try {
+                const response = await fetch('/v1/vendor/purchase/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(purchaseOrder)
+                });
+
+                if (response.ok) {
+                    alert('Purchase order updated successfully!');
+                } else {
+                    const errorMessage = await response.text();
+                    alert(`Failed to update purchase order: ${errorMessage}`);
+                }
+            } catch (error) {
+                console.error('Error updating purchase order:', error);
+                alert('An error occurred while updating the purchase order.');
+            }
+        }
+
+    </script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Purchase Order</h1>
+        <form onsubmit="submitPurchaseOrder(event)">
+            <!-- Order ID -->
+            <div class="form-group">
+                <label for="orderId">Order ID</label>
+                <input type="text" class="form-control" id="orderId" name="orderId" placeholder="Enter order ID">
+            </div>
+
+            <!-- Vendor Name -->
+            <div class="form-group">
+                <label for="vendorName">Vendor Name</label>
+                <input type="text" class="form-control" id="vendorName" oninput="fetchVendors(this)" placeholder="Type vendor name">
+                <div id="vendorListContainer" style="display: none; margin-top: 10px;">
+                    <ul id="vendorList" class="list-group"></ul>
+                </div>
+            </div>
+
+            <!-- Order Placed Date -->
+            <div class="form-group">
+                <label for="orderDate">Order Placed Date</label>
+                <input type="date" class="form-control" id="orderDate" name="orderDate">
+            </div>
+
+            <!-- Purchase Amount -->
+            <div class="form-group">
+                <label for="purchaseAmount">Purchase Amount</label>
+                <input type="number" class="form-control" id="purchaseAmount" name="purchaseAmount" placeholder="Enter purchase amount">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+</body>
+</html>

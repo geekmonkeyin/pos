@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Initiate Return</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            margin-top: 20px;
+        }
+        .product-list {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center">Initiate Return</h1>
+    <form class="mb-4" id="fetchDetailsForm">
+        <div class="form-group">
+            <label for="orderId">Enter Order ID:</label>
+            <input class="form-control" id="orderId" name="orderId" placeholder="Enter Order ID" required type="text">
+        </div>
+        <button class="btn btn-primary" onclick="fetchOrderDetails()" type="button">Fetch Details</button>
+    </form>
+
+    <div class="product-list" id="productListContainer" style="display: none;">
+        <h3>Products in Order</h3>
+        <form id="returnForm">
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Product ID</th>
+                    <th>Product Name</th>
+                    <th>Quantity</th>
+                    <th>Returnable Quantity</th>
+                </tr>
+                </thead>
+                <tbody id="productList"></tbody>
+            </table>
+            <button class="btn btn-success" onclick="initiateReturn()" type="button">Initiate Return</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function fetchOrderDetails() {
+        const orderId = document.getElementById('orderId').value;
+        if (!orderId) {
+            alert('Please enter an Order ID');
+            return;
+        }
+
+        fetch(`/v1/order/return/fetchDetails/`+orderId)
+            .then(response => response.json())
+            .then(data => {
+                const productListContainer = document.getElementById('productListContainer');
+                const productList = document.getElementById('productList');
+                productList.innerHTML = '';
+
+                if (data && data.productDetails && data.productDetails.length > 0) {
+                    data.productDetails.forEach(product => {
+                        const row = `
+                            <tr>
+                                <td><input type="checkbox" name="productIds" value="${product.productId}"></td>
+                                <td>${product.productId}</td>
+                                <td>${product.productName}</td>
+                                <td>${product.quantity}</td>
+                                 <td>
+                                      <input type="number" name="returnQuantity" min="1" max="${product.quantity}" value="${product.quantity}" class="form-control">
+                                 </td>
+                            </tr>
+                        `;
+                        productList.innerHTML += row;
+                    });
+                    productListContainer.style.display = 'block';
+                } else {
+                    alert('No products found for this Order ID');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching order details:', error);
+                alert('Failed to fetch order details');
+            });
+    }
+
+    function initiateReturn() {
+         const selectedProducts = Array.from(document.querySelectorAll('input[name="productIds"]:checked'))
+        .map(input => {
+            const row = input.closest('tr');
+            const returnQuantity = row.querySelector('input[name="returnQuantity"]').value;
+            return { productId: input.value, returnQuantity: parseInt(returnQuantity, 10) };
+        });
+
+        if (selectedProducts.length === 0) {
+            alert('Please select at least one product to return');
+            return;
+        }
+
+        const orderId = document.getElementById('orderId').value;
+
+        fetch('/v1/order/return/initiate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ orderId, productIds: selectedProducts }),
+        })
+            .then(response => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.text(); // or .json() if your body is JSON
+          })
+          .then(data => {
+            const labelLink = JSON.parse(data).labelLink;
+;
+
+            if (labelLink) {
+                // Create the "Download Label" button
+                const downloadButton = document.createElement('button');
+                downloadButton.textContent = 'Download Label';
+                downloadButton.className = 'btn btn-info ml-2';
+                downloadButton.onclick = () => {
+                    window.open(labelLink, '_blank');
+                };
+
+                // Append the button next to the "Initiate Return" button
+                const returnForm = document.getElementById('returnForm');
+                returnForm.appendChild(downloadButton);
+            }
+
+            alert('Return initiated successfully');
+        })
+            .catch(error => {
+                console.error('Error initiating return:', error);
+                alert('Failed to initiate return');
+            });
+    }
+</script>
+</body>
+</html>

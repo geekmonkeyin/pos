@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Inbound Steps</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-height: 80vh; /* Set a maximum height */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+
+        .wizard-container {
+            max-width: 80%;
+            margin: 30px auto;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        label {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            font-size: 14px;
+        }
+
+        .btn {
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+<div class="wizard-container">
+    <h2>Inbound Wizard</h2>
+    <div id="wizardSteps">
+        <!-- Steps will be dynamically generated -->
+        <div class="modal" id="productListModal" role="dialog" tabindex="-1">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Select Product</h5>
+                        <button class="close" onclick="closeProductListModal()" type="button">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <ul id="productList" class="list-group">
+                            <!-- Products will be dynamically added here -->
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeProductListModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <h2>Webcam Recording</h2>
+        <video autoplay id="cameraFeed"></video>
+        <canvas id="imageCanvas" style="display: none;"></canvas>
+        <div class="text-center" style="margin-top: 20px;">
+            <button class="btn btn-primary" id="startButton" onclick="startCamera()">Start Camera</button>
+            <button class="btn btn-danger" disabled id="stopButton" onclick="stopRecording()">Stop Recording</button>
+            <button class="btn btn-danger" enabled id="saveCarton" onclick="saveCarton()">Save Carton</button>
+            <button class="btn btn-danger" enabled id="completeOrder" onclick="completeOrder()" disabled>Complete Order</button>
+
+        </div>
+    </div>
+    <div class="text-center">
+        <button class="btn btn-secondary" id="prevButton" onclick="prevStep()">Previous</button>
+        <button class="btn btn-primary" id="nextButton" onclick="nextStep()">Next</button>
+    </div>
+</div>
+<!-- Modal for capturing image -->
+<div class="modal" id="captureImageModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Capture Image</h5>
+                <button class="close" onclick="closeModal()" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <video autoplay id="cameraFeedPopup" style="width: 100%;"></video>
+                <canvas id="imageCanvasPopup" style="display: none;"></canvas>
+                <img id="imgPreview" src="" alt="Captured Image" style="width: 100%; height: auto;">
+            </div>
+            <div class="modal-footer">
+                <label id="productIdPopup"></label>
+                <button class="btn btn-primary" id="clickImage" onclick="clickImage()">Capture</button>
+                <button class="btn btn-success" disabled id="saveButton" onclick="saveImage()">Save</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="packagingModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enter Packaging Dimensions</h5>
+                <button class="close" onclick="closePackagingModal()" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="length">Length</label>
+                    <input type="number" class="form-control" id="length" placeholder="Enter length">
+
+                    <input type="text" class="form-control" id="popupProductId" visibility="hidden">
+                </div>
+                <div class="form-group">
+                    <label for="breadth">Breadth</label>
+                    <input type="number" class="form-control" id="breadth" placeholder="Enter breadth">
+                </div>
+                <div class="form-group">
+                    <label for="height">Height</label>
+                    <input type="number" class="form-control" id="height" placeholder="Enter height">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="savePackagingDetails()">Save</button>
+                <button class="btn btn-secondary" onclick="closePackagingModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for QR Code -->
+<div class="modal" id="qrcodeModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">QR Code</h5>
+                <button type="button" class="close" onclick="closeQRCode()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrcode"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeQRCode()">Close</button>
+                <button type="button" class="btn btn-secondary" onclick="printQRCode()">Print</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="spinner" style="display: none; text-align: center; margin-top: 10px;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+</div>
+
+</body>
+<script>
+    const totalCartons = getCartonNo();
+    let currentStep = getCurrentStep();
+    updateCurrentSteps();
+    generateWizardSteps();
+
+
+
+
+    function openModal(rowCount) {
+        document.getElementById('captureImageModal').style.display = 'block';
+        document.getElementById('productIdPopup').innerText = rowCount;
+
+        startCameraForImage();
+    }
+
+    function closeModal() {
+        document.getElementById('captureImageModal').style.display = 'none';
+        stopCameraForImage();
+    }
+
+
+
+async function startCameraForImage() {
+    try {
+        // Access the webcam for image capture
+        imageStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoElement = document.getElementById('cameraFeedPopup');
+        videoElement.srcObject = imageStream;
+    } catch (error) {
+        console.error('Error accessing webcam for image:', error);
+    }
+}
+
+function stopCameraForImage() {
+    if (imageStream) {
+        imageStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const videoElement = document.getElementById('cameraFeed');
+            videoElement.srcObject = stream;
+        } catch (error) {
+            console.error('Error accessing webcam:', error);
+        }
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }
+
+      let mediaRecorder;
+    let recordedChunks = [];
+    let stream;
+
+    function updateCurrentSteps() {
+
+        document.getElementById('prevButton').disabled = currentStep === 1;
+        document.getElementById('nextButton').disabled = currentStep === totalCartons;
+    }
+
+    function generateWizardSteps() {
+        const wizardSteps = document.getElementById('wizardSteps');
+        for (let i = currentStep; i <= totalCartons; i++) {
+            const stepDiv = document.createElement('div');
+            stepDiv.className = `wizard-step ${i === currentStep ? 'active' : ''}`;
+            stepDiv.id = `step${i}`;
+            stepDiv.innerHTML = `
+                <h3>Carton ${i}</h3>
+                <table id="productTable${i}" border="1">
+                    <thead>
+                        <tr>
+                            <th>Sno</th>
+                            <th>Product ID</th>
+                            <th>Product Name</th>
+                            <th>Qty</th>
+                            <th>Cost</th>
+                            <th>Is Packaging?</th>
+                            <th>Capture Image</th>
+                            <th>Upload Image</th>
+                            <th>Actions</th>
+                            <th>Print QRCode</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be dynamically added -->
+                    </tbody>
+                </table>
+                <button onclick="addProductRow(${i})">Add Product</button>
+            `;
+            wizardSteps.appendChild(stepDiv);
+        }
+    }
+
+    function addProductRow(cartonNo) {
+        const tableBody = document.querySelector(`#productTable${cartonNo} tbody`);
+        const rowCount = tableBody.rows.length + 1;
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+                        <td><input type="text" class="form-control" name="rowCount[]" readonly value="${rowCount}" ></td>
+            <td><input type="text" class="form-control" name="productId[]" id="productID${rowCount}" value="${rowCount}" readonly></td>
+            <td><input type="text" class="form-control" name="productName[]" id="productName${rowCount}" oninput="fetchAndShowProducts(${rowCount})"></td>
+            <td><input type="number" class="form-control" name="quantity[]" required></td>
+            <td><input type="number" class="form-control" name="cost[]"></td>
+            <td>
+                <input type="checkbox" class="form-control" onchange="showPackagingPopup(${rowCount})" name="isPackaging[]">
+            </td>
+            <td>
+            <div class="container">
+    <div class="text-center">
+        <button id="captureButton" class="btn btn-primary" onclick="captureImage(${rowCount})">Capture Image</button>
+    </div>
+</div>
+            </td>
+             <td>
+                <img id="productImage${rowCount}" src="" alt="Captured Image" style="width: 100px; height: auto; display: none;">
+            </td>
+            <td><input type="file" class="form-control" name="image[]"></td>
+            <td><button type="button" onclick="removeRow(this)">Remove</button></td>
+            <td><button type="button" onclick="generateQRCode(  ${rowCount})">QRCode</button></td>
+        `;
+        tableBody.appendChild(newRow);
+    }
+
+    function removeRow(button) {
+        const row = button.parentElement.parentElement;
+        row.parentElement.removeChild(row);
+    }
+
+
+   let selectedRowId;
+
+function fetchAndShowProducts(rowId) {
+    selectedRowId = rowId; // Store the row ID for later use
+    const query = document.getElementById(`productName${rowId}`).value;
+
+    if (query.length > 4) {
+            document.getElementById('spinner').style.display = 'block';
+
+        fetch(`/v1/inventory/search?query=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                const productList = document.getElementById('productList');
+                productList.innerHTML = ''; // Clear previous results
+
+                data.forEach(product => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'list-group-item';
+                    listItem.textContent = `${product.productTitle} (ID: ${product.productId})`;
+                    listItem.onclick = () => selectProduct(product);
+                    productList.appendChild(listItem);
+                });
+
+                document.getElementById('productListModal').style.display = 'block';
+            })
+            .catch(error => console.error('Error fetching products:', error))
+             .finally(() => {
+                // Hide the spinner
+                document.getElementById('spinner').style.display = 'none';
+            });;
+    }
+}
+
+
+function selectProduct(product) {
+    // Update the product ID in the corresponding row
+    document.getElementById(`productID${selectedRowId}`).value = product.productId;
+    document.getElementById(`productName${selectedRowId}`).value = product.productTitle;
+
+    closeProductListModal();
+}
+
+function closeProductListModal() {
+    document.getElementById('productListModal').style.display = 'none';
+}
+
+    function searchProduct(input) {
+        const query = input.value;
+        if (query.length > 4) {
+            fetch(`/v1/inventory/search?query=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data); // Handle product search results
+
+                })
+                .catch(error => console.error('Error searching product:', error));
+        }
+    }
+
+    function saveCarton() {
+        const cartonNo = currentStep;
+
+        const productRows = document.querySelectorAll(`#productTable${cartonNo} tbody tr`);
+        const products = Array.from(productRows).map(row => ({
+            productId: row.querySelector('[name="productId[]"]').value,
+            productName: row.querySelector('[name="productName[]"]').value,
+            quantity: row.querySelector('[name="quantity[]"]').value,
+            cost: row.querySelector('[name="cost[]"]').value,
+        }));
+        const formData = new FormData();
+        formData.append('inboundId', getInboundId());
+        formData.append('cartonNo', cartonNo);
+        formData.append('products', JSON.stringify(products));
+
+        fetch('/v1/inbound/saveCarton', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response)
+            .then(data => {
+                alert('Carton saved successfully!');
+            })
+            .catch(error => console.error('Error saving carton:', error));
+    }
+
+    function nextStep() {
+        if(currentStep == totalCartons){
+            //disable next button
+            document.getElementById('nextButton').disabled = true;
+            //enable complete order
+           checkCompleteOrder();
+        }
+        else if (getCurrentStep() < totalCartons) {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            currentStep++;
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.getElementById('nextButton').disabled = false;
+            document.getElementById('completeOrder').disabled = true;
+        }else{
+         document.getElementById('nextButton').disabled = false;
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > getCurrentStep()) {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            currentStep--;
+            document.getElementById(`step${currentStep}`).classList.add('active');
+        }else{
+            //disable previous button
+            document.getElementById('prevButton').disabled = true;
+        }
+        checkCompleteOrder();
+    }
+
+    function checkCompleteOrder(){
+        if(currentStep == totalCartons){
+            document.getElementById('completeOrder').disabled = false;
+        }else{
+            document.getElementById('completeOrder').disabled = true;
+        }
+    }
+
+    function getCurrentStep(){
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentStep = urlParams.get('currentStep') || 'defaultInboundId';
+        return Number(currentStep);
+    }
+
+     function getCartonNo(){
+        const urlParams = new URLSearchParams(window.location.search);
+        const cartonNo = urlParams.get('cartonNo') || 'defaultInboundId';
+        return cartonNo;
+    }
+
+    function getInboundId(){
+        const urlParams = new URLSearchParams(window.location.search);
+        const inboundId = urlParams.get('inboundId') || 'defaultInboundId';
+        return inboundId;
+    }
+    async function startCamera() {
+        try {
+            // Access the webcam
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const videoElement = document.getElementById('cameraFeed');
+            videoElement.srcObject = stream;
+
+            // Initialize MediaRecorder
+            mediaRecorder = new MediaRecorder(stream);
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+
+                const playbackVideo = document.createElement('video');
+                playbackVideo.controls = true;
+                playbackVideo.src = url;
+                playbackVideo.style.marginTop = '20px';
+
+
+                // Append the video element to the container
+                const container = document.querySelector('.wizard-container');
+                container.appendChild(playbackVideo);
+
+
+                // Create a download link for the recorded video
+                const a = document.createElement('a');
+                a.href = url;
+                const inboundId = getInboundId();
+                const cartonNo = currentStep;
+                a.download = 'InboundId_'+inboundId+'Carton_'+cartonNo+'+recorded-video.webm';
+                a.textContent = 'Download Video';
+                document.body.appendChild(a);
+
+                 a.click();
+
+                 // Clean up
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+            };
+
+            mediaRecorder.start();
+            document.getElementById('startButton').disabled = true;
+            document.getElementById('stopButton').disabled = false;
+        } catch (error) {
+            console.error('Error accessing webcam:', error);
+        }
+    }
+
+    function stopRecording() {
+        mediaRecorder.stop();
+        stream.getTracks().forEach(track => track.stop()); // Stop webcam
+        document.getElementById('startButton').disabled = false;
+        document.getElementById('stopButton').disabled = true;
+    }
+
+
+   function captureImage(rowCount) {
+       openModal(rowCount);
+        const videoElement = document.getElementById('cameraFeedPopup');
+        const canvas = document.getElementById('imageCanvasPopup');
+        const context = canvas.getContext('2d');
+
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+
+        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+
+        stopCamera();
+        document.getElementById('saveButton').disabled = false;
+    }
+
+    function saveImage() {
+        const canvas = document.getElementById('imageCanvasPopup');
+
+        const imageData = canvas.toDataURL('image/png'); // Convert canvas to Base64 string
+        const rowCount = document.getElementById('productIdPopup').innerText; // Get the row count from the popup
+        const productImage = document.getElementById(`productImage`+rowCount);
+        productImage.src = imageData;
+        productImage.style.display = 'block'; // Show the image in the table
+
+
+        const carton = currentStep; // Get the current carton number
+        const inboundId = getInboundId(); // Get the inbound ID
+        const productId = document.getElementById("productIdPopup").innerText;
+
+        // Save the image data (e.g., send to server or log it)
+        console.log('Captured Image Data:', imageData);
+
+
+fetch('/v1/inbound/saveImage', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+        image: imageData,
+        carton: carton,
+        inboundId: inboundId,
+        productId: productId
+    }),
+})
+.then(response => {
+    if (!response.ok) {
+        throw new Error('Failed to save image');
+    }
+    return response;
+})
+.then(data => {
+    alert('Image saved successfully!');
+    closeModal();
+
+})
+.catch(error => {
+    console.error('Error saving image:', error);
+});
+
+    }
+
+      function submitImage() {
+        const canvas = document.getElementById('imageCanvas');
+        const imageData = canvas.toDataURL('image/png'); // Convert canvas to Base64 string
+
+        // Send the image data to the server
+       /** fetch('/v1/inbound/saveImage', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to save image');
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert('Image saved successfully!');
+        })
+        .catch(error => {
+            console.error('Error saving image:', error);
+        });**/
+    }
+
+    // Start the camera when the page loads
+
+    function clickImage() {
+    const videoElement = document.getElementById('cameraFeedPopup');
+    const canvas = document.getElementById('imageCanvasPopup');
+    const context = canvas.getContext('2d');
+
+    // Set canvas dimensions to match the video feed
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+
+    // Draw the video frame onto the canvas
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+    // Convert the canvas content to a Base64 image
+    const imageData = canvas.toDataURL('image/png');
+
+    // Display the preview in the modal
+    const previewImage = document.getElementById('imgPreview');
+    previewImage.src = imageData;
+    previewImage.style.width = '100%';
+    previewImage.style.marginTop = '10px';
+
+    // Append the preview image to the modal body
+    //const modalBody = document.querySelector('#captureImageModal .modal-body');
+   // modalBody.appendChild(previewImage);
+
+    // Enable the save button
+    document.getElementById('saveButton').disabled = false;
+}
+
+    function completeOrder() {
+
+     saveCarton();
+    // Step 1: Show confirmation popup
+    const confirmation = confirm("Are you sure you want to complete the order?");
+    if (!confirmation) return;
+
+    // Step 2: Show total cartons opened
+    const totalCartons = getCartonNo();
+    alert(`Total number of cartons opened: ${totalCartons}`);
+
+    // Step 3: Prompt for employee name
+    const employeeName = prompt("Please enter your name to confirm completion:");
+    if (!employeeName) {
+        alert("Employee name is required to complete the order.");
+        return;
+    }
+
+    // Step 4: Call InboundController with status closed and InboundId
+    const inboundId = getInboundId();
+    fetch('/v1/inbound/completeOrder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            inboundId: inboundId,
+            status: 'closed',
+            employeeName: employeeName,
+        }),
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to complete the order');
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert('Order completed successfully!');
+        window.location.href = '/v1/inbound/completedOrders'; // Redirect to completed orders page
+    })
+    .catch(error => {
+        console.error('Error completing order:', error);
+        alert('Failed to complete the order. Please try again.');
+    });
+}
+
+    function showPackagingPopup(rowCount) {
+    //if (checkbox.checked) {
+        // Show the modal
+        document.getElementById('packagingModal').style.display = 'block';
+        document.getElementById('popupProductId').value = ''+rowCount;
+    //}
+}
+
+function closePackagingModal() {
+    // Hide the modal
+    document.getElementById('packagingModal').style.display = 'none';
+    document.getElementById('popupProductId') = '';
+}
+
+function savePackagingDetails() {
+    const length = document.getElementById('length').value;
+    const breadth = document.getElementById('breadth').value;
+    const height = document.getElementById('height').value;
+    const productid = document.getElementById('popupProductId').value;
+    if (!length || !breadth || !height) {
+        alert('Please fill all dimensions.');
+        return;
+    }
+    var productName = "pkg-"+length+"-"+breadth+"-"+height;
+    //set productid as productname
+       document.getElementById('productID'+productid).value = productName;
+
+    console.log('Packaging Dimensions:', { length, breadth, height });
+
+    // Hide the modal
+    closePackagingModal();
+}
+
+
+    function generateQRCode(productIdFieldId) {
+        const productId = document.getElementById("productID" + productIdFieldId).value;
+        var productName = document.getElementById("productName" + productIdFieldId).value;
+        if (!productId && !productName) {
+            alert('Product ID is required to generate QR code.');
+            return;
+        }
+
+        // Clear any existing QR code
+        const qrCodeContainer = document.getElementById('qrcode');
+        qrCodeContainer.innerHTML = '';
+
+        // Generate the QR code
+       new QRCode(qrCodeContainer, {
+            text: productId,
+            width: 128,
+            height: 128,
+        });
+
+
+    const textElement = document.createElement('div');
+    textElement.style.textAlign = 'center'; // Center the text
+    textElement.style.marginTop = '10px'; // Add some spacing
+        if (productName.length > 60) {
+            productName = productName.substring(0, 60) + '...'; // Truncate if too long
+        }
+    textElement.textContent = productName; // Set the text content
+        qrCodeContainer.appendChild(textElement);
+
+        // Show the QR code modal
+        document.getElementById('qrcodeModal').style.display = 'block';
+    }
+
+    // Function to close the QR code modal
+    function closeQRCode() {
+        document.getElementById('qrcodeModal').style.display = 'none';
+    }
+
+
+    async function printQRCode()
+    {
+
+                const qrCodeContainer = document.getElementById('qrcode');
+                const qrCodeImage = qrCodeContainer.querySelector('img');
+                const textElement = qrCodeContainer.querySelector('div');
+                if (!qrCodeImage || !textElement) {
+                    alert('No QR code or text found to print.');
+                    return;
+                }
+
+                // Get the QR code image as Base64
+                const qrCodeBase64 = qrCodeImage.src;
+                const productText = textElement.textContent;
+
+                // Create a new jsPDF instance
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'in',
+                    format: [4,1],
+                });
+
+                // Add QR code image
+                const qrCode1X = 0.2; // X position
+                const qrCode1Y = .1; // Y position
+
+                 const qrCode2X = 1.3; // X position
+                const qrCode2Y = .1; // Y position
+
+
+                const qrCodeSize = .5; // Size of the QR code
+                pdf.addImage(qrCodeBase64, 'PNG', qrCode1X, qrCode1Y, qrCodeSize, qrCodeSize);
+
+                // Add product name and ID as text below the QR code
+                const textX = qrCode1X;
+                const textY = qrCode1Y + qrCodeSize + .1; // Position below the QR code
+                pdf.setFontSize(5);
+                const maxWidth = .7; // Adjust as needed
+
+                const wrappedText = pdf.splitTextToSize(productText, maxWidth);
+                pdf.text(wrappedText, textX, textY);
+
+
+
+
+
+                //add 2nd image
+
+
+
+                pdf.addImage(qrCodeBase64, 'PNG', qrCode2X, qrCode2Y, qrCodeSize, qrCodeSize);
+
+                 const text2X = qrCode2X;
+                const text2Y = qrCode2Y + qrCodeSize + .1; // Position below the QR code
+                pdf.setFontSize(5);
+                pdf.text(wrappedText, text2X, text2Y);
+
+
+                 //add 3rd image
+
+                 const qrCode3X = 2.3; // X position
+                const qrCode3Y = .1; // Y position
+
+                pdf.addImage(qrCodeBase64, 'PNG', qrCode3X, qrCode3Y, qrCodeSize, qrCodeSize);
+
+                 const text3X = qrCode3X;
+                const text3Y = qrCode3Y + qrCodeSize + .1; // Position below the QR code
+                pdf.setFontSize(5);
+                pdf.text(wrappedText, text3X, text3Y);
+
+                //4th image
+
+                 const qrCode4X = 3.2; // X position
+                const qrCode4Y = .1; // Y position
+
+                pdf.addImage(qrCodeBase64, 'PNG', qrCode4X, qrCode4Y, qrCodeSize, qrCodeSize);
+
+                 const text4X = qrCode4X;
+                const text4Y = qrCode4Y + qrCodeSize + .1; // Position below the QR code
+                pdf.setFontSize(5);
+                pdf.text(wrappedText, text4X, text4Y);
+
+
+
+                // Open the PDF in a new tab
+                const pdfBlob = pdf.output('blob');
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                window.open(pdfUrl, '_blank');
+    }
+
+</script>
+</html>

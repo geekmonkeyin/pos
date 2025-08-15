@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Order</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .barcode-icon {
+            cursor: pointer;
+        }
+        .form-check {
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+        }
+        .input-group-text {
+            background-color: #007bff;
+            color: white;
+        }
+        .input-group-text:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
+    <button id="homeButton" onclick="goBack()" style="position: fixed; top: 10px; left: 60px;background-color:#28a745;color:#ffff">Home</button>
+</div>
+
+<div class="container">
+    <h1 class="text-center my-4">New Order</h1>
+    <form>
+        <div class="form-group">
+            <label for="barcode">Scan Barcode</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="barcode" placeholder="Scan or enter barcode">
+                <div class="input-group-append">
+                    <span class="input-group-text barcode-icon">&#128424;</span>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="searchProduct">Search for Products</label>
+            <input type="text" class="form-control" id="searchProduct" placeholder="Search for products">
+        </div>
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="discount">
+            <label class="form-check-label" for="discount">Discount</label>
+        </div>
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="gift">
+            <label class="form-check-label" for="gift">Gift</label>
+        </div>
+        <div class="form-group">
+            <label for="shippingCharges">Shipping Charges</label>
+            <input type="number" class="form-control" id="shippingCharges" placeholder="Enter shipping charges">
+        </div>
+        <div class="form-group">
+            <label for="paymentMethod">Payment Method</label>
+            <select class="form-control" id="paymentMethod">
+                <option>Credit Card</option>
+                <option>Debit Card</option>
+                <option>Cash</option>
+                <option>Online Payment</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="customerName">Customer Name</label>
+            <input type="text" class="form-control" id="customerName" placeholder="Enter customer name">
+        </div>
+        <div class="form-group">
+            <label for="customerPhone">Customer Phone No</label>
+            <input type="text" class="form-control" id="customerPhone" placeholder="Enter customer phone number">
+        </div>
+        <div class="form-group">
+            <label for="previousOrders">Previous Number of Orders</label>
+            <input type="number" class="form-control" id="previousOrders" placeholder="Enter previous number of orders">
+        </div>
+        <div class="form-group">
+            <label for="totalAmountSpent">Total Amount Spent</label>
+            <input type="number" class="form-control" id="totalAmountSpent"
+                   placeholder="Enter total amount spent by customer">
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+<script>
+    document.querySelector('.barcode-icon').addEventListener('click', function() {
+        alert('Barcode scanner functionality to be implemented');
+    });
+    function goBack() {
+        window.history.back(); // Navigate to the previous page
+    }
+
+</script>
+</body>
+</html>

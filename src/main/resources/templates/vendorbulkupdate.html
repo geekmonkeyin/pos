@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vendor Bulk Update</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .search-results {
+            position: absolute;
+            z-index: 1000;
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .search-results a {
+            display: block;
+            padding: 10px;
+            text-decoration: none;
+            color: #343a40;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .search-results a:hover {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Vendor Bulk Update</h2>
+    <div class="form-group">
+        <label for="vendorName">Vendor Name</label>
+        <input type="text" class="form-control" id="vendorName" placeholder="Enter vendor name" oninput="debounceFetchVendor()">
+        <ul class="search-results list-group" id="vendorDropdown" style="display: none;"></ul>
+    </div>
+
+    <!-- Additional Fields -->
+    <div id="additionalFields" class="hidden">
+        <div class="form-group">
+            <label for="transactionType">Transaction Type</label>
+            <select class="form-control" id="transactionType">
+                <option value="payment">Payment</option>
+                <option value="purchase">Purchase</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="csvFile">Upload CSV</label>
+            <input type="file" class="form-control" id="csvFile" accept=".csv">
+        </div>
+        <button class="btn btn-primary" onclick="uploadCSV()">Upload</button>
+    </div>
+</div>
+
+<script>
+    let debounceTimeout;
+
+    function debounceFetchVendor() {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const query = document.getElementById('vendorName').value.trim();
+            if (query.length > 2) {
+                fetchVendorList(query);
+            }
+        }, 300);
+    }
+
+    function fetchVendorList(query) {
+        fetch('/v1/vendor/search/' + query)
+            .then(response => response.json())
+            .then(data => {
+                const vendorDropdown = document.getElementById('vendorDropdown');
+                vendorDropdown.innerHTML = '';
+                vendorDropdown.style.display = data.length ? 'block' : 'none';
+
+                data.forEach(vendor => {
+                    const item = document.createElement('a');
+                    item.textContent = vendor.vendorName;
+                    item.onclick = () => selectVendor(vendor.vendorName);
+                    vendorDropdown.appendChild(item);
+                });
+            })
+            .catch(error => console.error('Error fetching vendor list:', error));
+    }
+
+    function selectVendor(vendorName) {
+        document.getElementById('vendorName').value = vendorName;
+        document.getElementById('vendorDropdown').style.display = 'none';
+
+        // Show additional fields
+        document.getElementById('additionalFields').classList.remove('hidden');
+    }
+
+   function uploadCSV() {
+       const transactionType = document.getElementById('transactionType').value;
+       const vendorName = document.getElementById('vendorName').value.trim();
+       const csvFile = document.getElementById('csvFile').files[0];
+
+       if (!vendorName || !csvFile) {
+           alert('Please select a vendor and upload a CSV file.');
+           return;
+       }
+
+       const formData = new FormData();
+       formData.append('vendorName', vendorName);
+       formData.append('file', csvFile);
+
+       let endpoint;
+       if (transactionType === 'purchase') {
+           endpoint = '/v1/vendor/purchase/uploadCSV';
+       } else if (transactionType === 'payment') {
+           endpoint = '/v1/vendor/payment/uploadCSV';
+       } else {
+           alert('Invalid transaction type selected.');
+           return;
+       }
+
+       fetch(endpoint, {
+           method: 'POST',
+           body: formData,
+       })
+       .then(response => {
+           if (!response.ok) throw new Error('Failed to upload CSV');
+           alert('CSV uploaded successfully');
+       })
+       .catch(error => console.error('Error uploading CSV:', error));
+   }
+</script>
+</body>
+</html>

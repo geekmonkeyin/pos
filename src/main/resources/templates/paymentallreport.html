@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script th:src="@{../../../assets/scripts/inventory-utils.js}"></script>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <title>Payment Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .filter-form {
+            margin-bottom: 20px;
+        }
+
+        .filter-form input, .filter-form button {
+            margin-right: 10px;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        .image-preview {
+            max-width: 100px;
+            max-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Payment Report</h2>
+
+    <!-- Filter Form -->
+    <form class="filter-form" id="filterForm">
+        <input type="text" name="vendorName" placeholder="Vendor Name">
+        <input type="text" name="paymentTo" placeholder="Payment To">
+        <input type="number" name="minAmount" placeholder="Min Payment">
+        <input type="number" name="maxAmount" placeholder="Max Payment">
+        <input type="date" name="startDate" placeholder="Start Date">
+        <input type="date" name="endDate" placeholder="End Date">
+        <button type="button" th:onclick="fetchReport();">Submit</button>
+    </form>
+
+    <!-- Report Table -->
+    <table id="reportTable">
+        <thead>
+            <tr>
+                <th>Payment To</th>
+                <th>Vendor Name</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>WhatsApp Number</th>
+                <th>Remarks</th>
+                <th>Image ID</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be dynamically added here -->
+        </tbody>
+        <tfoot>
+        <tr>
+            <td colspan="2"><strong>Total Amount:</strong></td>
+            <td id="totalAmountCell">0</td>
+            <td colspan="6"></td>
+        </tr>
+        </tfoot>
+    </table>
+
+    <script>
+        // Fetch report based on filters
+        function fetchReport() {
+            const form = document.getElementById('filterForm');
+            const formData = new FormData(form);
+            const queryParams = new URLSearchParams(formData).toString();
+
+            fetch(`/v1/payment/filterReport?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.querySelector('#reportTable tbody');
+                    const totalAmountCell = document.getElementById('totalAmountCell');
+
+                    tableBody.innerHTML = ''; // Clear existing rows
+                    let totalAmount = 0;
+                    data.forEach(receipt => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${receipt.paymentTo}</td>
+                            <td>${receipt.vendorName}</td>
+                            <td>${receipt.amount}</td>
+                            <td>${receipt.date}</td>
+                            <td>${receipt.whatsappNumber}</td>
+                             <td>${receipt.remarks}</td>
+                            <td>${receipt.imageId}</td>
+                            <td><div class="image-preview" id="image-${receipt.imageId}" src="" alt="No Image"></div></td>
+                            <td><button onclick="refreshImage('${receipt.imageId}')">Refresh Image</button></td>
+                        `;
+                        tableBody.appendChild(row);
+                        totalAmount += receipt.amount;
+                    });
+                    totalAmountCell.textContent = totalAmount.toFixed(2);
+
+                });
+        }
+
+        // Refresh and display image
+        function refreshImage(imageId) {
+            const images = [];
+            images.push(imageId);
+             fetchImages(images,'image-'+imageId);
+        }
+
+
+        let debounceTimer;
+
+    function debounceSearchVendor() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(searchVendor, 2000); // 2-second delay
+    }
+
+    function searchVendor() {
+        const vendorName = document.getElementById('vendorNameInput').value.trim();
+        if (vendorName.length < 3) return; // Minimum 3 characters to search
+
+        fetch('/v1/vendor/searchvendor?vendorName='+vendorName)
+            .then(response => response.json())
+            .then(data => {
+                const vendorList = document.getElementById('vendorList');
+                vendorList.innerHTML = ''; // Clear previous results
+                vendorList.style.display = 'none';
+
+                if (data.length > 0) {
+                    data.forEach(vendor => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${vendor.vendorName} (${vendor.whatsappNumber})`;
+                        listItem.style.cursor = 'pointer';
+                        listItem.style.padding = '5px';
+                        listItem.style.borderBottom = '1px solid #ccc';
+                        listItem.onclick = () => selectVendor(vendor);
+                        vendorList.appendChild(listItem);
+                    });
+                    vendorList.style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Error fetching vendor details:', error));
+    }
+
+    function selectVendor(vendor) {
+        document.getElementById('vendorNameInput').value = vendor.vendorName;
+        document.getElementById('whatsappNumber').value = vendor.whatsappNumber;
+        document.getElementById('vendorList').style.display = 'none'; // Hide the list
+    }
+    </script>
+</body>
+</html>

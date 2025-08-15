@@ -1,0 +1,57 @@
+
+
+<head>
+    <style>
+        table,
+        th,
+        tr {
+           
+            margin:"2px 1px 1px 2px;";
+            font-size:10px;
+        }
+         td{
+               font-style:Helvetica;
+                font-size:10px;
+       }
+    </style>
+</head>
+<html>
+
+<body>
+    <div style="width: 100%;font-style:Helvetica;">
+
+    
+                        <table style="width:100%">
+                            <tbody>
+                                <tr>
+                                    <td style="width: 50%;text-align: center;" id="label-shipment-detail">
+                                       <b>$productName [$variant]</b><br>
+                                      
+
+<div style='text-align: center;'>
+  <!-- insert your custom barcode setting your data in the GET parameter "data" -->
+  <img alt='Barcode Generator TEC-IT' style="width:75%;" 
+       src='https://barcode.tec-it.com/barcode.ashx?data=$productId&code=Code128'/>
+</div>
+
+                                    </td>
+<td style="width: 50%;text-align: center;" id="label-shipment-detail">
+                                       <b>$productName [$variant]</b><br>
+                                        
+
+<div style='text-align: center;'>
+  <!-- insert your custom barcode setting your data in the GET parameter "data" -->
+  <img alt='Barcode Generator TEC-IT' style="width:75%;" 
+       src='https://barcode.tec-it.com/barcode.ashx?data=$productId&code=Code128'/>
+</div>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                   
+    </div>
+
+</body>
+
+</html>

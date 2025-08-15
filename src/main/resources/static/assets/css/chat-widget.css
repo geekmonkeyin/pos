@@ -1,0 +1,62 @@
+/* src/main/resources/static/chat-widget.css */
+
+#chatIcon {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #007bff;
+  color: white;
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+  text-align: center;
+  line-height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 9999;
+}
+
+#chatWindow {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 300px;
+  height: 400px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  display: none;
+  flex-direction: column;
+  z-index: 9998;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+#chatHeader {
+  background: #007bff;
+  color: white;
+  padding: 10px;
+  font-weight: bold;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+#chatContent {
+  padding: 10px;
+  height: 280px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+#chatInput {
+  width: 70%;
+  margin: 10px 5px;
+  padding: 8px;
+}
+
+#chatSend {
+  padding: 8px 10px;
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}

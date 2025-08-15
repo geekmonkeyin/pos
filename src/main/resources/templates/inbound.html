@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Inbound Details</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        label {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            font-size: 14px;
+        }
+
+        .btn {
+            font-size: 16px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .list-group-item {
+            cursor: pointer;
+        }
+
+        .spinner-border {
+            width: 30px;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="form-container">
+    <h2>Add New Inbound Details</h2>
+    <form id="inboundForm">
+        <!-- Vendor Name -->
+        <div class="form-group">
+            <label for="vendorName">Vendor Name</label>
+            <input type="text" class="form-control" id="vendorName" placeholder="Enter vendor name" oninput="debounceFetchVendor()" required>
+            <ul class="list-group" id="vendorDropdown" style="display: none;"></ul>
+        </div>
+
+        <!-- Spinner -->
+        <div id="vendorSpinner" style="display: none; text-align: center; margin-top: 10px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Inbound ID -->
+        <div class="form-group">
+            <label for="inboundId">Inbound ID</label>
+            <input type="text" class="form-control" id="inboundId" readonly>
+        </div>
+
+        <!-- Date -->
+        <div class="form-group">
+            <label for="orderDate">Date</label>
+            <input type="date" class="form-control" id="orderDate" value="" required>
+        </div>
+
+        <!-- Number of Cartons -->
+        <div class="form-group">
+            <label for="cartons">Number of Cartons</label>
+            <input type="number" class="form-control" id="cartons" placeholder="Enter number of cartons" required>
+        </div>
+
+        <!-- Next Button -->
+        <button type="button" class="btn btn-primary btn-block" onclick="saveDraftAndNext()">Next</button>
+    </form>
+</div>
+
+<script>
+    let debounceTimer;
+
+    // Set current date by default
+    document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+
+    function debounceFetchVendor() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchVendorDetails, 500); // 500ms delay
+    }
+
+    function fetchVendorDetails() {
+        const vendorNameInput = document.getElementById('vendorName');
+        const vendorName = vendorNameInput.value.trim();
+
+        if (vendorName.length < 3) return; // Minimum 3 characters required
+
+        const vendorDropdown = document.getElementById('vendorDropdown');
+        const vendorSpinner = document.getElementById('vendorSpinner');
+
+        // Show spinner
+        vendorSpinner.style.display = 'block';
+
+        fetch('/v1/vendor/search/' + vendorName)
+            .then(response => response.json())
+            .then(data => {
+                vendorDropdown.innerHTML = ''; // Clear previous results
+                vendorSpinner.style.display = 'none'; // Hide spinner
+
+                if (data && data.length > 0) {
+                    data.forEach(vendor => {
+                        const item = document.createElement('a');
+                        item.classList.add('list-group-item', 'list-group-item-action');
+                        item.textContent = vendor.vendorName;
+                        item.onclick = () => selectVendor(vendor);
+                        vendorDropdown.appendChild(item);
+                    });
+                    vendorDropdown.style.display = 'block'; // Show dropdown
+                } else {
+                    vendorDropdown.style.display = 'none'; // Hide dropdown if no results
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching vendor details:', error);
+                vendorSpinner.style.display = 'none'; // Hide spinner on error
+            });
+    }
+
+    function selectVendor(vendor) {
+        const vendorNameInput = document.getElementById('vendorName');
+        const vendorDropdown = document.getElementById('vendorDropdown');
+
+        vendorNameInput.value = vendor.vendorName;
+        vendorDropdown.style.display = 'none'; // Hide dropdown after selection
+
+        // Fetch draft inbound orders using vendor name
+        fetch('/v1/inbound/getDraftInboundOrders/' + vendor.vendorName)
+            .then(response => response.json())
+            .then(data => {
+
+                if (data) {
+                   if(!data.error){
+                    // Populate the form with draft data
+                    document.getElementById('orderDate').value = data.receivedDate;
+                    document.getElementById('cartons').value = data.numberOfBoxes;
+                    document.getElementById('inboundId').value = data.id;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching draft inbound orders:', error);
+            });
+    }
+
+    function saveDraftAndNext() {
+        const vendorName = document.getElementById('vendorName').value;
+        const receivedDate = document.getElementById('orderDate').value;
+        const numberOfBoxes = parseInt(document.getElementById('cartons').value);
+
+        const id = document.getElementById('inboundId').value;
+
+        if (!vendorName || !receivedDate || !numberOfBoxes) {
+            alert('Please fill all fields.');
+            return;
+        }
+
+        const draftData = { vendorName, id,receivedDate, numberOfBoxes };
+
+        fetch('/v1/inbound/initiateBoarding', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(draftData),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to initiate boarding process');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const inboundId = data.inboundId;
+            const currentStep = data.currentStep;
+            const cartonNo = data.cartonNo;
+
+
+            window.location.href = '/v1/inbound/steps?inboundId=' + inboundId+'&currentStep=' + currentStep + '&cartonNo=' + cartonNo;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to initiate boarding process. Please try again.');
+        });
+    }
+</script>
+</body>
+</html>

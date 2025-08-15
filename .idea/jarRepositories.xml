@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteRepositoriesConfiguration">
+    <remote-repository>
+      <option name="id" value="krysalis-artifactory" />
+      <option name="name" value="krysalis Releases" />
+      <option name="url" value="https://mvnrepository.com/artifact/net.sf.barcode4j/barcode4j" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="Central Repository" />
+      <option name="url" value="https://repo.maven.apache.org/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="google maven repo" />
+      <option name="name" value="google maven repo" />
+      <option name="url" value="https://mvnrepository.com/artifact/com.google.firebase/firebase-admin" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="krysalis-artifactory1" />
+      <option name="name" value="krysalis Releases" />
+      <option name="url" value="https://mvnrepository.com/artifact/org.krysalis/krysalis-barcode" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="Maven Central repository" />
+      <option name="url" value="https://repo1.maven.org/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="jboss.community" />
+      <option name="name" value="JBoss Community repository" />
+      <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="splunk-artifactory" />
+      <option name="name" value="Splunk Releases" />
+      <option name="url" value="https://splunk.jfrog.io/splunk/ext-releases-local" />
+    </remote-repository>
+  </component>
+</project>
