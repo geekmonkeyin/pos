@@ -9,17 +9,24 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+
 @Service
 public class InteraktServiceImpl {
 
     @Value("${whatsapp.api.url}")
     private String API_URL;
-    @Value("${whatsapp.api.token}")
     private String AUTH_TOKEN ;
     @Value(("${whatsapp.api.adduser.url}"))
     private String ADD_USER_URL;
 
 
+
+    @PostConstruct
+    void init(){
+        AUTH_TOKEN = System.getenv().get("whatsapp.api.token");
+
+    }
 
     public boolean sendOrderStatusUpdates(String currentStatus,String name,String awb,String phoneno, String edd, String courier, String paymentMode, String productURL, String trackingURL) {
         try {
