@@ -22,7 +22,6 @@ import java.util.List;
 @Service
 public class ChatGPTService {
 
-    @Value("${openai.api.key}")
     private String apiKey;
     @Autowired
     private ChatMessageRepository chatRepo;
@@ -35,6 +34,8 @@ public class ChatGPTService {
     @PostConstruct
     public void init() {
         openAiService = new OpenAiService(apiKey);
+        apiKey = System.getenv().get("openai.api.key");
+
     }
 
     public String getResponseFromAI(String userMessage) {
