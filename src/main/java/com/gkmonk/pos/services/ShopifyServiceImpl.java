@@ -9,8 +9,10 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,12 +26,21 @@ public class ShopifyServiceImpl {
     private String dynamicProductUrl;
     @Value("${shopify.protocol}")
     private String protocol;
-    @Value("${shopify.token}")
     private String shopifyToken;
     @Value("${shopify.domain}")
     private String shopifyDomain;
-    @Value("${shopify.shortToken}")
+
     private String shortToken;
+
+    Environment environment;
+    @PostConstruct
+    void init(){
+        shopifyToken = System.getenv().get("shopify.token");
+        shortToken  = System.getenv().get("shopify.shortToken");
+
+        System.out.println("inside init shopifytoken ******************:"+shopifyToken);
+    }
+
 
     public void updateShopifyDetails(Inventory inventory){
         String id = StringUtils.isNotBlank(inventory.getProductId()) ? inventory.getProductId() : inventory.getProductVariantId();
