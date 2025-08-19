@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
@@ -77,6 +77,34 @@
 <body>
 <div class="wizard-container">
     <h2>Inbound Wizard</h2>
+
+   <!-- Example for Thymeleaf in `inboundsteps.html` -->
+   <div>
+       <h3>Existing Cartons</h3>
+       <div th:if="${cartons != null}">
+               <table class="table">
+                   <thead>
+                       <tr>
+                           <th>Product ID</th>
+                           <th>Product Name</th>
+                           <th>Quantity</th>
+                           <th>Cost</th>
+                           <th>Image</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       <tr th:each="carton, cartonStat : ${cartons}">
+                           <td th:text="${carton.productId}"></td>
+                           <td th:text="${carton.productName}"></td>
+                           <td th:text="${carton.quantity}"></td>
+                           <td th:text="${carton.productCost}"></td>
+                           <td><img th:src="${carton.image}" style="height:60px;weight:60px;"></td>
+                       </tr>
+                   </tbody>
+               </table>
+           </div>
+       </div>
+
     <div id="wizardSteps">
         <!-- Steps will be dynamically generated -->
         <div class="modal" id="productListModal" role="dialog" tabindex="-1">
@@ -198,7 +226,7 @@
         <span class="sr-only">Loading...</span>
     </div>
 </div>
-
+</div>
 </body>
 <script>
     const totalCartons = getCartonNo();

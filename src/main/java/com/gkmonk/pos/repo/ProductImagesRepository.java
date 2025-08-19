@@ -20,4 +20,7 @@ public interface ProductImagesRepository extends MongoRepository<CartonRequest, 
 
     @Query("{ 'inboundId': ?0 }")
     Optional<List<CartonRequest>> findCartonsByInbound(String inboundId);
+
+    @Query("{ 'inboundId': ?0 ,'carton': ?1 }")
+    Optional<List<CartonRequest>> findCartonsByInboundAndStep(String inboundId,Long step);
 }

@@ -145,6 +145,11 @@ public class InboundServiceImpl {
         return cartonRequestList.orElseGet(ArrayList::new);
     }
 
+    public List<CartonRequest> getCartonRequestsByStep(String inboundId,String step) {
+        Optional<List<CartonRequest>> cartonRequestList =  cartonRepo.findCartonsByInboundAndStep(inboundId,Long.valueOf(step));
+        return cartonRequestList.orElseGet(ArrayList::new);
+    }
+
     public Optional<List<InboundData>> getInboundDetailsByVendorName(String vendorName) {
         return inboundRepo.findByVendorName(vendorName);
     }

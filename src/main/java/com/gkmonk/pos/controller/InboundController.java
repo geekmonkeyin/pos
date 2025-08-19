@@ -72,18 +72,24 @@ public class InboundController {
     }
 
     @GetMapping("/steps")
-    public ModelAndView getInboundSteps(@RequestParam("inboundId") String inboundId) {
+    public ModelAndView getInboundSteps(@RequestParam("inboundId") String inboundId,@RequestParam("currentStep") String step) {
         ModelAndView modelAndView = new ModelAndView();
         InboundData inboundData = inboundService.getInboundDataById(Long.parseLong(inboundId));
+        List<CartonRequest> cartonRequests = inboundService.getCartonRequestsByStep(inboundId,step);
         if (inboundData == null) {
             modelAndView.setViewName("error");
             modelAndView.addObject("message", "Inbound data not found for ID: " + inboundId);
             return modelAndView;
         }
+        if(cartonRequests != null) {
+            modelAndView.addObject("cartons", cartonRequests);
+        }
         modelAndView.addObject("inboundData", inboundData);
         modelAndView.setViewName("inboundsteps");
         return modelAndView;
     }
+
+
 
     @GetMapping("")
     public ModelAndView inbound() {

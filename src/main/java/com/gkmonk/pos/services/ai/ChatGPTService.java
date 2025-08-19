@@ -33,8 +33,9 @@ public class ChatGPTService {
 
     @PostConstruct
     public void init() {
+        apiKey = System.getenv().get("openai_api_key");
         openAiService = new OpenAiService(apiKey);
-        apiKey = System.getenv().get("openai.api.key");
+
 
     }
 
