@@ -44,8 +44,8 @@ public class ShopifyServiceImpl {
 
     @PostConstruct
     void init(){
-        shopifyToken = System.getenv().get("shopify.token");
-        shortToken  = System.getenv().get("shopify.shortToken");
+        shopifyToken = System.getenv().get("shopify_token");
+        shortToken  = System.getenv().get("shopify_shortToken");
     }
 
 
