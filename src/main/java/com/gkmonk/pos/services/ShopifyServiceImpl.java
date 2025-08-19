@@ -35,8 +35,8 @@ public class ShopifyServiceImpl {
     Environment environment;
     @PostConstruct
     void init(){
-        shopifyToken = System.getenv().get("shopify.token");
-        shortToken  = System.getenv().get("shopify.shortToken");
+        shopifyToken = System.getenv().get("shopify_token");
+        shortToken  = System.getenv().get("shopify_shortToken");
 
         System.out.println("inside init shopifytoken ******************:"+shopifyToken);
     }
