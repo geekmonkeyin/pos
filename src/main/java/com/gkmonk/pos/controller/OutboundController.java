@@ -8,7 +8,7 @@ import com.gkmonk.pos.model.outbound.OutboundOrder;
 import com.gkmonk.pos.model.pod.PackedOrder;
 import com.gkmonk.pos.pod.services.PODServiceImpl;
 import com.gkmonk.pos.services.OrderReportsServiceImpl;
-import com.gkmonk.pos.services.ShopifyServiceImpl;
+import com.gkmonk.pos.services.shopify.ShopifyServiceImpl;
 import com.gkmonk.pos.services.logs.TaskLogsServiceImpl;
 import com.gkmonk.pos.services.marketing.MarketinServiceImpl;
 import com.gkmonk.pos.services.notification.NotificationServiceImpl;

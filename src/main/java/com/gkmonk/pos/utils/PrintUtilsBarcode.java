@@ -1,10 +1,10 @@
 package com.gkmonk.pos.utils;
 
 import com.gkmonk.pos.model.BarcodeRequest;
+import com.itextpdf.commons.actions.contexts.IMetaInfo;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.io.source.ByteArrayOutputStream;
-import com.itextpdf.kernel.counter.event.IMetaInfo;
 import com.itextpdf.kernel.events.Event;
 import com.itextpdf.kernel.events.IEventHandler;
 import com.itextpdf.kernel.events.PdfDocumentEvent;
@@ -24,14 +24,14 @@ import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
 import com.itextpdf.kernel.utils.PdfMerger;
 import com.itextpdf.layout.Document;
-import com.itextpdf.text.DocumentException;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.poi.util.DocumentFormatException;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -120,7 +120,7 @@ public class PrintUtilsBarcode {
     return output;
 }
 
-    public static String generatePDF(String content, ByteArrayOutputStream pdfOutputStream) throws DocumentException, IOException {
+    public static String generatePDF(String content, ByteArrayOutputStream pdfOutputStream) throws DocumentFormatException, IOException {
        String fileName = "temp" + Math.random() + ".pdf";
         PdfWriter pdfWriter = new PdfWriter(new FileOutputStream(fileName));
         PdfDocument pdfDocument =  new PdfDocument(pdfWriter, new DocumentProperties().setEventCountingMetaInfo(new HtmlMetaInfo()));
@@ -156,7 +156,7 @@ public class PrintUtilsBarcode {
         eventHandler.setPageDict(srcDoc.getPage(p).getPdfObject());
         canvas = new PdfCanvas(pdfDoc.addNewPage());
         page = srcDoc.getPage(p).copyAsFormXObject(pdfDoc);
-        canvas.addXObject(page, scale, 0f, 0f, scale, 0f, 0f);
+      //  canvas.addXObject(page, scale, 0f, 0f, scale, 0f, 0f);
     }
 
     pdfDoc.close();

@@ -9,6 +9,7 @@ import com.gkmonk.pos.model.Inventory;
 import com.gkmonk.pos.model.Product;
 import com.gkmonk.pos.model.StockHistory;
 import com.gkmonk.pos.repo.InventoryRepo;
+import com.gkmonk.pos.services.shopify.ShopifyServiceImpl;
 import com.gkmonk.pos.utils.MapperUtils;
 import com.gkmonk.pos.utils.StringUtils;
 import com.mongodb.client.MongoClient;

@@ -1,4 +1,4 @@
-package com.gkmonk.pos.services;
+package com.gkmonk.pos.services.vendor;
 
 import com.gkmonk.pos.model.Vendor;
 import com.gkmonk.pos.repo.VendorRepo;

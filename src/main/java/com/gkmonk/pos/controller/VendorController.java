@@ -1,7 +1,7 @@
 package com.gkmonk.pos.controller;
 
 import com.gkmonk.pos.model.Vendor;
-import com.gkmonk.pos.services.VendorServiceImpl;
+import com.gkmonk.pos.services.vendor.VendorServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

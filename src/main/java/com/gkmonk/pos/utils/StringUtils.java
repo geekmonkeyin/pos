@@ -43,7 +43,7 @@ public class StringUtils {
 
 
     public static boolean isBlank(Object object) {
-        return org.apache.commons.lang.StringUtils.isBlank(String.valueOf(object));
+        return object != null && "".equalsIgnoreCase(String.valueOf(object));
     }
 
     public static boolean isNotBlank(String productId) {

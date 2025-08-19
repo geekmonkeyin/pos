@@ -1,0 +1,38 @@
+type Money { amount: String, currencyCode: String }
+type PriceSet { shopMoney: Money }
+
+type LineItem {
+    id: ID, name: String, sku: String
+    quantity: Int, fulfillableQuantity: Int
+}
+
+type LineItemConnection { nodes: [LineItem!]! }
+
+type Address {
+    address1: String, city: String, province: String
+    country: String, zip: String, phone: String
+}
+
+type Customer { displayName: String, email: String, phone: String }
+
+type Order {
+    id: ID, name: String
+    processedAt: String
+    displayFinancialStatus: String
+    displayFulfillmentStatus: String
+    paymentGatewayNames: [String]
+    currentTotalPriceSet: PriceSet
+    customer: Customer
+    shippingAddress: Address
+    lineItems: LineItemConnection
+}
+
+type PageInfo { hasNextPage: Boolean!, endCursor: String }
+type OrderConnection { pageInfo: PageInfo!, nodes: [Order!]! }
+
+type Query {
+    # one page (Shopify max 250)
+    unfulfilledOrders(first: Int = 50, after: String): OrderConnection!
+    # fetch ALL pages (auto-pagination)
+    unfulfilledOrdersAll(pageSize: Int = 250): [Order!]!
+}

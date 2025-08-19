@@ -38,10 +38,5 @@ public class OrderController {
         return model;
     }
 
-    @RequestMapping("/bookshopify")
-    public ModelAndView bookShopify() {
-        ModelAndView model = new ModelAndView();
-        model.setViewName("bookshopify");
-        return model;
-    }
+
 }
