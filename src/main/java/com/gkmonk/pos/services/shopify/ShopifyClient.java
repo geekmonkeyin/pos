@@ -34,7 +34,7 @@ public class ShopifyClient {
         shop = "bad22a-2";
         apiVersion = "2025-07";
         //token = System.getenv().get("shopify.token");
-        token  = System.getenv().get("shopify.shortToken");
+        token  = System.getenv().get("shopify_shortToken");
        // shortToken  = System.getenv().get("shopify.shortToken");
         this.webClient = builder
                 .baseUrl("https://" + shop + ".myshopify.com/admin/api/" + apiVersion + "/graphql.json")
