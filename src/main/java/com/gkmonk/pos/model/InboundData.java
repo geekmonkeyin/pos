@@ -19,6 +19,16 @@ public class InboundData {
     private double totalPurchaseAmount;
     private Map<Integer,List<CartonDetails>> cartonDetails;
 
+    public String getClosedBy() {
+        return closedBy;
+    }
+
+    public void setClosedBy(String closedBy) {
+        this.closedBy = closedBy;
+    }
+
+    private String closedBy;
+
     public String getVendorName() {
         return vendorName;
     }

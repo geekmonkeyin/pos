@@ -717,9 +717,8 @@ fetch('/v1/inbound/saveImage', {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            inboundId: inboundId,
-            status: 'closed',
-            employeeName: employeeName,
+            id: inboundId,
+            closedBy: employeeName,
         }),
     })
     .then(response => {
