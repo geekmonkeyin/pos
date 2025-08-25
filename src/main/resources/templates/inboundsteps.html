@@ -384,7 +384,7 @@ function fetchAndShowProducts(rowId) {
                 data.forEach(product => {
                     const listItem = document.createElement('li');
                     listItem.className = 'list-group-item';
-                    listItem.textContent = `${product.productTitle} (ID: ${product.productId})`;
+                    listItem.textContent = `${product.productTitle} (ID: ${product.productVariantId})`;
                     listItem.onclick = () => selectProduct(product);
                     productList.appendChild(listItem);
                 });
@@ -402,7 +402,7 @@ function fetchAndShowProducts(rowId) {
 
 function selectProduct(product) {
     // Update the product ID in the corresponding row
-    document.getElementById(`productID${selectedRowId}`).value = product.productId;
+    document.getElementById(`productID${selectedRowId}`).value = product.productVariantId;
     document.getElementById(`productName${selectedRowId}`).value = product.productTitle;
 
     closeProductListModal();

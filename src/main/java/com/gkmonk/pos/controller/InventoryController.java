@@ -208,6 +208,7 @@ public class InventoryController {
 
    @GetMapping("/search")
    public ResponseEntity<List<Inventory>> searchProducts(@RequestParam("query") String query) {
+       try{
         if (query.length() < 3) {
            return ResponseEntity.badRequest().body(null);
        }
@@ -218,7 +219,11 @@ public class InventoryController {
 
            }
        }
-       return ResponseEntity.ok(products);
+           return ResponseEntity.ok(products);
+       }catch (Exception e){
+           return ResponseEntity.badRequest().body(List.of() );
+       }
+
    }
 
     private boolean isQueryNumber(String query) {
