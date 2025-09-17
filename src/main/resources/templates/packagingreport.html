@@ -1,0 +1,226 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Packaging Report</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+<!-- Header -->
+<header class="bg-white shadow sticky top-0 z-20">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <h1 class="text-xl md:text-2xl font-bold text-slate-900">📦 Packaging Report</h1>
+    <div class="flex items-center gap-2">
+      <a th:href="@{/packaging/export(
+            fromDate=${filter.fromDate},
+            toDate=${filter.toDate},
+            dateFormat=${filter.dateFormat},
+            search=${filter.search},
+            courier=${filter.courier},
+            warehouse=${filter.warehouse},
+            status=${filter.status},
+            divisor=${filter.divisor},
+            minCw=${filter.minCw},
+            maxCw=${filter.maxCw},
+            hasActual=${filter.hasActual},
+            missingDims=${filter.missingDims},
+            page=${filter.page},
+            size=${filter.size}
+          )}"
+         class="px-3 py-2 rounded-md bg-slate-900 text-white hover:bg-slate-700">Export CSV</a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-4 md:p-6">
+
+  <!-- Filters -->
+  <form method="get" class="bg-white rounded-xl shadow p-4 md:p-6 mb-6">
+    <div class="grid md:grid-cols-4 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">From Date</label>
+        <input type="date" name="fromDate" th:value="${filter.fromDate}" class="w-full border rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">To Date</label>
+        <input type="date" name="toDate" th:value="${filter.toDate}" class="w-full border rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Divisor</label>
+        <select name="divisor" class="w-full border rounded-md px-3 py-2" th:value="${filter.divisor}">
+          <option value="5000" th:selected="${filter.divisor == 5000}">Air 5000</option>
+          <option value="6000" th:selected="${filter.divisor == 6000}">Air 6000</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Search</label>
+        <input type="text" name="search" th:value="${filter.search}" placeholder="Order, customer, pincode"
+               class="w-full border rounded-md px-3 py-2">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Courier</label>
+        <input type="text" name="courier" th:value="${filter.courier}" class="w-full border rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Warehouse</label>
+        <input type="text" name="warehouse" th:value="${filter.warehouse}" class="w-full border rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Status</label>
+        <input type="text" name="status" th:value="${filter.status}" class="w-full border rounded-md px-3 py-2">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium mb-1">Min CW (kg)</label>
+          <input type="number" step="0.01" name="minCw" th:value="${filter.minCw}" class="w-full border rounded-md px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Max CW (kg)</label>
+          <input type="number" step="0.01" name="maxCw" th:value="${filter.maxCw}" class="w-full border rounded-md px-3 py-2">
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="hasActual" name="hasActual" th:checked="${filter.hasActual}" class="h-4 w-4">
+        <label for="hasActual" class="text-sm">Has Actual Weight</label>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="missingDims" name="missingDims" th:checked="${filter.missingDims}" class="h-4 w-4">
+        <label for="missingDims" class="text-sm">Missing Any Dimension</label>
+      </div>
+
+      <input type="hidden" name="page" th:value="${filter.page}">
+      <input type="hidden" name="size" th:value="${filter.size}">
+    </div>
+
+    <div class="mt-4 flex gap-3">
+      <button class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Apply Filters</button>
+      <a href="/packaging" class="px-4 py-2 rounded-md bg-slate-200 hover:bg-slate-300">Reset</a>
+    </div>
+  </form>
+
+  <!-- KPI cards -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="text-sm text-slate-500">Total Orders</div>
+      <div class="text-2xl font-bold" th:text="${summary.totalCount}">0</div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="text-sm text-slate-500">Avg Volumetric (kg)</div>
+      <div class="text-2xl font-bold" th:text="${summary.avgVolumetricKg}">0</div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="text-sm text-slate-500">Avg Actual (kg)</div>
+      <div class="text-2xl font-bold" th:text="${summary.avgActualKg}">0</div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="text-sm text-slate-500">Avg Chargeable (kg)</div>
+      <div class="text-2xl font-bold" th:text="${summary.avgChargeableKg}">0</div>
+    </div>
+  </section>
+
+  <!-- Charts -->
+  <section class="grid md:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-xl shadow p-4">
+      <h3 class="font-semibold mb-3">Weight Bands</h3>
+      <canvas id="bandsChart"></canvas>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4">
+      <h3 class="font-semibold mb-3">Distribution (Chargeable)</h3>
+      <canvas id="cwChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <section class="bg-white rounded-xl shadow overflow-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-100 sticky top-0">
+      <tr>
+        <th class="text-left px-4 py-3">Order</th>
+        <th class="text-left px-4 py-3">Dims (cm)</th>
+        <th class="text-left px-4 py-3">Actual (kg)</th>
+        <th class="text-left px-4 py-3">Vol. (kg)</th>
+        <th class="text-left px-4 py-3">Chargeable (kg)</th>
+        <th class="text-left px-4 py-3">Box</th>
+        <th class="text-left px-4 py-3">Courier</th>
+        <th class="text-left px-4 py-3">Warehouse</th>
+        <th class="text-left px-4 py-3">Status</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="r : ${rows}" class="border-t">
+        <td class="px-4 py-3">
+          <div class="font-semibold" th:text="${r.orderNo}">#</div>
+          <div class="text-xs text-slate-500" th:text="${r.id}">id</div>
+        </td>
+        <td class="px-4 py-3" th:text="${r.length} + ' × ' + ${r.width} + ' × ' + ${r.height}">-</td>
+        <td class="px-4 py-3" th:text="${r.actualWeightKg}">0</td>
+        <td class="px-4 py-3" th:text="${r.volumetricWeightKg}">0</td>
+        <td class="px-4 py-3 font-semibold" th:text="${r.chargeableWeightKg}">0</td>
+        <td class="px-4 py-3">
+          <span class="inline-block px-2 py-1 rounded bg-slate-800 text-white text-xs" th:text="${r.recommendedBoxCode}">BOX</span>
+        </td>
+        <td class="px-4 py-3" th:text="${r.courier}">-</td>
+        <td class="px-4 py-3" th:text="${r.warehouse}">-</td>
+        <td class="px-4 py-3" th:text="${r.status}">-</td>
+      </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Pagination -->
+  <div class="flex justify-between items-center mt-4">
+    <div class="text-sm text-slate-600">
+      <span th:text="${#numbers.sequence(1, page.totalPages)}" hidden></span>
+      Page <span th:text="${page.number + 1}">1</span> of <span th:text="${page.totalPages}">1</span>
+      • Total: <span th:text="${page.totalElements}">0</span>
+    </div>
+    <div class="flex gap-2">
+      <a th:if="${!page.first}"
+         th:href="@{/packaging(page=${page.number - 1}, size=${page.size},
+              fromDate=${filter.fromDate}, toDate=${filter.toDate}, dateFormat=${filter.dateFormat},
+              search=${filter.search}, courier=${filter.courier}, warehouse=${filter.warehouse}, status=${filter.status},
+              divisor=${filter.divisor}, minCw=${filter.minCw}, maxCw=${filter.maxCw},
+              hasActual=${filter.hasActual}, missingDims=${filter.missingDims})}"
+         class="px-3 py-2 rounded bg-slate-200 hover:bg-slate-300">Prev</a>
+
+      <a th:if="${!page.last}"
+         th:href="@{/packaging(page=${page.number + 1}, size=${page.size},
+              fromDate=${filter.fromDate}, toDate=${filter.toDate}, dateFormat=${filter.dateFormat},
+              search=${filter.search}, courier=${filter.courier}, warehouse=${filter.warehouse}, status=${filter.status},
+              divisor=${filter.divisor}, minCw=${filter.minCw}, maxCw=${filter.maxCw},
+              hasActual=${filter.hasActual}, missingDims=${filter.missingDims})}"
+         class="px-3 py-2 rounded bg-slate-800 text-white hover:bg-slate-700">Next</a>
+    </div>
+  </div>
+
+</main>
+
+<!-- Charts data from Thymeleaf -->
+<script th:inline="javascript">
+  const labels = [[${labels}]];
+  const counts = [[${counts}]];
+
+  new Chart(document.getElementById('bandsChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Orders', data: counts }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins:{ legend:{ display:false } } }
+  });
+
+  // Simple CW distribution approximation: reuse band data for a doughnut view
+  new Chart(document.getElementById('cwChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: counts }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+</script>
+</body>
+</html>

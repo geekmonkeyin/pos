@@ -1,9 +1,11 @@
 package com.gkmonk.pos.model;
 
+import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "payment_receipts")
+@Data
 public class PaymentReceipts {
 
     @Id
@@ -30,75 +32,4 @@ public class PaymentReceipts {
         this.remarks = remarks;
     }
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getPaymentTo() {
-        return paymentTo;
-    }
-
-    public void setPaymentTo(String paymentTo) {
-        this.paymentTo = paymentTo;
-    }
-
-    public String getVendorName() {
-        return vendorName;
-    }
-
-    public void setVendorName(String vendorName) {
-        this.vendorName = vendorName;
-    }
-
-    public Double getAmount() {
-        return amount;
-    }
-
-    public void setAmount(Double amount) {
-        this.amount = amount;
-    }
-
-    public String getDate() {
-        return date;
-    }
-
-    public void setDate(String date) {
-        this.date = date;
-    }
-
-    public String getWhatsappNumber() {
-        return whatsappNumber;
-    }
-
-    public void setWhatsappNumber(String whatsappNumber) {
-        this.whatsappNumber = whatsappNumber;
-    }
-
-    public String getImageId() {
-        return imageId;
-    }
-
-    public void setImageId(String imageId) {
-        this.imageId = imageId;
-    }
-
-    public String getRemarks() {
-        return remarks;
-    }
-
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
-    }
-
-    public String getInvoiceId() {
-        return invoiceId;
-    }
-    public void setInvoiceId(String invoiceId) {
-        this.invoiceId = invoiceId;
-    }
-}
+   }

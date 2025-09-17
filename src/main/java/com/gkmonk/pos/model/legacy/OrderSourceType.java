@@ -1,0 +1,7 @@
+package com.gkmonk.pos.model.legacy;
+
+public enum OrderSourceType {
+
+	WOOCOMMERCE,EASY_SHIP,SELF_SHIP,JIO_MART,SELLER_FLEX,FLIPKART,SHOPIFY,AMAZON, BLUEDART, SHIPCLUES, MARUTI;
+
+}

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Picklist • Geekmonkey</title>
+
+    <!-- Tailwind via CDN for quick UI (swap to local build in prod) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                gm: {
+                  primary: '#FF7A00',  /* Geekmonkey */
+                  accent:  '#FFE600',
+                  dark:    '#222222',
+                  gray:    '#DDDDDD'
+                }
+              },
+              borderRadius: { 'xl2': '1.25rem' }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gm-dark">
+
+<!-- Header / Search -->
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b">
+    <div class="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
+        <div class="flex-1">
+            <h1 class="text-lg font-bold">Picklist</h1>
+            <p class="text-xs text-gray-500">Mobile</p>
+        </div>
+        <!-- (Optional) scan button placeholder -->
+        <button type="button" class="px-3 py-2 rounded-xl text-sm font-semibold bg-gm-primary text-white">
+            Scan
+        </button>
+    </div>
+    <div class="max-w-md mx-auto px-4 pb-3">
+        <form th:action="@{/picklist}" method="get">
+            <div class="relative">
+                <input name="q" th:value="${q}"
+                       class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 pr-10 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-gm-primary"
+                       placeholder="Search by product name or variation ID…"/>
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">⌘K</span>
+            </div>
+        </form>
+    </div>
+</header>
+
+<!-- Content -->
+<main class="max-w-md mx-auto px-4 pb-28 pt-4 space-y-3">
+    <div th:if="${#lists.isEmpty(items)}" class="text-center text-sm text-gray-500 py-12">
+        No items found.
+    </div>
+
+    <form th:action="@{/picklist/markAll}" method="post" th:if="${!#lists.isEmpty(items)}"
+          class="hidden" id="markAllForm">
+        <input type="hidden" name="q" th:value="${q}"/>
+        <div th:each="it : ${items}">
+            <input type="checkbox" name="ids" th:value="${it.id}" th:checked="${it.picked}"/>
+        </div>
+    </form>
+
+    <div th:each="it : ${items}"
+         class="rounded-2xl border border-gray-200 shadow-sm p-3 flex gap-3 bg-white">
+        <div class="w-20 h-20 min-w-20 rounded-xl overflow-hidden">
+            <img th:src="${it.imageUrl}" th:alt="${it.name}" class="w-full h-full object-cover"/>
+        </div>
+
+        <div class="flex-1 flex flex-col">
+            <div class="flex items-start justify-between gap-2">
+                <div>
+                    <h3 class="text-base font-semibold leading-5" th:text="${it.name}">Product Name</h3>
+                    <p class="text-xs text-gray-500">
+                        Variation ID: <span th:text="${it.variationId}">VAR123</span>
+                    </p>
+                </div>
+
+                <span th:classappend="${it.priority.name()=='HIGH'} ? 'bg-red-100 text-red-700 ring-red-300' :
+                               (${it.priority.name()=='MEDIUM'} ? 'bg-amber-100 text-amber-700 ring-amber-300' :
+                               'bg-emerald-100 text-emerald-700 ring-emerald-300')"
+                      class="px-2 py-1 text-xs font-medium rounded-full ring-1">
+          <span th:if="${it.priority.name()=='HIGH'}">Urgent</span>
+          <span th:if="${it.priority.name()=='MEDIUM'}">Priority</span>
+          <span th:if="${it.priority.name()=='LOW'}">Normal</span>
+        </span>
+            </div>
+
+            <div class="mt-2 flex items-center justify-between">
+                <div class="text-sm">
+                    <span class="text-gray-600">Qty: </span>
+                    <span class="text-xl font-bold tracking-tight" th:text="${it.qty}">1</span>
+                </div>
+
+                <form th:action="@{/v1/order/picklist/toggle}" method="post">
+                    <input type="hidden" name="id" th:value="${it.id}"/>
+                    <input type="hidden" name="q" th:value="${q}"/>
+                    <button th:classappend="${it.picked} ? 'bg-gm-primary text-white hover:opacity-90' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'"
+                            class="px-3 py-2 rounded-xl text-sm font-semibold shadow-sm transition active:scale-[0.98]"
+                            th:text="${it.picked} ? 'Picked' : 'Mark Picked'">
+                        Mark Picked
+                    </button>
+                </form>
+            </div>
+
+            <p class="text-xs text-gray-500">
+                Storage: <span th:text="${it.storage}"></span>
+            </p>
+        </div>
+    </div>
+</main>
+
+<!-- Sticky Footer -->
+<footer class="fixed bottom-0 left-0 right-0 z-30 border-t bg-white/95 backdrop-blur">
+    <div class="max-w-md mx-auto px-4 py-3 space-y-2">
+        <div class="flex items-center justify-between text-sm">
+      <span class="font-medium">
+        Picked <span th:text="${picked}">0</span> of <span th:text="${total}">0</span>
+      </span>
+            <span class="text-gray-500">
+        Remaining <span th:text="${total - picked}">0</span>
+      </span>
+        </div>
+        <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div class="h-full bg-gm-primary transition-all"
+                 th:style="'width:' + (${total} > 0 ? ((${picked} * 100) / ${total}) : 0) + '%;'">
+            </div>
+        </div>
+        <div class="flex gap-2 pt-1">
+            <button form="markAllForm"
+                    class="flex-1 px-4 py-2 rounded-xl text-sm font-semibold bg-gm-primary text-white shadow-sm">
+                Mark All Picked
+            </button>
+            <a th:href="@{/v1/order/picklist}" class="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-100 text-gray-900 shadow-sm">
+                Reset Filters
+            </a>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

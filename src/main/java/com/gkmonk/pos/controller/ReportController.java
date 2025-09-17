@@ -171,6 +171,8 @@ public class ReportController {
         return model;
     }
 
+
+
     @GetMapping("/notificationbyorderid/{orderid}")
     public ResponseEntity<OrderNotification> findNotificationDetailsByOrderId(@PathVariable("orderid") String orderId){
        log.info("Fetching records from db for :"+orderId);

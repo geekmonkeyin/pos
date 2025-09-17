@@ -1,4 +1,5 @@
 type Money { amount: String, currencyCode: String }
+
 type PriceSet { shopMoney: Money }
 
 type LineItem {
@@ -13,7 +14,7 @@ type Address {
     country: String, zip: String, phone: String
 }
 
-type Customer { displayName: String, email: String, phone: String }
+type Customer { displayName: String, email: String, phone: String}
 
 type Order {
     id: ID, name: String
@@ -29,6 +30,7 @@ type Order {
 
 type PageInfo { hasNextPage: Boolean!, endCursor: String }
 type OrderConnection { pageInfo: PageInfo!, nodes: [Order!]! }
+
 
 type Query {
     # one page (Shopify max 250)

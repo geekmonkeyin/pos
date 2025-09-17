@@ -24,6 +24,7 @@ import java.util.function.Function;
 import static com.gkmonk.pos.utils.POSConstants.BLUEDART_COURIER;
 import static com.gkmonk.pos.utils.POSConstants.DELHIVERY_COURIER;
 import static com.gkmonk.pos.utils.POSConstants.DTDC_COURIER;
+import static com.gkmonk.pos.utils.POSConstants.SKYKING_COURIER;
 import static com.gkmonk.pos.utils.POSConstants.XPRESSBEES_COURIER;
 
 @Service
@@ -96,7 +97,8 @@ public class MarketinServiceImpl {
                 return "https://www.bluedart.com/web/guest/trackdartresultthirdparty?trackFor=0&trackNo=" + awb;
             case DTDC_COURIER:
                 return "https://txk.dtdc.com/ctbs-tracking/customerInterface.tr?submitName=showCITrackingDetails&cType=Consignment&cnNo=" + awb;
-
+            case SKYKING_COURIER:
+                return "https://skyking.co/track";
             default:
                 return "https://www.geekmonkey.in"; // Fallback URL
         }

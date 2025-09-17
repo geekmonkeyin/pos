@@ -179,6 +179,7 @@
             <option value="Bluedart">Bluedart</option>
             <option value="Delhivery">Delhivery</option>
             <option value="DTDC">DTDC</option>
+            <option value="SKYKING">Skyking</option>
             <option value="Ekart">Ekart</option>
             <option value="Ecom">Ecom</option>
         </select>
@@ -221,6 +222,7 @@
         <option value="DTDC">DTDC</option>
         <option value="Ekart">Ekart</option>
         <option value="Ecom">Ecom</option>
+        <option value="SKYKING">SKYKING</option>
     </select>
     <button onclick="confirmCourier()">Confirm</button>
     <button onclick="closeModal()">Cancel</button>
@@ -513,12 +515,6 @@ function fetchExistingItems() {
     function isValidAWB(awb){
         //check courier selected
         const courier = document.getElementById('courierSelect').value;
-        if("Bluedart" == courier && (!(/^76\d{9}$/.test(awb)) && !(/^77\d{9}$/.test(awb)) && !(/^75\d{9}$/.test(awb)))){
-            return false;
-        }
-        if("DTDC" == courier && !(/^7X\d{8,}$/.test(awb))){
-            return false;
-        }
         return true;
 
     }

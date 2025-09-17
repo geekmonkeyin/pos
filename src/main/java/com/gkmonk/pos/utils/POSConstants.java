@@ -8,6 +8,7 @@ public class POSConstants {
     public static final String BLUEDART_COURIER = "BLUEDART";
     public static final String DTDC_COURIER = "DTDC";
     public static final String DELHIVERY_COURIER = "DELHIVERY";
+    public static final String SKYKING_COURIER = "SKYKING";
     public static final String ECOM_COURIER = "ECOM";
     public static final String XPRESSBEES_COURIER = "XPRESSBEES";
     public static final String NOTIFICATION_SENT = "SENT";

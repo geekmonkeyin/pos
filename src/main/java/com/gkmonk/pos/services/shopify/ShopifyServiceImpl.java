@@ -1,6 +1,7 @@
 package com.gkmonk.pos.services.shopify;
 
 import com.gkmonk.pos.model.Inventory;
+import com.gkmonk.pos.model.legacy.ShopifyOrders;
 import com.gkmonk.pos.services.externalapi.APIProxyService;
 import com.gkmonk.pos.utils.POSConstants;
 import com.gkmonk.pos.utils.StringUtils;
@@ -9,6 +10,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class ShopifyServiceImpl {
 
@@ -36,6 +39,8 @@ public class ShopifyServiceImpl {
     private String shopifyDomain;
     @Autowired
     private ShopifyClient shopifyClient;
+    @Autowired
+    private ShopifyDBServiceImpl shopifyDBService;
 
     @Autowired
     private APIProxyService apiProxyService;
@@ -180,9 +185,36 @@ public class ShopifyServiceImpl {
 
         Map<String, Object> resp = shopifyClient.post(ShopifyQueries.UNFULFILLED_ORDERS, vars).block();
         Map<String, Object> data = (Map<String, Object>) resp.get("data");
-        return (Map<String, Object>) data.get("orders");
+        Map<String, Object> unfulfilledOrders = (Map<String, Object>) data.get("orders");
+        List<ShopifyOrders> shopifyOrders = convertToShopifyOrders(unfulfilledOrders);
+        fulfilledOrders(unfulfilledOrders);
+        saveToDb(shopifyOrders);
+        return unfulfilledOrders;
+
     }
 
+
+    private void saveToDb(List<ShopifyOrders> shopifyOrders) {
+        shopifyDBService.saveToDb(shopifyOrders);
+    }
+
+    private List<ShopifyOrders> convertToShopifyOrders(Map<String, Object> unfulfilledOrders) {
+        log.info("unfulfilledOrders: {}", unfulfilledOrders);
+        if(unfulfilledOrders != null){
+            Object orders = unfulfilledOrders.get("nodes");
+            if(orders instanceof List){
+                List<?> orderList = (List<?>) orders;
+                if(!orderList.isEmpty() ){
+                    return ShopifyMapper.convertToShopifyOrders((List<Map<String, Object>>) orderList);
+                }
+            }
+        }
+        return List.of();
+    }
+
+    private void fulfilledOrders(Map<String, Object> unfulfilledOrders) {
+        //fulfilledOrders(unfulfilledOrders);
+    }
 
     public List<Map<String, Object>> fetchAll(int pageSize) {
         pageSize = Math.min(Math.max(pageSize, 1), 250);
@@ -207,4 +239,6 @@ public class ShopifyServiceImpl {
         }
         return all;
     }
+
+
 }

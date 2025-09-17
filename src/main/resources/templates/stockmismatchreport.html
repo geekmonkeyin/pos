@@ -65,7 +65,7 @@
                         <td>
                             <button class="btn btn-primary btn-sm view-images" th:onClick="openImageModal([[${inventory.images}]]);" >View Images</button>
                             <button class="btn btn-secondary btn-sm show-history" th:onClick="loadStockHistory([[${inventory}]]);">Show History</button>
-                            <button class="btn btn-secondary btn-sm show-history" th:onClick="loadShopifyStock([[${inventory}]]);">Update Shopify Stock</button>
+                            <button class="btn btn-secondary btn-sm show-history" th:onClick="updateShopifyStock([[${inventory}]]);">Update Shopify Stock</button>
                         </td>
                     </tr>
                 </tbody>
@@ -114,6 +114,31 @@
         async function loadShopifyStock(inventory) {
 
 
+        }
+
+        function updateShopifyStock(inventory) {
+            const productId = inventory.productId;
+            const variantId = inventory.productVariantId;
+            const newQuantity = inventory.quantity;
+
+            // Make an AJAX call to update the Shopify stock
+            $.ajax({
+                url: '/v1/inventory/updateShopifyStock', // Replace with your actual endpoint
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    productId: productId,
+                    variantId: variantId,
+                }),
+                success: function(response) {
+                    alert('Shopify stock updated successfully!');
+                    // Optionally, refresh the page or update the UI to reflect changes
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    alert('Error updating Shopify stock: ' + xhr.responseText);
+                }
+            });
         }
 
        async function loadStockHistory(inventory) {

@@ -41,6 +41,7 @@ public class InventoryController {
     @Autowired
     private ImageDBServiceImpl imageService;
     //update inventory
+
     @RequestMapping("/update")
     public ModelAndView updateInventory() {
         ModelAndView modelAndView = new ModelAndView();
@@ -259,7 +260,31 @@ public class InventoryController {
         return "Success";
     }
 
-    @PostMapping("updateInventory")
+
+    @PostMapping("updateShopifyStock")
+    public ResponseEntity<String> updateStockInShopify(
+            @RequestParam(value="productId",required = false) String productId,
+            @RequestParam(value="location",required = false) String location,
+            @RequestParam(value="quantity",required = false) Integer quantity,
+            @RequestParam(value="deviceName",required = false) String deviceName,
+            @RequestParam(value="images",required = false) List<MultipartFile> images,
+            @RequestParam(value="remarks",required = false) String remarks) {
+
+        // Process the received data
+        String metaData = "Product ID: " + productId + ", Location: " + location + ", Quantity: " + quantity +
+                ", Remarks: " + remarks+ ", Device ID: " + deviceName;
+        if(productId == null || productId.isEmpty()){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product ID is required");
+        }
+        List<Inventory> inventories = inventoryService.fetchProductsUsingId(productId);
+        if(inventories == null || inventories.isEmpty()){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product not found in inventory");
+        }
+
+        return ResponseEntity.ok("stock updated");
+    }
+
+        @PostMapping("updateInventory")
     public ResponseEntity<String> updateInventory(
             @RequestParam(value="productId",required = false) String productId,
             @RequestParam(value="location",required = false) String location,

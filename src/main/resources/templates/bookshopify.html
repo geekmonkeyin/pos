@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Shopify Orders → Ship</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <style>
         :root{
           --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
@@ -49,12 +50,37 @@
         .rm{position:absolute;right:4px;top:4px;background:#fff;border:1px solid #E5E7EB;border-radius:50%;width:22px;height:22px;line-height:20px;text-align:center;cursor:pointer}
         .cap-note{font-size:12px;color:#6B7280;text-align:center;margin-top:4px}
         .control{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid #E5E7EB;border-radius:8px;background:#F9FAFB}
+
+        /* ===== Anime Spinner Overlay ===== */
+        .loading-overlay{
+          position:fixed; inset:0; z-index:9999;
+          display:none; align-items:center; justify-content:center;
+          background:rgba(17,24,39,.55); backdrop-filter:blur(2px);
+        }
+        .loader-card{
+          width:min(420px,90vw);
+          background:#111827; color:#E5E7EB;
+          border:1px solid rgba(255,255,255,.08);
+          border-radius:14px; padding:18px;
+          box-shadow:0 20px 40px rgba(0,0,0,.35);
+          display:grid; place-items:center; gap:10px; text-align:center;
+        }
+        .spinner{
+          width:96px;height:96px;border-radius:50%;
+          border:8px solid rgba(255,255,255,.15);
+          border-top:8px solid var(--accent);
+          animation:spin 1.1s linear infinite;
+          box-shadow:0 0 28px rgba(255,122,0,.45), 0 0 60px rgba(255,122,0,.25);
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .spin-text{font-size:14px;color:#e5e7eb}
+        .spin-hint{font-size:12px;color:#a7abb3}
     </style>
 </head>
 <body>
 <header>
     <div class="logo">GM</div>
-    <div style="font-weight:600">Orders — Dispatched / Packed</div>
+    <div style="font-weight:600">Orders — Picked / Packed</div>
 </header>
 
 <main>
@@ -63,11 +89,14 @@
         <div class="row" style="margin-bottom:12px">
             <input id="search" type="search" placeholder="Search by order # or customer" style="flex:1;min-width:260px">
             <select id="statusFilter">
-                <option value="">Status: Dispatched + Packed</option>
-                <option value="Dispatched">Dispatched</option>
+                <option value="">Status: Picked + Packed</option>
+                <option value="Picked">Picked</option>
                 <option value="Packed">Packed</option>
             </select>
             <button class="btn" id="refreshBtn">Refresh</button>
+            <button class="btn" id="syncShopifyBtn">
+                <i class="fas fa-cloud"></i> Sync Shopify
+            </button>
         </div>
 
         <div class="card">
@@ -84,7 +113,8 @@
                     <th style="width:170px">Notes</th>
                 </tr>
                 </thead>
-                <tbody><!-- rows injected --></tbody>
+                <tbody><!-- rows injected -->
+                </tbody>
             </table>
         </div>
     </section>
@@ -275,6 +305,16 @@
     </section>
 </main>
 
+<!-- ===== Spinner Overlay HTML ===== -->
+<div id="syncOverlay" class="loading-overlay" aria-hidden="true">
+    <div class="loader-card" role="dialog" aria-live="polite" aria-label="Syncing Shopify">
+        <div class="spinner" aria-hidden="true"></div>
+        <div id="spinnerText" class="spin-text">Connecting to Shopify…</div>
+        <div class="spin-hint">You can keep this open — we’ll rotate tasks & jokes ✨</div>
+        <button id="overlayHide" class="btn small secondary" style="margin-top:6px">Hide</button>
+    </div>
+</div>
+
 <script>
     /* ------------------ Mock Data ------------------ */
     const ORDERS = [
@@ -288,7 +328,7 @@
         ],
         pastOrders: 2
       },
-      { id:"#100046", status:"Dispatched", date:"2025-08-11", total:999, courier:"BlueDart",
+      { id:"#100046", status:"Picked", date:"2025-08-11", total:999, courier:"BlueDart",
         note:"", gift:true,
         customer:{ name:"Arjun Mehta", email:"arjun@example.com", phone:"+91 9123456789",
           address:"21, Palm Grove, Pune 411001", pincode:"411001" },
@@ -340,7 +380,7 @@
       const q = (search.value||"").toLowerCase();
       const f = statusFilter.value;
       const rows = ORDERS
-        .filter(o => ["Dispatched","Packed"].includes(o.status))
+        .filter(o => ["Picked","Packed"].includes(o.status))
         .filter(o => !f || o.status===f)
         .filter(o => !q || (o.id+o.customer.name).toLowerCase().includes(q));
       tbody.innerHTML = rows.map(o => `
@@ -486,7 +526,7 @@
       document.getElementById("avgDelivery").textContent = avgDaysForPincode(pc) || "N/A";
     }
 
-    /* ------------------ Webcam: Product Photos (high-res + zoom) ------------------ */
+    /* ------------------ Webcam: Product Photos ------------------ */
     const videoPhoto = document.getElementById("camPhoto");
     const photoCanvas = document.getElementById("photoCanvas");
     const startPhotoCam = document.getElementById("startPhotoCam");
@@ -649,6 +689,42 @@
       });
     }
 
+    /* ===== Anime Spinner Overlay Logic ===== */
+    const overlay = document.getElementById("syncOverlay");
+    const overlayHideBtn = document.getElementById("overlayHide");
+    const spinnerText = document.getElementById("spinnerText");
+
+    const SPINNER_LINES = [
+      "Connecting to Shopify…",
+      "Fetching orders from the multiverse…",
+      "Polishing kunai knives… just in case.",
+      "Counting Zoros (he got lost again)…",
+      "Breathing forms loading…",
+      "Summoning ramen bowls for stamina…",
+      "Calling courier spirits…",
+      "Bankai prep complete. Parsing payload…"
+    ];
+    let spinTimer = null;
+
+    function showOverlay() {
+      overlay.style.display = "flex";
+      overlay.setAttribute("aria-hidden","false");
+      // rotate text every 2.5s
+      let i = 0;
+      spinnerText.textContent = SPINNER_LINES[i % SPINNER_LINES.length];
+      clearInterval(spinTimer);
+      spinTimer = setInterval(()=>{
+        i++;
+        spinnerText.textContent = SPINNER_LINES[i % SPINNER_LINES.length];
+      }, 2500);
+    }
+    function hideOverlay() {
+      overlay.style.display = "none";
+      overlay.setAttribute("aria-hidden","true");
+      clearInterval(spinTimer);
+    }
+    overlayHideBtn.addEventListener("click", hideOverlay);
+
     /* ------------------ Actions (mock) ------------------ */
     ["actionSave","actionLabel","actionPickup","actionShip"].forEach(id=>{
       document.getElementById(id).addEventListener("click", ()=>{
@@ -657,6 +733,29 @@
         alert(`${id.replace('action','Action: ')}\nPhotos: ${photos.length}\nVideos: ${videos.length}`);
         // TODO: upload via multipart/form-data to your backend, grouped by target
       });
+    });
+
+    document.getElementById("syncShopifyBtn").addEventListener("click", async () => {
+        showOverlay(); // <-- show spinner immediately
+        try {
+            const response = await fetch("/v1/order/bookshopify/fetchorders", {
+                method: "GET",
+            });
+
+            if (response.ok) {
+                const message = await response.text();
+                hideOverlay();
+                alert(`Success: ${message}`);
+                renderList(); // Refresh the orders list
+            } else {
+                const error = await response.text();
+                hideOverlay();
+                alert(`Error: ${error}`);
+            }
+        } catch (err) {
+            hideOverlay();
+            alert(`Failed to sync orders: ${err.message}`);
+        }
     });
 </script>
 </body>

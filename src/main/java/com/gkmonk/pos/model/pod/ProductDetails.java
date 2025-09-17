@@ -1,7 +1,10 @@
 package com.gkmonk.pos.model.pod;
 
+import lombok.Data;
+
 import java.util.List;
 
+@Data
 public class ProductDetails {
 
     //productId
@@ -15,49 +18,6 @@ public class ProductDetails {
 
     //generate getter and setter
 
-    public String getDescription() {
-        return description;
-    }
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    public List<String> getKeywords() {
-        return keywords;
-    }
-    public void setKeywords(List<String> keywords) {
-        this.keywords = keywords;
-    }
-    public double getPrice() {
-        return price;
-    }
-    public void setPrice(double price) {
-        this.price = price;
-    }
-
-    public String getProductId() {
-        return productId;
-    }
-    public void setProductId(String productId) {
-        this.productId = productId;
-    }
-    public String getProductName() {
-        return productName;
-    }
-    public void setProductName(String productName) {
-        this.productName = productName;
-    }
-    public int getQuantity() {
-        return quantity;
-    }
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
-    public String getImageURL() {
-        return imageURL;
-    }
-    public void setImageURL(String imageURL) {
-        this.imageURL = imageURL;
-    }
     @Override
     public String toString() {
         return "ProductDetails [productId=" + productId + ", productName=" + productName + ", quantity=" + quantity
@@ -86,7 +46,5 @@ public class ProductDetails {
             return false;
         return true;
     }
-
-
 
 }
