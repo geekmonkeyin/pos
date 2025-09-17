@@ -162,4 +162,14 @@ public class InboundServiceImpl {
        // Check if any document was modified
        return result.getModifiedCount() > 0;
    }
+
+    public boolean updateStatus(long id, String closedBy,InboundStatus status) {
+        Query query = new Query(Criteria.where("id").is(id));
+        Update update = new Update().set("closedBy", closedBy);
+        update.set("status", status.toString());
+        // Perform the update operation
+        UpdateResult result = mongoOperations.updateFirst(query, update, InboundData.class);
+        // Check if any document was modified
+        return result.getModifiedCount() > 0;
+    }
 }

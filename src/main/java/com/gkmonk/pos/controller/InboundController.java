@@ -37,6 +37,18 @@ public class InboundController {
     private TaskLogsServiceImpl taskLogsService;
     @Autowired
     private InboundServiceImpl inboundService;
+
+    @PostMapping("/completeOrder")
+    public ResponseEntity<String> completeOrder(@RequestBody InboundData inboundData) {
+        // Set the status to COMPLETED
+        inboundData.setStatus(InboundStatus.CLOSED);
+       boolean updated =  inboundService.updateStatus(inboundData.getId(),inboundData.getClosedBy(),inboundData.getStatus());
+       String metaData = "Status:"+updated+"Vendor Name: " + inboundData.getVendorName() + ", Vendor ID: " + inboundData.getVendorName() +
+                ", Number of Boxes: " + inboundData.getNumberOfBoxes() + ", Inbound Date: " + inboundData.getReceivedDate();
+        taskLogsService.addLogs(TaskType.INBOUND_INVENTORY.name(), TaskStatusType.COMPLETED.name(), metaData, LocalDate.now().toString());
+        return updated ? ResponseEntity.ok("Order completed successfully") : ResponseEntity.ok("Order failed to close.");
+    }
+
     @PostMapping("/initiateBoarding")
     public ResponseEntity<Map<String, String>> initiateBoarding(@RequestBody InboundData inboundData) {
         // Set the status to DRAFT
