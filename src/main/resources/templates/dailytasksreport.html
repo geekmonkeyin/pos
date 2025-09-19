@@ -1,66 +1,348 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Daily Task Report</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta charset="UTF-8" />
+    <title>Daily Task Report — Geekmonkey</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 0;
+        :root{
+          --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --radius:14px;
         }
-        h1 {
-            text-align: center;
-            margin: 20px 0;
-            color: #343a40;
+        *{box-sizing:border-box}
+        body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+
+        .topbar{height:64px;display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid var(--stroke);padding:0 20px;position:sticky;top:0;z-index:10}
+        .logo{width:32px;height:32px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700}
+        .title{font-weight:700}
+
+        main{max-width:1200px;margin:24px auto;padding:0 20px}
+
+        .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius);box-shadow:0 6px 22px rgba(0,0,0,.04)}
+        .card.pad{padding:16px}
+        .filters{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+        .filters .field{display:grid;gap:6px}
+        .filters .field label{font-size:12px;color:var(--muted)}
+        .filters input,.filters select{height:38px;border:1px solid var(--stroke);border-radius:10px;padding:0 10px;background:#fff}
+        .btn{height:38px;padding:0 14px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+        .btn.secondary{background:#fff;color:var(--text);border:1px solid var(--stroke)}
+        .hint{color:var(--muted);font-size:12px}
+
+        .table-wrap{overflow:auto;border:1px solid var(--stroke);border-radius:12px}
+        table{width:100%;border-collapse:separate;border-spacing:0;background:#fff}
+        thead th{
+          position:sticky;top:0;background:#fff7f2;color:#7c3d00;border-bottom:1px solid var(--stroke);
+          font-size:12px;padding:12px 14px;z-index:1;user-select:none
         }
-        table {
-            width: 80%;
-            margin: 20px auto;
-            border-collapse: collapse;
-            background-color: #ffffff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border: 1px solid #dee2e6;
-        }
-        th {
-            background-color: #343a40;
-            color: #ffffff;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        tr:hover {
-            background-color: #e9ecef;
-        }
+        thead th.sortable{cursor:pointer}
+        thead th.sortable .sort-ind{margin-left:6px;opacity:.5;display:inline-block}
+        thead th[aria-sort="ascending"]  .sort-ind{opacity:1;transform:rotate(180deg)}
+        thead th[aria-sort="descending"] .sort-ind{opacity:1}
+        tbody td{border-bottom:1px solid var(--stroke);padding:12px 14px;vertical-align:top}
+        tbody tr:nth-child(even){background:#fffdfa}
+        tbody tr:hover{background:#fff3e6}
+
+        .status{display:inline-block;padding:4px 8px;border-radius:999px;background:#FFF3E6;color:var(--accent-ink);font-size:12px;border:1px solid rgba(154,77,0,.15)}
+
+        .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .chart-title{font-weight:700}
+
+        /* Pagination */
+        .pager{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:12px}
+        .pager-left{display:flex;align-items:center;gap:10px}
+        .pager-right{display:flex;align-items:center;gap:8px}
+        .pager .btn{height:34px;padding:0 12px;border-radius:9px}
+        .pager .btn.secondary{background:#fff}
+        .pager .btn[disabled]{opacity:.5;cursor:not-allowed}
+        .page-size{height:34px;border:1px solid var(--stroke);border-radius:9px;padding:0 10px;background:#fff}
     </style>
 </head>
 <body>
-    <h1>Daily Task Report</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Task Name</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Device ID</th>
-                <th>Worked On</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="task : ${taskLogs}">
-                <td th:text="${task.taskName}"></td>
-                <td th:text="${task.status}"></td>
-                <td th:text="${task.taskDate}"></td>
-                <td th:text="${task.deviceId}"></td>
-                <td th:text="${task.metaData}"></td>
-            </tr>
-        </tbody>
-    </table>
+<header class="topbar">
+    <div class="logo">GM</div>
+    <div class="title">Daily Task Report</div>
+</header>
+
+<main>
+    <!-- Filters -->
+    <section class="card pad" style="margin-bottom:14px">
+        <div class="filters">
+            <div class="field">
+                <label>From date</label>
+                <input id="fromDate" type="date" />
+            </div>
+            <div class="field">
+                <label>To date</label>
+                <input id="toDate" type="date" />
+            </div>
+            <div class="field">
+                <label>Device</label>
+                <select id="deviceFilter">
+                    <option value="">All devices</option>
+                    <option th:each="d : ${devices}" th:value="${d}" th:text="${d}">Device-1</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Page size</label>
+                <select id="pageSize" class="page-size">
+                    <option>10</option>
+                    <option selected>25</option>
+                    <option>50</option>
+                    <option>100</option>
+                </select>
+            </div>
+            <div class="field" style="align-self:end">
+                <button class="btn" id="applyBtn">Apply</button>
+            </div>
+            <div class="field" style="align-self:end">
+                <button class="btn secondary" id="clearBtn">Clear</button>
+            </div>
+        </div>
+        <div class="hint" id="resultMeta" style="margin-top:8px"></div>
+    </section>
+
+    <!-- Chart -->
+    <section class="card pad" style="margin-bottom:14px">
+        <div class="chart-head">
+            <div class="chart-title">Devices by log count</div>
+            <div class="hint">Updates with current filters</div>
+        </div>
+        <canvas id="deviceChart" height="110"></canvas>
+    </section>
+
+    <!-- Table -->
+    <section class="card pad">
+        <div class="table-wrap">
+            <table id="reportTable">
+                <thead>
+                <tr>
+                    <th class="sortable" data-key="taskName" aria-sort="none">Task Name <span class="sort-ind">▲</span></th>
+                    <th class="sortable" data-key="status" aria-sort="none">Status <span class="sort-ind">▲</span></th>
+                    <th class="sortable" data-key="taskDate" aria-sort="none">Date <span class="sort-ind">▲</span></th>
+                    <th class="sortable" data-key="deviceId" aria-sort="none">Device ID <span class="sort-ind">▲</span></th>
+                    <th class="sortable" data-key="empName" aria-sort="none">Emp name <span class="sort-ind">▲</span></th>
+                    <th class="sortable" data-key="metaData" aria-sort="none">Worked On <span class="sort-ind">▲</span></th>
+                </tr>
+                </thead>
+                <tbody id="tbody">
+                <tr th:each="task : ${taskLogs}">
+                    <td th:text="${task.taskName}">—</td>
+                    <td><span class="status" th:text="${task.status}">Open</span></td>
+                    <td th:text="${task.taskDate}">2025-09-18</td>
+                    <td th:text="${task.deviceId}">DEV-1</td>
+                    <td th:text="${task.empName}">John</td>
+                    <td th:text="${task.metaData}">notes…</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination controls -->
+        <div class="pager">
+            <div class="pager-left">
+                <span class="hint" id="rangeLabel">Showing 0–0 of 0</span>
+            </div>
+            <div class="pager-right">
+                <button class="btn secondary" id="firstBtn">« First</button>
+                <button class="btn secondary" id="prevBtn">‹ Prev</button>
+                <span class="hint" id="pageLabel">Page 1 / 1</span>
+                <button class="btn secondary" id="nextBtn">Next ›</button>
+                <button class="btn secondary" id="lastBtn">Last »</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- JSON for client -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const RAW_TASKS = /*[[${taskLogs}]]*/ [];
+    /*]]>*/
+</script>
+
+<script>
+    // ---------- Helpers ----------
+    const $ = (id)=>document.getElementById(id);
+    const tbody = $("tbody");
+    const thead = document.querySelector("#reportTable thead");
+    const headers = [...thead.querySelectorAll("th.sortable")];
+
+    function parseDate(v){ return v ? new Date(v) : null; }
+    function escapeHtml(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+    // hydrate device filter (if not server-provided)
+    (function hydrateDeviceFilter(){
+      const sel = $("deviceFilter");
+      if (sel.options.length <= 1 && Array.isArray(RAW_TASKS)) {
+        [...new Set(RAW_TASKS.map(x=>x.deviceId).filter(Boolean))].sort()
+          .forEach(d => { const o=document.createElement("option"); o.value=d; o.textContent=d; sel.appendChild(o); });
+      }
+    })();
+
+    // ---------- Filter pipeline ----------
+    function getFiltered(){
+      const from = $("fromDate").value ? new Date($("fromDate").value) : null;
+      const to   = $("toDate").value ? new Date($("toDate").value) : null;
+      const dev  = $("deviceFilter").value;
+
+      return (RAW_TASKS||[]).filter(t=>{
+        const dt = parseDate(t.taskDate);
+        if (from && (!dt || dt < from)) return false;
+        if (to){
+          const end = new Date(to); end.setHours(23,59,59,999);
+          if (!dt || dt > end) return false;
+        }
+        if (dev && t.deviceId !== dev) return false;
+        return true;
+      });
+    }
+
+    // ---------- Sorting ----------
+    let sortState = { key: null, dir: 'asc' }; // dir: 'asc' | 'desc'
+
+    function compare(a,b,key){
+      if (key === 'taskDate'){
+        const da = parseDate(a[key]); const db = parseDate(b[key]);
+        const va = da ? da.getTime() : -Infinity;
+        const vb = db ? db.getTime() : -Infinity;
+        return va - vb;
+      }
+      const na = parseFloat(a[key]); const nb = parseFloat(b[key]);
+      const bothNum = !Number.isNaN(na) && !Number.isNaN(nb);
+      if (bothNum) return na - nb;
+
+      const sa = (a[key] ?? '').toString().toLowerCase();
+      const sb = (b[key] ?? '').toString().toLowerCase();
+      return sa < sb ? -1 : sa > sb ? 1 : 0;
+    }
+
+    function applySort(rows){
+      if (!sortState.key) return rows.slice();
+      const sorted = rows.slice().sort((a,b)=>compare(a,b,sortState.key));
+      return sortState.dir === 'asc' ? sorted : sorted.reverse();
+    }
+
+    function updateHeaderAria(){
+      headers.forEach(h => h.setAttribute('aria-sort','none'));
+      const active = headers.find(h => h.dataset.key === sortState.key);
+      if (active) active.setAttribute('aria-sort', sortState.dir === 'asc' ? 'ascending' : 'descending');
+    }
+
+    headers.forEach(h=>{
+      h.addEventListener('click', ()=>{
+        const key = h.dataset.key;
+        if (sortState.key === key){
+          sortState.dir = (sortState.dir === 'asc') ? 'desc' : 'asc';
+        } else {
+          sortState.key = key;
+          sortState.dir = 'asc';
+        }
+        currentPage = 1; // reset page on sort
+        updateAll();
+      });
+    });
+
+    // ---------- Pagination ----------
+    let currentPage = 1;
+    function getPageSize(){ return parseInt($("pageSize").value || "25", 10); }
+
+    function paginate(rows){
+      const pageSize = getPageSize();
+      const total = rows.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      currentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize, total);
+
+      const pageRows = rows.slice(startIndex, endIndex);
+
+      // update labels & buttons
+      $("pageLabel").textContent = `Page ${totalPages ? currentPage : 0} / ${totalPages}`;
+      $("rangeLabel").textContent = `Showing ${total ? (startIndex+1) : 0}–${endIndex} of ${total}`;
+      $("firstBtn").disabled = currentPage === 1;
+      $("prevBtn").disabled  = currentPage === 1;
+      $("nextBtn").disabled  = currentPage === totalPages;
+      $("lastBtn").disabled  = currentPage === totalPages;
+
+      return pageRows;
+    }
+
+    $("firstBtn").addEventListener("click", ()=>{ currentPage = 1; updateAll(); });
+    $("prevBtn").addEventListener("click",  ()=>{ currentPage = Math.max(1, currentPage-1); updateAll(); });
+    $("nextBtn").addEventListener("click",  ()=>{ currentPage += 1; updateAll(); });
+    $("lastBtn").addEventListener("click",  ()=>{
+      const filtered = applySort(getFiltered());
+      const totalPages = Math.max(1, Math.ceil(filtered.length / getPageSize()));
+      currentPage = totalPages; updateAll();
+    });
+    $("pageSize").addEventListener("change", ()=>{ currentPage = 1; updateAll(); });
+
+    // ---------- Rendering ----------
+    function renderTable(rows){
+      tbody.innerHTML = rows.map(t => `
+        <tr>
+          <td>${escapeHtml(t.taskName)}</td>
+          <td><span class="status">${escapeHtml(t.status)}</span></td>
+          <td>${escapeHtml(t.taskDate)}</td>
+          <td>${escapeHtml(t.deviceId)}</td>
+          <td>${escapeHtml(t.empName)}</td>
+          <td>${escapeHtml(t.metaData)}</td>
+        </tr>`).join("");
+    }
+
+    // ---------- Chart ----------
+    const ctx = document.getElementById("deviceChart").getContext("2d");
+    let chart;
+    function updateDeviceChart(rows){
+      const counts = {};
+      rows.forEach(r => { const k = r.empName || "Unknown"; counts[k]=(counts[k]||0)+1; });
+      const labels = Object.keys(counts);
+      const data   = labels.map(k => counts[k]);
+
+      if (!chart){
+        chart = new Chart(ctx, {
+          type: "bar",
+          data: { labels, datasets: [{ label: "Logs", data, borderWidth: 2, borderColor: "#FF7A00" }] },
+          options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, ticks: { precision:0 } } },
+            plugins: { legend: { display:false }, tooltip: { mode:"index", intersect:false } }
+          }
+        });
+      } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+      }
+    }
+
+    // ---------- Update pipeline ----------
+    function updateAll(){
+      const filtered = getFiltered();
+      $("resultMeta").textContent = `${filtered.length} result(s)`;
+      const sorted = applySort(filtered);
+      const pageRows = paginate(sorted);
+      renderTable(pageRows);
+      updateDeviceChart(filtered); // reflect full filtered set
+      updateHeaderAria();
+    }
+
+    $("applyBtn").addEventListener("click", ()=>{ currentPage = 1; updateAll(); });
+    $("clearBtn").addEventListener("click", ()=>{
+      $("fromDate").value = "";
+      $("toDate").value = "";
+      $("deviceFilter").value = "";
+      $("pageSize").value = "25";
+      currentPage = 1;
+      updateAll();
+    });
+
+    // Initial paint
+    updateAll();
+</script>
 </body>
 </html>

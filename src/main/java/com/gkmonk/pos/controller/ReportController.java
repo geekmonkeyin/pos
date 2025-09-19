@@ -13,6 +13,7 @@ import com.gkmonk.pos.services.logs.TaskLogsServiceImpl;
 import com.gkmonk.pos.services.notification.NotificationServiceImpl;
 import com.gkmonk.pos.utils.GSTUtils;
 import com.gkmonk.pos.utils.MapperUtils;
+import com.gkmonk.pos.utils.TaskUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,6 +160,7 @@ public class ReportController {
     public ModelAndView getDailyTasksReport(){
         ModelAndView model = new ModelAndView("dailytasksreport");
         Optional<List<TaskLogs>> taskLogs = taskLogsService.getAllTasks();
+        taskLogs.ifPresent(TaskUtils::extractDeviceId);
         taskLogs.ifPresent(logs -> model.addObject("taskLogs", logs));
         return model;
     }

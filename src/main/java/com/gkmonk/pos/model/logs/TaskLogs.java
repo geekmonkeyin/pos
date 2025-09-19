@@ -12,6 +12,7 @@ public class TaskLogs {
     private String taskDate;
     private String deviceId;
     private String metaData;
+    private String empName;
 
     // Constructors
     public TaskLogs() {
