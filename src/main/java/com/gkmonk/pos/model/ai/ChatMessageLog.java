@@ -16,5 +16,6 @@ public class ChatMessageLog {
     private IntentType intentType;
     private LocalDateTime timestamp = LocalDateTime.now();
     private String sessionID;
+    private String choiceId;
 
 }

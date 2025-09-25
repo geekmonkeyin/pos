@@ -1,107 +1,183 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
-    <meta charset="UTF-8">
-    <title>Home</title>
-    <link rel="stylesheet" th:href="@{../../assets/css/chat-widget.css}" />
-    <script th:src="@{../../assets/scripts/chat-widget.js}"></script>
+    <meta charset="UTF-8" />
+    <title>Home — Geekmonkey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Chat widget assets -->
+    <link rel="stylesheet" th:href="@{../../assets/css/chat-widget.css}" />
+    <!-- <script th:src="@{../../assets/scripts/chat-widget.js}"></script>
+ -->
+     <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <style>
-        .btn-box {
-            width: 100%;
-            height: 150px;
-            font-size: 24px;
-            margin-bottom: 20px;
+        :root{
+          --bg:#F9FAFB; --card:#FFFFFF; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --accent-weak:#FFE5D0; --radius:14px;
         }
-        .ip-container {
-            margin-top: 20px;
-            text-align: center;
+        html, body { height:100%; background:var(--bg); color:var(--text); }
+
+        /* Top bar (same as previous page) */
+        .gm-topbar{
+          position:sticky; top:0; z-index:1030;
+          background:linear-gradient(90deg, var(--accent), #FF9A3D);
+          color:#fff; box-shadow:0 8px 18px rgba(0,0,0,0.08);
         }
-        .ip-address {
-            font-size: 18px;
-            margin-bottom: 10px;
+        .gm-topbar .brand{ font-weight:700; letter-spacing:.3px; }
+        .gm-btn{ border-radius:12px; border:none; padding:.5rem .9rem; font-weight:600; }
+        .gm-btn-accent{ background:#fff; color:var(--accent-ink); }
+        .gm-btn-accent:hover{ background:var(--accent-weak); color:var(--accent-ink); }
+        .gm-btn-ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.55); }
+        .gm-btn-ghost:hover{ background:rgba(255,255,255,0.12); }
+
+        /* Tiles */
+        .gm-tile{
+          display:flex; align-items:center; justify-content:center; text-align:center;
+          height:150px; width:100%;
+          background:var(--card); color:var(--text); font-weight:700; font-size:1.1rem;
+          border:1px solid var(--stroke); border-radius:var(--radius);
+          box-shadow:0 8px 24px rgba(17,24,39,0.06);
+          transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+          text-decoration:none;
         }
-        .copy-btn {
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
+        .gm-tile:hover{
+          transform:translateY(-2px);
+          background:#FFF8F2; border-color:var(--accent);
+          box-shadow:0 12px 28px rgba(17,24,39,0.09);
+          text-decoration:none;
         }
-        .copy-btn:hover {
-            background-color: #0056b3;
+
+        /* Section titles */
+        .gm-section-title{ font-weight:700; font-size:1.25rem; margin:1.25rem 0 .75rem; }
+
+        /* IP copy card */
+        .gm-card{
+          background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius);
+          box-shadow:0 8px 24px rgba(17,24,39,0.06);
         }
+        .copy-btn{
+          border:none; border-radius:10px; padding:.55rem .9rem; font-weight:600;
+          background:var(--accent); color:#fff;
+        }
+        .copy-btn:hover{ background:#ff8f29; }
+
+        /* Small helper badge */
+        .badge-gm{ background:var(--accent-weak); color:var(--accent-ink); }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1 class="text-center my-4">Geekmonkey Analytics</h1>
-    <div class="row">
-        <div class="col-md-4">
-            <a href="/v1/order/create" class="btn btn-primary btn-box d-flex align-items-center justify-content-center">New
-                Order</a>
+
+<!-- Top bar -->
+<div class="gm-topbar">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <div class="d-flex gap-2">
+            <button type="button" class="gm-btn gm-btn-ghost" id="backBtn" title="Back">← Back</button>
+            <button type="button" class="gm-btn gm-btn-accent" id="homeBtn" title="Home">⌂ Home</button>
         </div>
-        <div class="col-md-4">
-            <a href="/draftOrders" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Draft
-                Orders</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/discount" class="btn btn-success btn-box d-flex align-items-center justify-content-center">Discounts%</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/order" class="btn btn-info btn-box d-flex align-items-center justify-content-center">Orders</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/order/return"
-               class="btn btn-warning btn-box d-flex align-items-center justify-content-center">Return</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/replacement" class="btn btn-danger btn-box d-flex align-items-center justify-content-center">Replacement</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/inventory" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Inventory</a>
-        </div>
-        <div class="col-md-4" >
-            <a href="/v1/report" style="background:#b298ca;" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Reports</a>
-        </div>
-        <div class="col-md-4" >
-            <a href="/v1/vendor" style="background:#b298ca;" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Vendor Management</a>
-        </div>
-        <div class="col-md-4" >
-            <a href="/v1/rules" style="background:#b298ca;" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Business Rules</a>
-        </div>
+        <div class="brand">Geekmonkey • Home</div>
+        <div></div>
     </div>
 </div>
-<div class="ip-container">
-    <h1>Copy link for mobile</h1>
-    <p id="ip-address" class="ip-address">Fetching IP address...</p>
-    <button class="copy-btn" onclick="copyToClipboard()">Copy</button>
-</div>
+
+<main class="container my-4">
+    <h1 class="gm-section-title">Geekmonkey Analytics</h1>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <a href="/v1/order/create" class="gm-tile">New Order</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/draftOrders" class="gm-tile">Draft Orders</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/discount" class="gm-tile">Discounts %</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/order" class="gm-tile">Orders</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/order/return" class="gm-tile">Return</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/replacement" class="gm-tile">Replacement</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory" class="gm-tile">Inventory</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report" class="gm-tile">Reports</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/vendor" class="gm-tile">Vendor Management</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/rules" class="gm-tile">Business Rules</a>
+        </div>
+    </div>
+
+    <div class="gm-section-title d-flex align-items-center gap-2">
+        Copy link for mobile <span class="badge rounded-pill badge-gm">LAN</span>
+    </div>
+    <div class="gm-card p-3">
+        <div class="row align-items-center g-3">
+            <div class="col-md-8">
+                <div class="text-muted small mb-1">Device IP</div>
+                <p id="ip-address" class="mb-0 fw-semibold">Fetching IP address...</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <button class="copy-btn" onclick="copyToClipboard()">Copy URL</button>
+            </div>
+        </div>
+        <div class="text-muted small mt-2">Copies: <code>http://&lt;ip&gt;:8080/v1/home</code></div>
+    </div>
+</main>
+
 <script>
+    // Header buttons
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      window.location.href = '/v1/home';
+    });
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (history.length > 1) { history.back(); }
+      else { window.location.href = '/v1/home'; }
+    });
+
+    // Fetch local IP
     document.addEventListener('DOMContentLoaded', function() {
-       fetch('/v1/local-ip')
-           .then(response => response.text())
-           .then(data => {
-               document.getElementById('ip-address').textContent = data;
-           })
-           .catch(error => {
-               console.error('Error fetching IP address:', error);
-               document.getElementById('ip-address').textContent = 'Error fetching IP address';
-           });
-   });
+      fetch('/v1/local-ip')
+        .then(response => response.text())
+        .then(data => { document.getElementById('ip-address').textContent = data; })
+        .catch(error => {
+          console.error('Error fetching IP address:', error);
+          document.getElementById('ip-address').textContent = 'Error fetching IP address';
+        });
+    });
 
-
+    // Copy helper with toast
     function copyToClipboard() {
-        const ipAddress = document.getElementById('ip-address').textContent;
-        const url = `http://${ipAddress}`+':8080/v1/home';
-        navigator.clipboard.writeText(url).then(() => {
-            alert('URL copied to clipboard: ' + url);
-        }).catch(err => {
-            console.error('Error copying to clipboard:', err);
+      const ip = document.getElementById('ip-address').textContent.trim();
+      const url = `http://${ip}:8080/v1/home`;
+      navigator.clipboard.writeText(url).then(() => showToast(`URL copied ✅  ${url}`))
+        .catch(err => {
+          console.error('Error copying to clipboard:', err);
+          alert('Could not copy URL');
         });
     }
 
+    function showToast(message){
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      Object.assign(toast.style, {
+        position:'fixed', right:'20px', bottom:'20px', background:'var(--accent)', color:'#fff',
+        padding:'10px 14px', borderRadius:'12px', boxShadow:'0 8px 18px rgba(0,0,0,0.15)', zIndex:2000
+      });
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    }
 </script>
 </body>
 </html>

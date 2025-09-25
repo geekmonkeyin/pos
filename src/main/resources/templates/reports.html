@@ -1,152 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Inventory</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <title>Reports — Geekmonkey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f8f9fa; /* Light gray background */
-            margin: 0;
-            padding: 0;
+        :root{
+          --bg:#F9FAFB; --card:#FFFFFF; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --accent-weak:#FFE5D0; --radius:14px;
+        }
+        html, body { height:100%; background:var(--bg); color:var(--text); }
+
+        /* Top bar (shared Geekmonkey header) */
+        .gm-topbar{
+          position:sticky; top:0; z-index:1030;
+          background:linear-gradient(90deg, var(--accent), #FF9A3D);
+          color:#fff; box-shadow:0 8px 18px rgba(0,0,0,0.08);
+        }
+        .gm-topbar .brand{ font-weight:700; letter-spacing:.3px; }
+        .gm-btn{ border-radius:12px; border:none; padding:.5rem .9rem; font-weight:600; }
+        .gm-btn-accent{ background:#fff; color:var(--accent-ink); }
+        .gm-btn-accent:hover{ background:var(--accent-weak); color:var(--accent-ink); }
+        .gm-btn-ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.55); }
+        .gm-btn-ghost:hover{ background:rgba(255,255,255,0.12); }
+
+        /* Tiles */
+        .gm-tile{
+          display:flex; align-items:center; justify-content:center; text-align:center;
+          height:150px; width:100%;
+          background:var(--card); color:var(--text); font-weight:700; font-size:1.05rem;
+          border:1px solid var(--stroke); border-radius:var(--radius);
+          box-shadow:0 8px 24px rgba(17,24,39,0.06);
+          transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+          text-decoration:none; padding:0 10px;
+        }
+        .gm-tile:hover{
+          transform:translateY(-2px);
+          background:#FFF8F2; border-color:var(--accent);
+          box-shadow:0 12px 28px rgba(17,24,39,0.09);
+          text-decoration:none;
         }
 
-        h1 {
-            color: #343a40; /* Dark gray for headings */
-        }
-
-        .btn-box {
-            width: 100%;
-            height: 150px;
-            font-size: 24px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .btn-box:hover {
-            transform: scale(1.05); /* Slight zoom effect */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
-        }
-
-        .btn-primary {
-            background-color: #007bff; /* Blue */
-            color: #fff;
-        }
-
-        .btn-secondary {
-            background-color: #6c757d; /* Gray */
-            color: #fff;
-        }
-
-        .btn-success {
-            background-color: #28a745; /* Green */
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background-color: #0056b3; /* Darker blue */
-        }
-
-        .btn-secondary:hover {
-            background-color: #5a6268; /* Darker gray */
-        }
-
-        .btn-success:hover {
-            background-color: #218838; /* Darker green */
-        }
-
-        #backButton, #homeButton {
-            position: fixed;
-            top: 10px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        #backButton {
-            left: 10px;
-            background-color: #6c757d; /* Gray */
-            color: #fff;
-        }
-
-        #backButton:hover {
-            background-color: #5a6268; /* Darker gray */
-        }
-
-        #homeButton {
-            left: 100px;
-            background-color: #28a745; /* Green */
-            color: #fff;
-        }
-
-        #homeButton:hover {
-            background-color: #218838; /* Darker green */
-        }
-
-
+        .gm-section-title{ font-weight:700; font-size:1.25rem; margin:1.25rem 0 .75rem; }
     </style>
 </head>
 <body>
-<div>
-    <button id="backButton" onclick="goBack()">Back</button>
-    <button id="homeButton" onclick="goBack()">Home</button>
-</div>
 
-<div class="container">
-    <h1 class="text-center my-4">Report Management</h1>
-    <div class="row">
-        <div class="col-md-4">
-            <a href="/v1/report/uploadCSV"
-               class="btn btn-primary btn-box d-flex align-items-center justify-content-center">Upload CSV</a>
+<!-- Top bar -->
+<div class="gm-topbar">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <div class="d-flex gap-2">
+            <button type="button" class="gm-btn gm-btn-ghost" id="backBtn" title="Back">← Back</button>
+            <button type="button" class="gm-btn gm-btn-accent" id="homeBtn" title="Home">⌂ Home</button>
         </div>
-        <div class="col-md-4">
-            <a href="/v1/inventory/update"
-               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Monthly Report</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/report/shopifyreport"
-               class="btn btn-success btn-box d-flex align-items-center justify-content-center">Quarterly Report</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/report/shopify/stockmismatchreport"
-               class="btn btn-success btn-box d-flex align-items-center justify-content-center">Mismatched Report</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/storage"
-               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Visual Storage Report</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/report/inventoryfilterreport"
-               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center" style
-            ="background:brown">Inventory Filter Report</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/report/dailytasksreport"
-               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center" style
-                       ="background:brown">Daily Tasks Report</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/report/whatsappeventsreport"
-               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center" style
-                       ="background:brown">Whatsapp Report</a>
-        </div>
-        <div class="col-md-4">
-            <a href="/v1/report/packagingreport"
-               class="btn btn-secondary btn-box d-flex align-items-center justify-content-center" style
-                       ="background:brown">Whatsapp Report</a>
-        </div>
+        <div class="brand">Geekmonkey • Reports</div>
+        <div></div>
     </div>
 </div>
+
+<main class="container my-4">
+    <h1 class="gm-section-title">Report Management</h1>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <a href="/v1/report/uploadCSV" class="gm-tile">Upload CSV</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/inventory/update" class="gm-tile">Monthly Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/shopifyreport" class="gm-tile">Quarterly Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/shopify/stockmismatchreport" class="gm-tile">Mismatched Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/storage" class="gm-tile">Visual Storage Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/inventoryfilterreport" class="gm-tile">Inventory Filter Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/dailytasksreport" class="gm-tile">Daily Tasks Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/whatsappeventsreport" class="gm-tile">Whatsapp Report</a>
+        </div>
+        <div class="col-md-4">
+            <a href="/v1/report/packagingreport" class="gm-tile">Packaging Report</a>
+        </div>
+    </div>
+</main>
+
 <script>
-    function goBack() {
-        window.history.back(); // Navigate to the previous page
-    }
+    // Header buttons behavior
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      window.location.href = '/v1/home';
+    });
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (history.length > 1) { history.back(); }
+      else { window.location.href = '/v1/home'; }
+    });
 </script>
 </body>
 </html>

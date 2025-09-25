@@ -34,10 +34,10 @@ public class TaskUtils {
             return "DESKTOP";
         }
         if(deviceId.contains("vivo24") || deviceId.contains("V2407") || deviceId.contains("V24")){
-            return "Radhika";
+            return "Suhani";
         }
         if(deviceId.contains("vivo23") || deviceId.contains("VIVO 2333") || deviceId.contains("V2333")){
-            return "Suhani";
+            return "Radhika";
         }
         if(deviceId.contains("OnePlus")){
             return "Punam";

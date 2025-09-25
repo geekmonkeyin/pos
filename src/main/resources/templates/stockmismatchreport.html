@@ -1,201 +1,569 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Mismatch Report</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Stock Mismatch Report — Geekmonkey</title>
+
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+
+    <!-- jQuery + Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Optional utilities -->
     <script th:src="@{../../../assets/scripts/inventory-utils.js}"></script>
+
     <style>
-        .image-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px; /* Space between thumbnails */
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-}
+        :root{
+          --bg:#F9FAFB; --card:#FFFFFF; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --accent-weak:#FFE5D0; --radius:14px;
+        }
+        html, body { height:100%; background:var(--bg); color:var(--text); }
+        .gm-topbar{
+          position:sticky; top:0; z-index:1030; background:linear-gradient(90deg, var(--accent), #FF9A3D);
+          color:#fff; box-shadow:0 8px 18px rgba(0,0,0,0.08);
+        }
+        .gm-topbar .brand{ font-weight:700; letter-spacing:.3px; }
 
-.image-container img {
-    width: 100px; /* Thumbnail width */
-    height: 100px; /* Thumbnail height */
-    object-fit: cover; /* Ensures the image fits within the thumbnail */
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    transition: transform 0.2s ease-in-out;
-}
+        .gm-btn{ border-radius:12px; border:none; padding:.5rem .9rem; font-weight:600; }
+        .gm-btn-accent{ background:#fff; color:var(--accent-ink); }
+        .gm-btn-accent:hover{ background:var(--accent-weak); color:var(--accent-ink); }
+        .gm-btn-ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.55); }
+        .gm-btn-ghost:hover{ background:rgba(255,255,255,0.12); }
 
-.image-container img:hover {
-    transform: scale(1.1); /* Slight zoom effect on hover */
-    border-color: #007bff;
-}
+        .gm-card{
+          background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius);
+          box-shadow:0 8px 24px rgba(17,24,39,0.06);
+        }
+
+        /* Table */
+        table thead th{
+          background:var(--accent); color:#fff; border-color:var(--accent);
+          vertical-align:middle;
+        }
+        table tbody tr:hover{ background:#FFF8F2; }
+        .table > :not(caption) > * > *{ border-color:var(--stroke) !important; }
+
+        .btn-gm{ --bs-btn-border-radius:10px; --bs-btn-font-weight:600; --bs-btn-padding-y:.4rem; --bs-btn-padding-x:.7rem; }
+        .btn-gm-primary{ color:#fff; background:var(--accent); border:none; }
+        .btn-gm-primary:hover{ background:#ff8f29; }
+        .btn-gm-muted{ color:var(--text); background:#F3F4F6; border:1px solid var(--stroke); }
+        .btn-gm-muted:hover{ background:#EAECEF; }
+
+        /* Image grid */
+        .image-container{
+          display:flex; flex-wrap:wrap; gap:10px; padding:10px;
+          border:1px solid var(--stroke); border-radius:10px; background:#FAFAFA;
+        }
+        .image-container img{
+          width:100px; height:100px; object-fit:cover; border:1px solid #D1D5DB; border-radius:10px;
+          transition:transform .18s ease, box-shadow .18s ease;
+        }
+        .image-container img:hover{
+          transform:scale(1.06);
+          box-shadow:0 6px 14px rgba(0,0,0,0.12);
+          border-color:var(--accent);
+        }
+
+        /* Timeline */
+        .timeline{ list-style:none; padding:0; margin:0; }
+        .timeline li{
+          margin-bottom:15px; padding:12px 14px; background:#FFF8F2; border-radius:12px;
+          border-left:4px solid var(--accent);
+        }
+        .badge-gm{ background:var(--accent-weak); color:var(--accent-ink); }
+
+        /* Pagination styling */
+        .pagination .page-link{ border-color:var(--stroke); color:var(--text); }
+        .pagination .page-item.active .page-link{
+          background:var(--accent); border-color:var(--accent); color:#fff;
+        }
+        .pagination .page-link:hover{ background:#FFF1E6; }
+
+        .gm-section-title{ font-weight:700; font-size:1.125rem; margin-bottom:1rem; }
     </style>
 </head>
 <body>
-<div>
-    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
-    <button id="homeButton" onclick="goBack()" style="position: fixed; top: 10px; left: 60px;background-color:#28a745;color:#ffff">Home</button>
+
+<!-- Top bar -->
+<div class="gm-topbar">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <div class="d-flex gap-2">
+            <button type="button" class="gm-btn gm-btn-ghost" id="backBtn" title="Back">← Back</button>
+            <button type="button" class="gm-btn gm-btn-accent" id="homeBtn" title="Home">⌂ Home</button>
+        </div>
+        <div class="brand">Geekmonkey • Stock Mismatch Report</div>
+        <div></div>
+    </div>
 </div>
 
-    <div class="container mt-4">
+<main class="container my-4">
+    <div class="gm-card p-3 p-md-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div class="gm-section-title m-0">Mismatched Items</div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-muted small" id="rangeInfo">Showing 0–0 of 0</div>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="small text-muted">Rows:</label>
+                    <select id="pageSize" class="form-select form-select-sm" style="width:auto;">
+                        <option>10</option>
+                        <option selected>25</option>
+                        <option>50</option>
+                        <option>100</option>
+                    </select>
+                </div>
+                <span class="badge rounded-pill badge-gm" th:text="${#lists.size(mismatched)} + ' items'">0 items</span>
+            </div>
+        </div>
+
+        <!-- Filters & Sorting -->
+        <div class="row gy-2 gx-2 align-items-end mb-3">
+            <div class="col-12 col-md-3">
+                <label for="dateFrom" class="small text-muted">From</label>
+                <input type="date" id="dateFrom" class="form-control form-control-sm"/>
+            </div>
+            <div class="col-12 col-md-3">
+                <label for="dateTo" class="small text-muted">To</label>
+                <input type="date" id="dateTo" class="form-control form-control-sm"/>
+            </div>
+            <div class="col-12 col-md-3">
+                <label for="sortKey" class="small text-muted">Sort by</label>
+                <select id="sortKey" class="form-select form-select-sm">
+                    <option value="updated" selected>Last Updated</option>
+                    <option value="name">Name</option>
+                    <option value="shopify">Shopify Stock</option>
+                    <option value="qty">Quantity</option>
+                    <option value="productId">Product ID</option>
+                    <option value="variantId">Variant ID</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3 d-flex gap-2">
+                <button id="sortDirBtn" class="btn btn-gm btn-gm-muted btn-sm w-100" data-dir="desc">Sort: Desc</button>
+                <button id="clearFilters" class="btn btn-gm btn-gm-muted btn-sm w-100">Clear</button>
+            </div>
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-bordered table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Product ID</th>
-                        <th>Variant ID</th>
-                        <th>Name</th>
-                        <th>Shopify Stock</th>
-                        <th>Quantity</th>
-                        <th>Last Updated</th>
-                        <th>Action</th>
-                    </tr>
+            <table class="table table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Variant ID</th>
+                    <th>Name</th>
+                    <th>Shopify Stock</th>
+                    <th>Quantity</th>
+                    <th>Last Updated</th>
+                    <th class="text-center">Action</th>
+                </tr>
                 </thead>
-                <tbody>
-                    <tr th:each="inventory : ${mismatched}">
-                        <td th:text="${inventory.productId}"></td>
-                        <td th:text="${inventory.productVariantId}"></td>
-                        <td th:text="${inventory.productTitle}"></td>
-                        <td th:text="${inventory.shopifyQuantity}"></td>
-                        <td th:text="${inventory.quantity}"></td>
-                        <td th:text="${inventory.formattedLastUpdated}"></td>
-                        <td>
-                            <button class="btn btn-primary btn-sm view-images" th:onClick="openImageModal([[${inventory.images}]]);" >View Images</button>
-                            <button class="btn btn-secondary btn-sm show-history" th:onClick="loadStockHistory([[${inventory}]]);">Show History</button>
-                            <button class="btn btn-secondary btn-sm show-history" th:onClick="updateShopifyStock([[${inventory}]]);">Update Shopify Stock</button>
-                        </td>
-                    </tr>
+                <tbody id="mismatchTbody">
+                <tr data-item
+                    th:each="inventory : ${mismatched}"
+                    th:attr="data-updated=${inventory.formattedLastUpdated},
+                     data-name=${inventory.productTitle},
+                     data-qty=${inventory.quantity},
+                     data-shopify=${inventory.shopifyQuantity},
+                     data-product-id=${inventory.productId},
+                     data-variant-id=${inventory.productVariantId}">
+                    <td th:text="${inventory.productId}">PID</td>
+                    <td th:text="${inventory.productVariantId}">VID</td>
+                    <td th:text="${inventory.productTitle}">Title</td>
+                    <td th:text="${inventory.shopifyQuantity}">0</td>
+                    <td th:text="${inventory.quantity}">0</td>
+                    <td th:text="${inventory.formattedLastUpdated}">—</td>
+                    <td class="text-center">
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button class="btn btn-gm btn-gm-primary btn-sm"
+                                    th:onClick="openImageModal([[${inventory.images}]])">
+                                View Images
+                            </button>
+                            <button class="btn btn-gm btn-gm-muted btn-sm"
+                                    th:onClick="loadStockHistory([[${inventory}]])"
+                                    data-bs-toggle="modal" data-bs-target="#historyModal">
+                                Show History
+                            </button>
+                            <button class="btn btn-gm btn-gm-muted btn-sm"
+                                    th:onClick="updateShopifyStock([[${inventory}]])">
+                                Update Shopify Stock
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- Empty state row (kept visible when no data) -->
+                <tr id="noItemsRow" th:if="${#lists.isEmpty(mismatched)}">
+                    <td colspan="7" class="text-center text-muted py-4">No mismatches found 🎉</td>
+                </tr>
                 </tbody>
             </table>
         </div>
-    </div>
 
-    <!-- Modal for Stock History -->
-    <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="historyModalLabel">Stock History Timeline</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <ul class="timeline">
-                        <!-- Timeline items will be dynamically added here -->
-                    </ul>
-                </div>
+        <!-- Pagination controls -->
+        <nav aria-label="Pagination">
+            <ul id="pager" class="pagination justify-content-end mb-0"></ul>
+        </nav>
+    </div>
+</main>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="historyModalLabel">Stock History Timeline</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="timeline"></ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-gm btn-gm-muted" data-bs-dismiss="modal" type="button">Close</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modal -->
-    <div aria-hidden="true" aria-labelledby="imageModalLabel" class="modal fade" id="imageModal" role="dialog"
-         tabindex="-1">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="imageModalLabel">Images</h5>
-                    <button aria-label="Close" class="close" data-dismiss="modal" type="button">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-dismiss="modal" type="button">Close</button>
-                </div>
+<!-- Images Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="imageModalLabel">Images</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="imageGrid" class="image-container"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-gm btn-gm-muted" data-bs-dismiss="modal" type="button">Close</button>
             </div>
         </div>
     </div>
+</div>
 
+<script>
+    // --- Nav buttons ---
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      window.location.href = '/v1/home';
+    });
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (history.length > 1) { history.back(); } else { window.location.href = '/v1/home'; }
+    });
 
-    <script>
-        async function loadShopifyStock(inventory) {
-
-
+    // --- Helpers (images) ---
+    function safeParseImages(images) {
+      try {
+        if (Array.isArray(images)) return images;
+        if (typeof images === 'string') {
+          if (images.trim().startsWith('[')) return JSON.parse(images);
+          return images.split(',').map(s => s.trim()).filter(Boolean);
         }
-
-        function updateShopifyStock(inventory) {
-            const productId = inventory.productId;
-            const variantId = inventory.productVariantId;
-            const newQuantity = inventory.quantity;
-
-            // Make an AJAX call to update the Shopify stock
-            $.ajax({
-                url: '/v1/inventory/updateShopifyStock', // Replace with your actual endpoint
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    productId: productId,
-                    variantId: variantId,
-                }),
-                success: function(response) {
-                    alert('Shopify stock updated successfully!');
-                    // Optionally, refresh the page or update the UI to reflect changes
-                    location.reload();
-                },
-                error: function(xhr, status, error) {
-                    alert('Error updating Shopify stock: ' + xhr.responseText);
-                }
-            });
-        }
-
-       async function loadStockHistory(inventory) {
-            //const inventory = $(this).data('inventory');
-            const stockHistory = inventory.stockHistory;
-            // Fetch stock history for the product (replace with actual AJAX call)
-
-
-            const timeline = $('.timeline');
-            timeline.empty();
-            var count = 0;
-            stockHistory.forEach(history => {
-                 const containerId = `imageContainerHistory`+getRandomNumber(1, 1000);
-
-                const item = `
-                    <li>
-                        <strong>Date:</strong> ${history.updatedDate} <br>
-                        <strong>Quantity:</strong> ${history.quantity} <br>
-                        <strong>Shopify Quantity:</strong> ${history.shopifyStock}
-
-                        <div id='${containerId}' class="image-container"></div>
-                       <button class="btn btn-primary btn-sm" onclick="openImageModal('${history.images}', '${containerId}')">View Images</button>
-                    </li>
-                `;
-                fetchImages(history.images,containerId);
-                timeline.append(item);
-            });
-
-            $('#historyModal').modal('show');
-        }
-
-        $(document).on('click', '.view-images', function () {
-            const productId = $(this).data('id');
-            alert('View images for Product ID: ' + productId);
-            // Implement image viewing logic here
-        });
-
-        function getRandomNumber(min, max) {
-                return Math.random() * (max - min) + min;
-        }
-            function goBack() {
-        window.history.back(); // Navigate to the previous page
+        return [];
+      } catch(e){ return []; }
     }
-    </script>
 
-    <style>
-        .timeline {
-            list-style: none;
-            padding: 0;
+    function renderImages(imgList, container) {
+      const el = typeof container === 'string' ? document.getElementById(container) : container;
+      if (!el) return;
+      el.innerHTML = '';
+      safeParseImages(imgList).forEach(src => {
+        const img = document.createElement('img');
+        img.loading = 'lazy'; img.alt = 'product'; img.src = src;
+        el.appendChild(img);
+      });
+    }
+
+    window.openImageModal = function(images){
+      const list = safeParseImages(images);
+      renderImages(list, document.getElementById('imageGrid'));
+      const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+      modal.show();
+    };
+
+    window.fetchImages = window.fetchImages || function(images, containerId){
+      renderImages(images, containerId);
+    };
+
+    // --- Shopify sync ---
+    function updateShopifyStock(inventory) {
+      const productId = inventory.productId;
+      const variantId = inventory.productVariantId;
+
+      $.ajax({
+        url: '/v1/inventory/updateShopifyStock',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ productId, variantId }),
+        success: function(){
+          const toast = document.createElement('div');
+          toast.textContent = 'Shopify stock update triggered ✅';
+          Object.assign(toast.style, {
+            position:'fixed', right:'20px', bottom:'20px', background:'var(--accent)', color:'#fff',
+            padding:'10px 14px', borderRadius:'12px', boxShadow:'0 8px 18px rgba(0,0,0,0.15)', zIndex:2000
+          });
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 2500);
+          setTimeout(() => location.reload(), 600);
+        },
+        error: function(xhr){
+          alert('Error updating Shopify stock: ' + (xhr.responseText || 'unknown error'));
         }
-        .timeline li {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-left: 3px solid #007bff;
-            background: #f8f9fa;
-            border-radius: 5px;
+      });
+    }
+    window.updateShopifyStock = updateShopifyStock;
+
+    // --- History Modal population ---
+    async function loadStockHistory(inventory) {
+      const timeline = $('.timeline');
+      timeline.empty();
+
+      const stockHistory = inventory?.stockHistory || [];
+      if (!stockHistory.length){
+        timeline.append('<li>No history found.</li>');
+        return;
+      }
+
+      stockHistory.forEach((h, idx) => {
+        const containerId = `imageContainerHistory_${Date.now()}_${idx}`;
+        const item = `
+          <li>
+            <div class="d-flex justify-content-between">
+              <div>
+                <strong>Date:</strong> ${h.updatedDate || '—'}<br/>
+                <strong>Quantity:</strong> ${h.quantity ?? '—'}<br/>
+                <strong>Shopify Quantity:</strong> ${h.shopifyStock ?? '—'}
+              </div>
+              <div class="text-end">
+                <span class="badge rounded-pill badge-gm">#${idx+1}</span>
+              </div>
+            </div>
+            <div id="${containerId}" class="image-container mt-2"></div>
+            <button class="btn btn-gm btn-gm-primary btn-sm mt-2"
+                    onclick="openImageModal('${Array.isArray(h.images) ? JSON.stringify(h.images) : (h.images || '')}')">
+              View Images
+            </button>
+          </li>
+        `;
+        timeline.append(item);
+        fetchImages(h.images, containerId);
+      });
+    }
+    window.loadStockHistory = loadStockHistory;
+
+    // ---------- Sorting + Date filter + Pagination ----------
+    (function initTableEnhancements(){
+      const tbody = document.getElementById('mismatchTbody');
+      const allRows = Array.from(tbody.querySelectorAll('tr[data-item]'));
+      const emptyRow = document.getElementById('noItemsRow');
+      const pager = document.getElementById('pager');
+      const rangeInfo = document.getElementById('rangeInfo');
+      const pageSizeSelect = document.getElementById('pageSize');
+
+      const dateFrom = document.getElementById('dateFrom');
+      const dateTo = document.getElementById('dateTo');
+      const sortKeySel = document.getElementById('sortKey');
+      const sortDirBtn = document.getElementById('sortDirBtn');
+      const clearBtn = document.getElementById('clearFilters');
+
+      // ---- Persisted state
+      let pageSize = parseInt(localStorage.getItem('gmPageSize') || pageSizeSelect.value, 10);
+      let page = 1;
+      let sortKey = localStorage.getItem('gmSortKey') || 'updated';
+      let sortDir = localStorage.getItem('gmSortDir') || 'desc';
+      const savedFrom = localStorage.getItem('gmDateFrom') || '';
+      const savedTo = localStorage.getItem('gmDateTo') || '';
+
+      pageSizeSelect.value = pageSize.toString();
+      sortKeySel.value = sortKey;
+      dateFrom.value = savedFrom;
+      dateTo.value = savedTo;
+      sortDirBtn.dataset.dir = sortDir;
+      sortDirBtn.textContent = `Sort: ${sortDir === 'asc' ? 'Asc' : 'Desc'}`;
+
+      // ---- Prepare row datasets
+      allRows.forEach(r => {
+        if (!r.dataset.productId) r.dataset.productId = (r.cells[0].innerText || '').trim();
+        if (!r.dataset.variantId) r.dataset.variantId = (r.cells[1].innerText || '').trim();
+        if (!r.dataset.name)      r.dataset.name      = (r.cells[2].innerText || '').trim();
+        if (!r.dataset.shopify)   r.dataset.shopify   = (r.cells[3].innerText || '0').replace(/[^\d-]/g,'') || '0';
+        if (!r.dataset.qty)       r.dataset.qty       = (r.cells[4].innerText || '0').replace(/[^\d-]/g,'') || '0';
+        if (!r.dataset.updated)   r.dataset.updated   = (r.cells[5].innerText || '').trim();
+        const ts = Date.parse(r.dataset.updated);
+        r.dataset.ts = isNaN(ts) ? '' : String(ts);
+      });
+
+      // ---- Events
+      pageSizeSelect.addEventListener('change', () => {
+        pageSize = parseInt(pageSizeSelect.value, 10);
+        localStorage.setItem('gmPageSize', pageSize);
+        page = 1; applyAndRender();
+      });
+      sortKeySel.addEventListener('change', () => {
+        sortKey = sortKeySel.value; localStorage.setItem('gmSortKey', sortKey);
+        page = 1; applyAndRender();
+      });
+      sortDirBtn.addEventListener('click', () => {
+        sortDir = (sortDirBtn.dataset.dir === 'asc') ? 'desc' : 'asc';
+        sortDirBtn.dataset.dir = sortDir;
+        sortDirBtn.textContent = `Sort: ${sortDir === 'asc' ? 'Asc' : 'Desc'}`;
+        localStorage.setItem('gmSortDir', sortDir);
+        applyAndRender();
+      });
+      dateFrom.addEventListener('change', () => {
+        localStorage.setItem('gmDateFrom', dateFrom.value || '');
+        page = 1; applyAndRender();
+      });
+      dateTo.addEventListener('change', () => {
+        localStorage.setItem('gmDateTo', dateTo.value || '');
+        page = 1; applyAndRender();
+      });
+      clearBtn.addEventListener('click', () => {
+        dateFrom.value = ''; dateTo.value = '';
+        sortKeySel.value = 'updated'; sortKey = 'updated';
+        sortDir = 'desc'; sortDirBtn.dataset.dir = 'desc'; sortDirBtn.textContent = 'Sort: Desc';
+        localStorage.removeItem('gmDateFrom'); localStorage.removeItem('gmDateTo');
+        localStorage.setItem('gmSortKey','updated'); localStorage.setItem('gmSortDir','desc');
+        page = 1; applyAndRender();
+      });
+
+      function getMinTS(){
+        if (!dateFrom.value) return -Infinity;
+        return new Date(dateFrom.value + 'T00:00:00').getTime();
+      }
+      function getMaxTS(){
+        if (!dateTo.value) return Infinity;
+        return new Date(dateTo.value + 'T23:59:59.999').getTime();
+      }
+
+      function filterRows(){
+        const minTS = getMinTS();
+        const maxTS = getMaxTS();
+        return allRows.filter(r => {
+          const ts = r.dataset.ts ? parseInt(r.dataset.ts, 10) : NaN;
+          if (isNaN(ts)) return dateFrom.value || dateTo.value ? false : true; // if filtering, exclude unknown dates
+          if (ts < minTS) return false;
+          if (ts > maxTS) return false;
+          return true;
+        });
+      }
+
+      function compareRows(a, b){
+        const dir = (sortDir === 'asc') ? 1 : -1;
+        switch (sortKey){
+          case 'name': {
+            const av = (a.dataset.name || '').toLowerCase();
+            const bv = (b.dataset.name || '').toLowerCase();
+            return av.localeCompare(bv, undefined, {sensitivity:'base'}) * dir;
+          }
+          case 'shopify': {
+            const av = parseInt(a.dataset.shopify || '0', 10);
+            const bv = parseInt(b.dataset.shopify || '0', 10);
+            return (av - bv) * dir;
+          }
+          case 'qty': {
+            const av = parseInt(a.dataset.qty || '0', 10);
+            const bv = parseInt(b.dataset.qty || '0', 10);
+            return (av - bv) * dir;
+          }
+          case 'productId': {
+            const avn = Number(a.dataset.productId), bvn = Number(b.dataset.productId);
+            if (!isNaN(avn) && !isNaN(bvn)) return (avn - bvn) * dir;
+            return (a.dataset.productId || '').localeCompare(b.dataset.productId || '') * dir;
+          }
+          case 'variantId': {
+            const avn = Number(a.dataset.variantId), bvn = Number(b.dataset.variantId);
+            if (!isNaN(avn) && !isNaN(bvn)) return (avn - bvn) * dir;
+            return (a.dataset.variantId || '').localeCompare(b.dataset.variantId || '') * dir;
+          }
+          case 'updated':
+          default: {
+            const av = parseInt(a.dataset.ts || '0', 10);
+            const bv = parseInt(b.dataset.ts || '0', 10);
+            return (av - bv) * dir;
+          }
         }
-    </style>
+      }
+
+      function renderPagination(total){
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (page > totalPages) page = totalPages;
+        pager.innerHTML = '';
+        function add(label, disabled, targetPage, isActive=false, aria=''){
+          const li = document.createElement('li');
+          li.className = `page-item ${disabled ? 'disabled' : ''} ${isActive ? 'active' : ''}`;
+          const a = document.createElement('a');
+          a.className = 'page-link'; a.href = '#'; a.innerText = label;
+          if (aria) a.setAttribute('aria-label', aria);
+          if (!disabled) a.addEventListener('click', e => { e.preventDefault(); page = targetPage; applyAndRender(); });
+          li.appendChild(a); pager.appendChild(li);
+        }
+        add('«', page <= 1, 1, false, 'First');
+        add('‹', page <= 1, Math.max(1, page - 1), false, 'Previous');
+
+        const windowSize = 5;
+        let start = Math.max(1, page - Math.floor(windowSize/2));
+        let end = Math.min(totalPages, start + windowSize - 1);
+        start = Math.max(1, Math.min(start, totalPages - windowSize + 1));
+        for (let p = start; p <= end; p++){ add(String(p), false, p, p === page); }
+
+        add('›', page >= totalPages, Math.min(totalPages, page + 1), false, 'Next');
+        add('»', page >= totalPages, totalPages, false, 'Last');
+      }
+
+      function applyAndRender(){
+        const filtered = filterRows();
+        const totalFiltered = filtered.length;
+        const totalAll = allRows.length;
+
+        filtered.sort(compareRows);
+
+        // Rebuild tbody in sorted order (filtered first, then the rest hidden)
+        const filteredSet = new Set(filtered);
+        const rest = allRows.filter(r => !filteredSet.has(r));
+        tbody.innerHTML = '';
+        filtered.forEach(r => tbody.appendChild(r));
+        rest.forEach(r => tbody.appendChild(r));
+
+        // Pagination show/hide + serial renumbering for visible slice
+        const startIdx = (page - 1) * pageSize;
+        const endIdx = Math.min(totalFiltered, startIdx + pageSize);
+
+        filtered.forEach((tr, i) => {
+          const visible = (i >= startIdx && i < endIdx);
+          tr.style.display = visible ? '' : 'none';
+          if (visible) {
+            const serialCell = tr.cells[0]; // First column is Product ID, not serial; so do not change table meaning.
+            // We won't renumber columns to avoid changing schema.
+          }
+        });
+        // Hide all "rest" rows (not matching filter)
+        rest.forEach(tr => tr.style.display = 'none');
+
+        // Empty state
+        if (emptyRow) emptyRow.style.display = totalFiltered > 0 ? 'none' : '';
+
+        // Range text
+        if (totalFiltered > 0) {
+          const shownFrom = startIdx + 1;
+          const shownTo = endIdx;
+          const filterActive = !!(dateFrom.value || dateTo.value);
+          rangeInfo.textContent = filterActive
+            ? `Showing ${shownFrom}–${shownTo} of ${totalFiltered} (filtered from ${totalAll})`
+            : `Showing ${shownFrom}–${shownTo} of ${totalFiltered}`;
+        } else {
+          rangeInfo.textContent = totalAll > 0
+            ? 'No rows match your filters.'
+            : 'Showing 0–0 of 0';
+        }
+
+        renderPagination(totalFiltered);
+      }
+
+      // Initial render
+      applyAndRender();
+    })();
+</script>
 </body>
 </html>
