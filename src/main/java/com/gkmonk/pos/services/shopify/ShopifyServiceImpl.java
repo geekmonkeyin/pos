@@ -241,4 +241,8 @@ public class ShopifyServiceImpl {
     }
 
 
+    public boolean updateShopifyInventory(String productId, String variantId) {
+        //todo
+         return false;
+    }
 }

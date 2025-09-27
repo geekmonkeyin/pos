@@ -291,26 +291,19 @@
       const productId = inventory.productId;
       const variantId = inventory.productVariantId;
 
-      $.ajax({
-        url: '/v1/inventory/updateShopifyStock',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ productId, variantId }),
-        success: function(){
-          const toast = document.createElement('div');
-          toast.textContent = 'Shopify stock update triggered ✅';
-          Object.assign(toast.style, {
-            position:'fixed', right:'20px', bottom:'20px', background:'var(--accent)', color:'#fff',
-            padding:'10px 14px', borderRadius:'12px', boxShadow:'0 8px 18px rgba(0,0,0,0.15)', zIndex:2000
-          });
-          document.body.appendChild(toast);
-          setTimeout(() => toast.remove(), 2500);
-          setTimeout(() => location.reload(), 600);
-        },
-        error: function(xhr){
-          alert('Error updating Shopify stock: ' + (xhr.responseText || 'unknown error'));
-        }
-      });
+       fetch(`/v1/inventory/updateStockInShopify?productId=${encodeURIComponent(productId)}&variantId=${encodeURIComponent(variantId)}`, {
+    method: 'GET'
+  })
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return res.json(); // or res.text() depending on your controller return type
+  })
+  .then(data => {
+    console.log("Stock update success ✅", data);
+  })
+  .catch(err => {
+    console.error("Stock update failed ❌", err);
+  });
     }
     window.updateShopifyStock = updateShopifyStock;
 

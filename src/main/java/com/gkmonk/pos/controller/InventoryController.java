@@ -8,6 +8,7 @@ import com.gkmonk.pos.model.logs.TaskType;
 import com.gkmonk.pos.services.ImageDBServiceImpl;
 import com.gkmonk.pos.services.InventoryServiceImpl;
 import com.gkmonk.pos.services.logs.TaskLogsServiceImpl;
+import com.gkmonk.pos.services.shopify.ShopifyServiceImpl;
 import com.gkmonk.pos.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,8 @@ public class InventoryController {
     private TaskLogsServiceImpl taskLogsService;
     @Autowired
     private InventoryServiceImpl inventoryService;
+    @Autowired
+    private ShopifyServiceImpl shopifyServiceImpl;
     @Autowired
     private ImageDBServiceImpl imageService;
     //update inventory
@@ -266,9 +269,16 @@ public class InventoryController {
     }
 
 
+    @GetMapping("updateStockInShopify")
+    public ResponseEntity<String> updateStockInShopify(@RequestParam("productId") String productId,@RequestParam String variantId){
+        boolean updated = shopifyServiceImpl.updateShopifyInventory(productId,variantId);
+        return ResponseEntity.ok("stock updated");
+    }
+
     @PostMapping("updateShopifyStock")
     public ResponseEntity<String> updateStockInShopify(
             @RequestParam(value="productId",required = false) String productId,
+            @RequestParam(value="variantId",required = false) String variantId,
             @RequestParam(value="location",required = false) String location,
             @RequestParam(value="quantity",required = false) Integer quantity,
             @RequestParam(value="deviceName",required = false) String deviceName,
