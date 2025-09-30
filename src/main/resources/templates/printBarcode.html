@@ -211,11 +211,11 @@
 
     // Header actions
     document.getElementById('btnBack').addEventListener('click', () => window.history.back());
-    document.getElementById('btnHome').addEventListener('click', () => window.location.href = '/home');
+    document.getElementById('btnHome').addEventListener('click', () => window.location.href = '/v1/home');
 
     (function(){
       const backBtn = document.getElementById('btnBack');
-      if (['/','/home'].includes(window.location.pathname)) backBtn.classList.add('d-none');
+      if (['/','/v1/home'].includes(window.location.pathname)) backBtn.classList.add('d-none');
     })();
 
     // ---------------- Product Labels logic ----------------

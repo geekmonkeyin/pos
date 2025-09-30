@@ -192,8 +192,8 @@ public class InventoryController {
         return modelAndView;
     }
 
-    @PostMapping("/images")
-    public ResponseEntity<List<byte[]>> getImages(@RequestBody String ids) {
+    @GetMapping("/images/{ids}")
+    public ResponseEntity<List<byte[]>> getImages(@PathVariable String ids) {
         List<byte[]> inventoryImages = imageService.fetchInventoryImagesById(ids);
         if (inventoryImages != null) {
             return ResponseEntity.ok(inventoryImages);

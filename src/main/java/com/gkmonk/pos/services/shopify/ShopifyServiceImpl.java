@@ -5,6 +5,7 @@ import com.gkmonk.pos.model.legacy.ShopifyOrders;
 import com.gkmonk.pos.services.externalapi.APIProxyService;
 import com.gkmonk.pos.utils.POSConstants;
 import com.gkmonk.pos.utils.StringUtils;
+import com.google.api.client.json.Json;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -91,14 +92,18 @@ public class ShopifyServiceImpl {
         JsonArray variants =  ShopifyMapper.getVariants(product);
         variants.forEach( var ->{
             String varId = String.valueOf(var.getAsJsonObject().get("id"));
-            if(inventory.getUpcId().equalsIgnoreCase(varId)){
+            if(inventory.getProductVariantId().equalsIgnoreCase(varId)){
                 String imageId = String.valueOf(var.getAsJsonObject().get("image_id"));
-                String imageUrl = ShopifyMapper.getImageUrl(product,imageId);
+                String imageUrl = isImageNull(imageId) ? product.getAsJsonObject("image").get("src").getAsString() : ShopifyMapper.getImageUrl(product,imageId);
                 if(imageUrl != null){
                     inventory.setImageUrl(imageUrl.replace("\"",""));
                 }
             }
         });
+    }
+
+    private boolean isImageNull(String image) {
+        return "null".equalsIgnoreCase(image) || image == null;
     }
 
 
@@ -147,7 +152,12 @@ public class ShopifyServiceImpl {
                 productId = ShopifyMapper.getProductIdFromVariantCall(response);
                 return fetchProductFromShopify(productId);
             }
-            return ShopifyMapper.convertJSONToInventory(response);
+            List<Inventory> inventoryList =  ShopifyMapper.convertJSONToInventory(response);
+            final JsonObject resp = response;
+            inventoryList.forEach( inv -> {
+                updateImages(resp,inv);
+            });
+            return inventoryList;
         } catch (UnirestException | InterruptedException e) {
             throw new RuntimeException(e);
         }
