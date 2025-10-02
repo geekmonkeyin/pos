@@ -13,7 +13,8 @@ public class TaskLogs {
     private String deviceId;
     private String metaData;
     private String empName;
-
+    private String empId;
+    private int points;
     // Constructors
     public TaskLogs() {
     }

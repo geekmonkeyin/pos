@@ -306,18 +306,15 @@ public class InventoryController {
             @RequestParam(value="quantity",required = false) Integer quantity,
             @RequestParam(value="deviceName",required = false) String deviceName,
             @RequestParam(value="images",required = false) List<MultipartFile> images,
-            @RequestParam(value="remarks",required = false) String remarks) {
+            @RequestParam(value="remarks",required = false) String remarks,
+            @RequestParam(value="empId",required = false) String empId) {
 
         // Process the received data
         String metaData = "Product ID: " + productId + ", Location: " + location + ", Quantity: " + quantity +
-                ", Remarks: " + remarks+ ", Device ID: " + deviceName;
+                ", Remarks: " + remarks+ ", Device ID: " + deviceName+", Emp ID: "+empId;
 
-        taskLogsService.addLogs(TaskType.UPDATE_INVENTORY.name(), TaskStatusType.START.name()
-                ,metaData,LocalDateTime.now(ZoneId.of("Asia/Kolkata")).toString());
-        inventoryService.updateInventory(productId,location, quantity, images,remarks,deviceName);
+        inventoryService.updateInventory(productId,location, quantity, images,remarks,deviceName,empId);
         System.out.println(location);
-        taskLogsService.addLogs(TaskType.UPDATE_INVENTORY.name(), TaskStatusType.COMPLETED.name()
-                ,metaData,LocalDateTime.now(ZoneId.of("Asia/Kolkata")).toString());
          return ResponseEntity.ok("Inventory updated successfully");
     }
 

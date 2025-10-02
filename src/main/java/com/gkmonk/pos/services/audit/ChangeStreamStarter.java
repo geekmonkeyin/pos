@@ -2,8 +2,13 @@ package com.gkmonk.pos.services.audit;
 
 import com.gkmonk.pos.model.audit.AuditEvent;
 import com.gkmonk.pos.model.audit.ChangeStreamOffset;
+import com.gkmonk.pos.model.logs.TaskLogs;
+import com.gkmonk.pos.model.logs.TaskStatusType;
+import com.gkmonk.pos.model.logs.TaskType;
 import com.gkmonk.pos.repo.audit.AuditEventRepo;
 import com.gkmonk.pos.repo.audit.ChangeStreamOffsetRepo;
+import com.gkmonk.pos.services.logs.TaskLogsServiceImpl;
+import com.gkmonk.pos.utils.TaskPoints;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 import com.mongodb.client.model.changestream.UpdateDescription;
@@ -22,6 +27,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,6 +36,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ChangeStreamStarter {
 
+    @Autowired
+    private TaskLogsServiceImpl taskLogsService;
     @Autowired
     private ReactiveMongoTemplate reactiveMongoTemplate;
     @Autowired
@@ -52,7 +60,7 @@ public class ChangeStreamStarter {
                     .build();
 
             Flux<org.springframework.data.mongodb.core.ChangeStreamEvent<Document>> stream =
-                    reactiveMongoTemplate.changeStream("outbound_orders", options, Document.class);
+                    reactiveMongoTemplate.changeStream("inventory_shopify", options, Document.class);
 
 
             stream
@@ -74,7 +82,7 @@ public class ChangeStreamStarter {
     }
 
     private BsonDocument getLastResumeToken() {
-        return changeStreamOffsetRepo.findById("outbound_orders")
+        return changeStreamOffsetRepo.findById("inventory_shopify")
                 .map(ChangeStreamOffset::getResumeToken)
                 .orElse(null);
     }
@@ -92,7 +100,63 @@ public class ChangeStreamStarter {
         auditEvent.setResumeToken(evt.getRaw().getResumeToken());
         updateResumeToken(evt.getResumeToken());
         log.info("Audit Event: {}", auditEvent);
+        updateTaskLog(auditEvent,"inventory_update");
         auditEventRepository.save(auditEvent);
+    }
+
+    private void updateTaskLog(AuditEvent auditEvent, String inventoryUpdate) {
+        TaskLogs taskLogs = new TaskLogs();
+        if(auditEvent.getFullDocument() != null) {
+            Document full = auditEvent.getFullDocument();
+            if (full.get("stockHistory") != null) {
+                List<Document> stockHistory = (List) full.get("stockHistory");
+                taskLogs.setDeviceId(getDeviceId(stockHistory));
+                taskLogs.setPoints(calculatePoints(stockHistory,TaskPoints.PRODUCT_POINT.points));
+                taskLogs.setTaskName(TaskType.UPDATE_INVENTORY.name());
+                String remark = stockHistory.get(stockHistory.size()-1).getString("remarks");
+                String productName = stockHistory.get(stockHistory.size()-1).getString("productName");
+                taskLogs.setMetaData(remark + " for " + productName + ", qty:"+ stockHistory.get(stockHistory.size()-1).getInteger("quantity"));
+                taskLogs.setStatus(taskLogs.getPoints() > 0 ? TaskStatusType.COMPLETED.name() : TaskStatusType.FAILED.name());
+                Date latestUpdate = (Date) stockHistory.get(stockHistory.size() - 1).get("updatedDate");
+                taskLogs.setTaskDate(latestUpdate.toString());
+                taskLogs.setEmpName(stockHistory.get(stockHistory.size() - 1).get("empName") != null ? stockHistory.get(stockHistory.size() - 1).getString("empName") : "System");
+                taskLogs.setEmpId(stockHistory.get(stockHistory.size() - 1).get("empId") != null ? stockHistory.get(stockHistory.size() - 1).getString("empId") : "System");
+                taskLogsService.saveTaskLog(taskLogs);
+
+            }
+        }
+
+
+    }
+
+    private int calculatePoints(List<Document> stockHistory, int points) {
+        int quantity = (int) stockHistory.get(stockHistory.size() - 1).get("quantity");
+        if(stockHistory.size() == 1){
+            return quantity * points;
+        }
+
+        Date latestUpdate = (Date) stockHistory.get(stockHistory.size() - 1).get("updatedDate");
+        Date lastUpdate = (Date) stockHistory.get(stockHistory.size() - 2).get("updatedDate");
+
+        //compare 2 dates in days
+        long diff = latestUpdate.getTime() - lastUpdate.getTime();
+        long days = diff / (1000 * 60 * 60 * 24);
+        if(days == 0){
+            return 0;
+        } else {
+            return quantity * points ;
+        }
+
+    }
+
+    private String getDeviceId(List<Document> stockHistory) {
+        if(stockHistory != null && !stockHistory.isEmpty()){
+                    Document last = stockHistory.get(stockHistory.size() - 1);
+                    if(last.get("deviceName") != null){
+                        return last.getString("deviceName");
+                    }
+                }
+        return "Desktop";
     }
 
     private void updateResumeToken(BsonValue resumeToken) {

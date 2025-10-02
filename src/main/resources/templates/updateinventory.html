@@ -122,6 +122,7 @@
                     </ul>
                 </div>
             </div>
+
             <div class="p-3 p-md-4">
                 <div class="tab-content" id="tabContent">
 
@@ -134,22 +135,34 @@
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h6 class="card-title mb-3"><i class="bi bi-upc-scan gm-accent me-2"></i>Scan / Identify</h6>
+
                                             <div class="mb-3">
                                                 <label class="form-label" for="barcode">Scan Barcode</label>
                                                 <div class="input-group">
                                                     <input id="barcode" type="text" class="form-control" placeholder="Scan or enter barcode" autocomplete="off" />
                                                     <span class="input-group-text" id="btnScan" title="Trigger scanner">
-                              <i class="bi bi-qr-code-scan"></i>
-                            </span>
+                            <i class="bi bi-qr-code-scan"></i>
+                          </span>
                                                 </div>
                                                 <div class="form-text">Tip: Paste/scan barcode; search will auto-trigger.</div>
                                             </div>
-                                            <div class="mb-0">
+
+                                            <div class="mb-3">
                                                 <label class="form-label" for="devicename">Device Name</label>
                                                 <div class="input-group">
                                                     <input id="devicename" type="text" class="form-control" placeholder="Device Name" />
                                                     <span class="input-group-text chip"><i class="bi bi-cpu"></i> device</span>
                                                 </div>
+                                            </div>
+
+                                            <!-- NEW: Employee ID (mandatory) -->
+                                            <div class="mb-0">
+                                                <label class="form-label" for="empid">Employee ID <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <input id="empid" name="empId" type="text" class="form-control" placeholder="Enter Employee ID" required />
+                                                    <span class="input-group-text chip"><i class="bi bi-person-badge"></i> emp</span>
+                                                </div>
+                                                <div class="invalid-feedback">Employee ID is required.</div>
                                             </div>
                                         </div>
                                     </div>
@@ -234,7 +247,7 @@
                                                             <button type="button" id="btnCamStop" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-stop-circle"></i> Stop</button>
                                                         </div>
                                                         <input type="file" accept="image/*" id="camFallback" class="form-control d-none mt-2" />
-                                                        <div class="form-text">Rear camera, high‑res when available. Requires HTTPS.</div>
+                                                        <div class="form-text">Rear camera, high-res when available. Requires HTTPS.</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -277,6 +290,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         </form>
                     </div>
@@ -379,8 +393,12 @@
     const qrcodeModal = new bootstrap.Modal(document.getElementById('qrcodeModal'));
 
     // Header actions
-    document.getElementById('btnBack').addEventListener('click', () => window.history.back());
-    document.getElementById('btnHome').addEventListener('click', () => window.location.href = '/home');
+    document.getElementById('btnBack').addEventListener('click', () => {
+      if (history.length > 1) window.history.back();
+      else window.location.href = '/v1/home';
+    });
+    document.getElementById('btnHome').addEventListener('click', () => window.location.href = '/v1/home');
+
     (function(){
       const backBtn = document.getElementById('btnBack');
       if (['/','/home'].includes(window.location.pathname)) backBtn.classList.add('d-none');
@@ -393,11 +411,10 @@
     function toImageUrl(val){
       if (!val) return '';
       const s = String(val);
-      if (isAbsUrl(s) || s.startsWith('/')) return s; // already a URL or path
-      return `/v1/inventory/images/${s}`; // treat as image id from API
+      if (isAbsUrl(s) || s.startsWith('/')) return s;
+      return `/v1/inventory/images/${s}`;
     }
     function pickProductImage(p){
-      // Try Shopify-specific fields first, then fallbacks
       const candidates = [];
       if (p){
         if (p.shopifyImageUrl) candidates.push(p.shopifyImageUrl);
@@ -422,6 +439,7 @@
     (function initInventory(){
       const barcode = document.getElementById('barcode');
       const devicename = document.getElementById('devicename');
+      const empid = document.getElementById('empid');
       const searchInput = document.getElementById('searchProduct');
       const productList = document.getElementById('productList');
 
@@ -429,7 +447,9 @@
       const url = new URL(window.location.href);
       const pBarcode = url.searchParams.get('barcode');
       const pDevice = url.searchParams.get('devicename');
-      if (pDevice) devicename.value = pDevice;
+      const pEmp = url.searchParams.get('empId') || url.searchParams.get('empid');
+      if (pDevice) { devicename.value = pDevice; }
+      if (pEmp) { empid.value = pEmp; }
       if (pBarcode) { searchInput.value = pBarcode; triggerSearch(); }
 
       // Debounced barcode input
@@ -444,7 +464,10 @@
 
       // Scan icon (Android bridge safe-guard)
       document.getElementById('btnScan').addEventListener('click', () => {
-        try { if (window.Android && Android.performAction) Android.performAction(); else alert('Scanner not available'); } catch(e) { alert('Scanner not available'); }
+        try {
+          if (window.Android && Android.performAction) Android.performAction();
+          else alert('Scanner not available');
+        } catch(e) { alert('Scanner not available'); }
       });
 
       // Inline edit toggles
@@ -538,7 +561,6 @@
       async function capturePhoto(){
         if (!cam.stream && cam.video.srcObject==null){ return; }
         const [track] = cam.stream ? cam.stream.getVideoTracks() : [];
-        // Try full-res takePhoto when available
         if (window.ImageCapture && track){
           try{
             const ic = new ImageCapture(track);
@@ -567,7 +589,6 @@
           cam.btnCapture.disabled = true;
           cam.video.style.display = 'none';
           if (cam.stream){ cam.stream.getTracks().forEach(t=>t.stop()); cam.stream = null; }
-          // Add a temporary thumb
           const grid = document.getElementById('variantThumbs');
           const img = document.createElement('img'); img.src = url; img.alt = 'Captured'; grid.prepend(img);
         }
@@ -601,15 +622,23 @@
           .catch(() => alert('An error occurred while resetting the product.'));
       });
 
-      // Submit
+      // Submit with validation (empId required)
       document.getElementById('invForm').addEventListener('submit', e => {
         e.preventDefault();
+        const form = document.getElementById('invForm');
+        if (!form.checkValidity()){
+          form.classList.add('was-validated');
+          alert('Please fill the required fields.');
+          return;
+        }
+
         const fd = new FormData();
         fd.append('productId', document.getElementById('productVariantId').value);
         fd.append('location', document.getElementById('location').value);
         fd.append('quantity', document.getElementById('quantity').value);
         fd.append('remarks', document.getElementById('remarks').value);
         fd.append('deviceName', document.getElementById('devicename').value);
+        fd.append('empId', document.getElementById('empid').value.trim());
         if (window.__gmCapturedBlob){ fd.append('images', window.__gmCapturedBlob, `gm_${Date.now()}.jpg`); }
 
         $.ajax({
@@ -621,9 +650,7 @@
     })();
 
     function displayProductInfo(product){
-      // Hide list
       const list = document.getElementById('productList'); if (list) list.style.display = 'none';
-      // Fill fields
       document.getElementById('location').value = product.storage ?? '';
       document.getElementById('quantity').value = product.quantity ?? '';
       document.getElementById('searchProduct').value = product.productTitle ?? '';
@@ -635,7 +662,6 @@
       const picked = pickProductImage(product);
       if (picked){ vImg.src = picked; vImg.classList.remove('d-none'); } else { vImg.classList.add('d-none'); }
 
-      // Thumbs from stock history
       const grid = document.getElementById('variantThumbs');
       grid.innerHTML = '';
       if (product?.stockHistory?.images?.length){
@@ -656,7 +682,6 @@
       body.innerHTML = '';
       const pid = product.productVariantId || product.productId || '';
       const history = product.stockHistory || [];
-      // Sort latest first if timestamps comparable
       history.sort((a,b)=> new Date(b.updatedDate) - new Date(a.updatedDate));
       history.forEach(s => {
         const tr = document.createElement('tr');
@@ -754,7 +779,6 @@
       if (mode==='storage') return printStorageQRCodes();
     }
 
-
     async function printProductQRCodes(){
       const cont = document.getElementById('qrcode');
       const img = cont.querySelector('img');
@@ -839,8 +863,8 @@
 
     // Shortcuts
     window.addEventListener('keydown', (e)=>{
-      if (e.altKey && e.key === 'ArrowLeft'){ e.preventDefault(); window.history.back(); }
-      if (e.altKey && (e.key.toLowerCase() === 'h')){ e.preventDefault(); window.location.href = '/home'; }
+      if (e.altKey && e.key === 'ArrowLeft'){ e.preventDefault(); if (history.length > 1) history.back(); else window.location.href = '/v1/home'; }
+      if (e.altKey && (e.key.toLowerCase() === 'h')){ e.preventDefault(); window.location.href = '/v1/home'; }
     });
 </script>
 </body>

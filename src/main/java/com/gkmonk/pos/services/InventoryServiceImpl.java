@@ -220,7 +220,7 @@ public class InventoryServiceImpl {
         inventoryRepo.deleteByUPCId(upcId);
     }
 
-    public void updateInventory(String productId, String location, Integer quantity, List<MultipartFile> images, String remarks, String deviceName) {
+    public void updateInventory(String productId, String location, Integer quantity, List<MultipartFile> images, String remarks, String deviceName,String empId) {
         List<Inventory> inventoryList = getInventoryByProductId(productId);
         inventoryList.forEach(inventory -> {
            try {
@@ -230,7 +230,7 @@ public class InventoryServiceImpl {
                     inventory.setStorage(location);
                     inventory.setQuantity(quantity);
                     inventory.setUpdatedDate(LocalDate.now());
-                    updateStockHistory(inventory, images,remarks,deviceName);
+                    updateStockHistory(inventory, images,remarks,deviceName,empId);
                     inventoryRepo.save(inventory);
                 }
            }catch (Exception e){
@@ -244,7 +244,7 @@ public class InventoryServiceImpl {
         return StringUtils.isNotBlank(deviceName) ? deviceName : "NA";
     }
 
-    private void updateStockHistory(Inventory inventory, List<MultipartFile> images, String remarks,String deviceName) throws IOException {
+    private void updateStockHistory(Inventory inventory, List<MultipartFile> images, String remarks, String deviceName, String empId) throws IOException {
         List<String> imageIds = new ArrayList<>();
         if(images  != null) {
             for (MultipartFile image : images) {
@@ -255,6 +255,7 @@ public class InventoryServiceImpl {
         }
         StockHistory stockHistory = new StockHistory(inventory.getQuantity(),inventory.getShopifyQuantity(), inventory.getStorage(),imageIds, LocalDateTime.now());
         stockHistory.setDeviceName(getDefaultDeviceName(deviceName));
+        stockHistory.setEmpId(empId);
         stockHistory.setRemarks(remarks == null ? ShopifyReportConstants.EMPTY : remarks);
         List<StockHistory> stockHistories = inventory.getStockHistory();
         stockHistories.add(stockHistory);

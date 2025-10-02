@@ -1,181 +1,395 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Geekmonkey — Payment Report</title>
+
+    <!-- Utils already used in your project -->
     <script th:src="@{../../../assets/scripts/inventory-utils.js}"></script>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <meta content="width=device-width, initial-scale=1" name="viewport">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <title>Payment Report</title>
+    <!-- Bootstrap 5 + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+        :root{
+          --bg:#F9FAFB; --card:#FFFFFF; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --accent-weak:#FFE5D0; --radius:14px;
         }
+        html, body { height:100%; background:var(--bg); color:var(--text); }
+        body { line-height:1.6; }
 
-        .filter-form {
-            margin-bottom: 20px;
+        /* ===== Top bar ===== */
+        .gm-topbar{
+          position: sticky; top: 0; z-index: 1030;
+          background: linear-gradient(90deg, var(--accent), #FF9A3D);
+          color:#fff; box-shadow:0 8px 18px rgba(0,0,0,.08);
         }
+        .gm-topbar .brand{ font-weight:700; letter-spacing:.3px; }
+        .gm-icon-btn{
+          border-radius:12px; border:1px solid rgba(255,255,255,.6);
+          background:transparent; color:#fff; padding:.45rem .7rem;
+        }
+        .gm-icon-btn:hover{ background:rgba(255,255,255,.14); color:#fff; }
 
-        .filter-form input, .filter-form button {
-            margin-right: 10px;
-            padding: 8px;
-            font-size: 14px;
+        /* ===== Cards / form ===== */
+        .gm-card{
+          background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius);
+          box-shadow:0 8px 24px rgba(17,24,39,.06);
         }
+        .page-title{ font-weight:800; font-size:1.25rem; }
+        .form-control, .form-select{ border-color:var(--stroke); border-radius:12px; }
+        .form-control:focus, .form-select:focus{
+          border-color:var(--accent); box-shadow:0 0 0 .25rem rgba(255,122,0,.15);
+        }
+        .btn-accent{ background:var(--accent); color:#fff; border:none; border-radius:12px; font-weight:600; }
+        .btn-accent:hover{ background:#ff8f29; color:#fff; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        /* Vendor autocomplete (like previous HTML) */
+        .vendor-wrap{ position:relative; }
+        #vendorList{
+          position:absolute; left:0; right:0; top:100%; z-index:1020;
+          display:none; max-height:260px; overflow:auto; margin-top:6px;
+          border-radius:12px; border:1px solid var(--stroke); background:#fff;
+          box-shadow:0 10px 24px rgba(17,24,39,.08);
+          list-style:none; padding:0;
         }
+        #vendorList li{ padding:8px 12px; cursor:pointer; }
+        #vendorList li:hover{ background:#FFF7EF; }
 
-        table, th, td {
-            border: 1px solid #ccc;
+        /* Table */
+        table thead th{
+          background:var(--accent); color:#fff; border-color:var(--accent);
+          vertical-align:middle;
         }
+        .table > :not(caption) > * > *{ border-color:var(--stroke) !important; }
+        tbody tr:nth-child(even){ background:#FFF8F2; }
+        .thumb{ max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--stroke); }
 
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f4f4f4;
-        }
-
-        .image-preview {
-            max-width: 100px;
-            max-height: 100px;
-        }
+        main{ padding:24px 16px; }
     </style>
 </head>
 <body>
-    <h2>Payment Report</h2>
 
-    <!-- Filter Form -->
-    <form class="filter-form" id="filterForm">
-        <input type="text" name="vendorName" placeholder="Vendor Name">
-        <input type="text" name="paymentTo" placeholder="Payment To">
-        <input type="number" name="minAmount" placeholder="Min Payment">
-        <input type="number" name="maxAmount" placeholder="Max Payment">
-        <input type="date" name="startDate" placeholder="Start Date">
-        <input type="date" name="endDate" placeholder="End Date">
-        <button type="button" th:onclick="fetchReport();">Submit</button>
-    </form>
+<!-- ===== Header ===== -->
+<nav class="gm-topbar">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <div class="d-flex align-items-center gap-2">
+            <button id="backBtn" class="gm-icon-btn" type="button" title="Back">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <button id="homeBtn" class="gm-icon-btn" type="button" title="Home">
+                <i class="bi bi-house-door"></i>
+            </button>
+        </div>
+        <div class="brand">Geekmonkey • Payment Report</div>
+        <div></div>
+    </div>
+</nav>
 
-    <!-- Report Table -->
-    <table id="reportTable">
-        <thead>
-            <tr>
-                <th>Payment To</th>
-                <th>Vendor Name</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>WhatsApp Number</th>
-                <th>Remarks</th>
-                <th>Image ID</th>
-                <th>Image</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be dynamically added here -->
-        </tbody>
-        <tfoot>
-        <tr>
-            <td colspan="2"><strong>Total Amount:</strong></td>
-            <td id="totalAmountCell">0</td>
-            <td colspan="6"></td>
-        </tr>
-        </tfoot>
-    </table>
+<!-- ===== Content ===== -->
+<main>
+    <div class="container" style="max-width:1200px;">
+        <!-- Filter card -->
+        <div class="gm-card p-3 p-md-4 mb-3">
+            <h1 class="page-title mb-3">Payment Report</h1>
 
-    <script>
-        // Fetch report based on filters
-        function fetchReport() {
-            const form = document.getElementById('filterForm');
-            const formData = new FormData(form);
-            const queryParams = new URLSearchParams(formData).toString();
+            <form id="filterForm" class="row g-2 align-items-end">
+                <div class="col-12 col-md-3 vendor-wrap">
+                    <label class="form-label" for="vendorNameInput">Vendor Name</label>
+                    <input class="form-control" id="vendorNameInput" name="vendorName" type="text"
+                           placeholder="Type at least 3 characters" oninput="debounceSearchVendor()" />
+                    <ul id="vendorList"></ul>
+                </div>
 
-            fetch(`/v1/payment/filterReport?${queryParams}`)
-                .then(response => response.json())
-                .then(data => {
-                    const tableBody = document.querySelector('#reportTable tbody');
-                    const totalAmountCell = document.getElementById('totalAmountCell');
+                <div class="col-12 col-md-3">
+                    <label class="form-label" for="paymentTo">Payment To</label>
+                    <input class="form-control" id="paymentTo" name="paymentTo" type="text" placeholder="Recipient"/>
+                </div>
 
-                    tableBody.innerHTML = ''; // Clear existing rows
-                    let totalAmount = 0;
-                    data.forEach(receipt => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${receipt.paymentTo}</td>
-                            <td>${receipt.vendorName}</td>
-                            <td>${receipt.amount}</td>
-                            <td>${receipt.date}</td>
-                            <td>${receipt.whatsappNumber}</td>
-                             <td>${receipt.remarks}</td>
-                            <td>${receipt.imageId}</td>
-                            <td><div class="image-preview" id="image-${receipt.imageId}" src="" alt="No Image"></div></td>
-                            <td><button onclick="refreshImage('${receipt.imageId}')">Refresh Image</button></td>
-                        `;
-                        tableBody.appendChild(row);
-                        totalAmount += receipt.amount;
-                    });
-                    totalAmountCell.textContent = totalAmount.toFixed(2);
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="minAmount">Min Payment</label>
+                    <input class="form-control" id="minAmount" name="minAmount" type="number" />
+                </div>
 
-                });
-        }
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="maxAmount">Max Payment</label>
+                    <input class="form-control" id="maxAmount" name="maxAmount" type="number" />
+                </div>
 
-        // Refresh and display image
-        function refreshImage(imageId) {
-            const images = [];
-            images.push(imageId);
-             fetchImages(images,'image-'+imageId);
-        }
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="startDate">Start Date</label>
+                    <input class="form-control" id="startDate" name="startDate" type="date" />
+                </div>
 
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="endDate">End Date</label>
+                    <input class="form-control" id="endDate" name="endDate" type="date" />
+                </div>
 
-        let debounceTimer;
+                <div class="col-12 col-md-2">
+                    <button type="button" class="btn btn-accent w-100" onclick="fetchReport()">
+                        <i class="bi bi-funnel me-1"></i> Submit
+                    </button>
+                </div>
+            </form>
+        </div>
 
-    function debounceSearchVendor() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(searchVendor, 2000); // 2-second delay
+        <!-- Table card -->
+        <div class="gm-card p-2 p-md-3">
+            <div class="table-responsive">
+                <table id="reportTable" class="table table-hover align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th>Payment To</th>
+                        <th>Vendor Name</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>WhatsApp Number</th>
+                        <th>Remarks</th>
+                        <th>Image ID</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="2" class="fw-semibold text-end">Total Amount:</td>
+                        <td id="totalAmountCell" class="fw-bold">0</td>
+                        <td colspan="6"></td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ===== Image Modal (popup on Refresh) ===== -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalTitle">Payment Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="clearImageModal()"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imageModalImg" class="img-fluid rounded" alt="Payment Screenshot"/>
+            </div>
+            <div class="modal-footer">
+                <a id="imageModalDownload" class="btn btn-outline-secondary" download>
+                    <i class="bi bi-download me-1"></i>Download
+                </a>
+                <button type="button" class="btn btn-accent" data-bs-dismiss="modal" onclick="clearImageModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Scripts ===== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Header actions
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      window.location.href = '/v1/home';
+    });
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (history.length > 1) { history.back(); } else { window.location.href = '/v1/home'; }
+    });
+
+    // ===== Fetch report & render rows =====
+    async function fetchReport() {
+      const form = document.getElementById('filterForm');
+      const formData = new FormData(form);
+      const queryParams = new URLSearchParams(formData).toString();
+
+      const res = await fetch(`/v1/payment/filterReport?${queryParams}`);
+      const data = await res.json();
+
+      const tbody = document.querySelector('#reportTable tbody');
+      const totalAmountCell = document.getElementById('totalAmountCell');
+      tbody.innerHTML = '';
+      let total = 0;
+
+      for (let i=0; i<(data||[]).length; i++){
+        const receipt = data[i];
+        const rowIdx = i; // stable id suffix
+
+        // Build row with placeholders
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(receipt.paymentTo)}</td>
+          <td id="vendorCell-${rowIdx}">${escapeHtml(receipt.vendorName || 'Loading…')}</td>
+          <td>${Number(receipt.amount || 0).toFixed(2)}</td>
+          <td>${escapeHtml(receipt.date)}</td>
+          <td>${escapeHtml(receipt.whatsappNumber)}</td>
+          <td>${escapeHtml(receipt.remarks)}</td>
+          <td>${escapeHtml(receipt.imageId)}</td>
+
+          <td>
+            <button class="btn btn-sm btn-outline-secondary" onclick="refreshImage('${escapeJs(receipt.imageId)}')">
+              <i class="bi bi-image"></i> Refresh Image
+            </button>
+          </td>`;
+        tbody.appendChild(tr);
+
+        // Resolve vendor name from MongoDB (by vendorId -> by phone -> fallback)
+        resolveVendorName(receipt).then(name => {
+          if (name) document.getElementById(`vendorCell-${rowIdx}`).textContent = name;
+        }).catch(()=>{ /* keep whatever is there */ });
+
+        // Optional: small inline thumb (and popup will show full)
+        preloadThumb(receipt.imageId);
+
+        total += Number(receipt.amount || 0);
+      }
+      totalAmountCell.textContent = total.toFixed(2);
     }
 
-    function searchVendor() {
-        const vendorName = document.getElementById('vendorNameInput').value.trim();
-        if (vendorName.length < 3) return; // Minimum 3 characters to search
-
-        fetch('/v1/vendor/searchvendor?vendorName='+vendorName)
-            .then(response => response.json())
-            .then(data => {
-                const vendorList = document.getElementById('vendorList');
-                vendorList.innerHTML = ''; // Clear previous results
-                vendorList.style.display = 'none';
-
-                if (data.length > 0) {
-                    data.forEach(vendor => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = `${vendor.vendorName} (${vendor.whatsappNumber})`;
-                        listItem.style.cursor = 'pointer';
-                        listItem.style.padding = '5px';
-                        listItem.style.borderBottom = '1px solid #ccc';
-                        listItem.onclick = () => selectVendor(vendor);
-                        vendorList.appendChild(listItem);
-                    });
-                    vendorList.style.display = 'block';
-                }
-            })
-            .catch(error => console.error('Error fetching vendor details:', error));
+    // ===== Vendor name resolver (MongoDB-backed) =====
+    async function resolveVendorName(receipt){
+      // Try by vendorId
+      if (receipt.vendorId){
+        try{
+          const r = await fetch(`/v1/vendor/byId/${encodeURIComponent(receipt.vendorId)}`);
+          if (r.ok){ const v = await r.json(); if (v && (v.vendorName || v.name)) return v.vendorName || v.name; }
+        }catch(e){}
+      }
+      // Try by phone
+      if (receipt.whatsappNumber){
+        try{
+          const r = await fetch(`/v1/vendor/byPhone/${encodeURIComponent(receipt.whatsappNumber)}`);
+          if (r.ok){ const v = await r.json(); if (v && (v.vendorName || v.name)) return v.vendorName || v.name; }
+        }catch(e){}
+      }
+      // Fallback: use current value or verify via search (like previous HTML)
+      if (receipt.vendorName){
+        try{
+          const r = await fetch('/v1/vendor/searchvendor?vendorName=' + encodeURIComponent(receipt.vendorName));
+          if (r.ok){
+            const arr = await r.json();
+            if (Array.isArray(arr) && arr.length) return arr[0].vendorName || receipt.vendorName;
+          }
+        }catch(e){}
+        return receipt.vendorName;
+      }
+      return '';
     }
 
-    function selectVendor(vendor) {
-        document.getElementById('vendorNameInput').value = vendor.vendorName;
-        document.getElementById('whatsappNumber').value = vendor.whatsappNumber;
-        document.getElementById('vendorList').style.display = 'none'; // Hide the list
+    // ===== Image preview & popup =====
+    function preloadThumb(imageId){
+      if (!imageId) return;
+      const el = document.getElementById('thumb-' + imageId);
+      if (!el) return;
+      const url = `/v1/inventory/images/${encodeURIComponent(imageId)}?_=${Date.now()}`;
+      el.src = url; el.classList.remove('d-none');
     }
-    </script>
+
+    // “Refresh Image” now opens the popup and also refreshes thumb
+    function refreshImage(imageId){
+      if (!imageId) return;
+      showImage(imageId);
+      fetchImages(images,imageId);
+
+      // Also refresh the small thumb inline
+      preloadThumb(imageId);
+    }
+
+  const _imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+
+  // Helper: ArrayBuffer -> base64
+  function arrayBufferToBase64(buf){
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  async function showImage(imageId){
+    const imgEl = document.getElementById('imageModalImg');
+    const titleEl = document.getElementById('imageModalTitle');
+    const dlEl = document.getElementById('imageModalDownload');
+    titleEl.textContent = 'Payment Image • ' + imageId;
+
+    try {
+      // If your API expects POST or a different param name, tweak below accordingly.
+      // Here we call: /v1/inventory/images?id=<imageId>
+      const res = await fetch(`/v1/inventory/images/${encodeURIComponent(imageId)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      let dataUrl;
+
+      if (ct.includes('application/json')) {
+        // Optional path: if server returns JSON with a base64 field
+        const json = await res.json();
+        const base64 = json[0];
+        const mime = json.mimeType || 'image/png';
+        dataUrl = `data:${mime};base64,${base64}`;
+      } else {
+        // Default path: server returns raw bytes (byte[])
+        const ab = await res.arrayBuffer();
+        const base64 = arrayBufferToBase64(ab);
+        // Try to use image/* header if present; else default to PNG
+        const mime = ct.startsWith('image/') ? ct.split(';')[0] : 'image/png';
+        dataUrl = `data:${mime};base64,${base64}`;
+      }
+
+      imgEl.src = dataUrl;
+      dlEl.href = dataUrl;
+      // Optional: adjust extension based on mime
+      dlEl.download = `payment_${imageId}.${(dataUrl.match(/^data:image\/(\w+)/)||[])[1] || 'png'}`;
+
+      _imageModal.show();
+    } catch (e) {
+      alert('Could not load image: ' + e.message);
+    }
+  }
+
+  function clearImageModal(){
+    const imgEl = document.getElementById('imageModalImg');
+    imgEl.src = '';
+  }
+
+// ===== Vendor autocomplete (same behavior as your previous HTML) =====
+    let debounceTimer;
+    function debounceSearchVendor(){
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(searchVendor, 2000);
+    }
+    function searchVendor(){
+      const q = document.getElementById('vendorNameInput').value.trim();
+      const list = document.getElementById('vendorList');
+      if (q.length < 3){ list.style.display = 'none'; return; }
+
+      fetch('/v1/vendor/searchvendor?vendorName=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+          list.innerHTML = '';
+          if (Array.isArray(data) && data.length){
+            data.forEach(v => {
+              const li = document.createElement('li');
+              li.textContent = `${v.vendorName}${v.whatsappNumber ? ' ('+v.whatsappNumber+')' : ''}`;
+              li.onclick = () => { document.getElementById('vendorNameInput').value = v.vendorName || ''; list.style.display = 'none'; };
+              list.appendChild(li);
+            });
+            list.style.display = 'block';
+          } else {
+            list.style.display = 'none';
+          }
+        })
+        .catch(() => list.style.display = 'none');
+    }
+    document.addEventListener('click', (e) => {
+      const wrap = document.querySelector('.vendor-wrap');
+      if (wrap && !wrap.contains(e.target)) document.getElementById('vendorList').style.display = 'none';
+    });
+
+    // ===== Small helpers =====
+    function escapeHtml(str){ return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+    function escapeAttr(str){ return String(str ?? '').replace(/"/g, '&quot;'); }
+    function escapeJs(str){ return String(str ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
+</script>
 </body>
 </html>

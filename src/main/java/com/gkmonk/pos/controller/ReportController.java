@@ -160,9 +160,26 @@ public class ReportController {
     public ModelAndView getDailyTasksReport(){
         ModelAndView model = new ModelAndView("dailytasksreport");
         Optional<List<TaskLogs>> taskLogs = taskLogsService.getAllTasks();
-        taskLogs.ifPresent(TaskUtils::extractDeviceId);
-        taskLogs.ifPresent(logs -> model.addObject("taskLogs", logs));
-        return model;
+            List<TaskLogs> logsWithPoints = taskLogs.get().stream()
+                    .filter(log -> true)//log.getPoints() > 0)
+                    .collect(Collectors.toList());
+            // Use logsWithPoints as needed
+            logsWithPoints.forEach(log -> {
+                    log.setDeviceId(TaskUtils.extractDeviceId(log.getMetaData()));
+                    log.setEmpName(getEmpName(log.getEmpId()));
+            });
+             model.addObject("taskLogs", logsWithPoints);
+
+       return model;
+    }
+
+    private String getEmpName(String empId) {
+        return empId == null ? "Unknown" : switch (empId) {
+            case "1" -> "Suhani";
+            case "2" -> "Radhika";
+            case "3" -> "Poonam";
+            default -> "Unknown";
+        };
     }
 
     @GetMapping("/whatsappeventsreport")
