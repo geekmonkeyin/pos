@@ -35,7 +35,8 @@ public class ReturnWorkflowService {
         return Optional.of(new OrderLookupResponse(
                 packedOrder.getGmId(),
                 getCustomer(packedOrder),
-                getOrderLines(packedOrder)
+                getOrderLines(packedOrder),
+                packedOrder.getOrderStatusUrl()
                 ));
     }
     private List<OrderLine> getOrderLines(PackedOrder packedOrder) {

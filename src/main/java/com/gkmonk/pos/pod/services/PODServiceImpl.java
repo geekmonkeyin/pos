@@ -52,6 +52,7 @@ public class PODServiceImpl {
         packedOrder.setCustomerInfo(MapperUtils.getContactInfo(result));
         packedOrder.setTotalAmount(Double.valueOf(result.getString("total_price")));
         packedOrder.setProductDetails(MapperUtils.getProductDetailsFromDocument(result));
+        packedOrder.setOrderStatusUrl(result.getString("order_status_url"));
         packedOrder.setPaymentMode(result.getBoolean("cod") ? "COD" : "Prepaid");
         packedOrder.setOrderStatusUrl(result.getString("order_status_url"));
         packedOrder.setGmId(result.getString("name"));

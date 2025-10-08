@@ -59,7 +59,13 @@
                         <span id="orderStatus" class="badge badge-soft">Loaded</span>
                     </div>
                     <div class="small text-muted">Order No.</div>
-                    <div id="sumOrderNo" class="fw-semibold"></div>
+                    <div  class="fw-semibold">
+                        <a id="sumOrderNo"
+                           class="fw-semibold text-decoration-underline"
+                           href="#"
+                           aria-live="polite"
+                           data-base-url="/v1/orders/">Loading…</a>
+                    </div>
                     <div class="small text-muted mt-2">Customer</div>
                     <div id="sumCustomer" class="fw-semibold"></div>
                 </div>
@@ -257,6 +263,7 @@
       currentOrder = ord; statuses = {};
       $('#orderSummary').style.display = '';
       $('#sumOrderNo').textContent = ord.orderNo;
+      $('#sumOrderNo').href = ord.orderURL;
       $('#sumCustomer').textContent = `${ord.customer?.name ?? ''} ${ord.customer?.phone ? '('+ord.customer.phone+')':''}`;
 
       const tbody = $('#productRows'); tbody.innerHTML = '';

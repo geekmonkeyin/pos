@@ -10,11 +10,7 @@ import org.json.JSONObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MapperUtils {
@@ -135,12 +131,14 @@ public class MapperUtils {
         List<Document> lineItems = fulfillments.get(0).getList("line_items", Document.class);
         if (lineItems == null || lineItems.isEmpty()) return null;
 
-        return lineItems.stream().map(item -> {
+        return lineItems.stream().filter(Objects::nonNull).map(item -> {
+
             ProductDetails details = new ProductDetails();
             details.setProductId(item.getString("product_id"));
             details.setVariantId(item.getString("variant_id"));
             details.setProductName(item.getString("name"));
             details.setQuantity(item.getInteger("quantity"));
+           // details.setImageURL(item.getString());
             details.setPrice(Double.parseDouble(item.getString("price")));
             details.setKeywords(getKeywords(details.getProductName()));
             return details;
