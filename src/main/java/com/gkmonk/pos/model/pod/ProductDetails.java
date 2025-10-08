@@ -15,7 +15,7 @@ public class ProductDetails {
     private double price;
     private String description;
     private List<String> keywords;
-
+    private String variantId;
     //generate getter and setter
 
     @Override

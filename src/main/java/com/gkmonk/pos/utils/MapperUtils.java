@@ -138,6 +138,7 @@ public class MapperUtils {
         return lineItems.stream().map(item -> {
             ProductDetails details = new ProductDetails();
             details.setProductId(item.getString("product_id"));
+            details.setVariantId(item.getString("variant_id"));
             details.setProductName(item.getString("name"));
             details.setQuantity(item.getInteger("quantity"));
             details.setPrice(Double.parseDouble(item.getString("price")));

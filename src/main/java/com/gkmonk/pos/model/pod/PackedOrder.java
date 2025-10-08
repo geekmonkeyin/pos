@@ -29,6 +29,8 @@ public class PackedOrder {
     private List<ProductDetails> productDetails;
     private double weight;
     private boolean cod;
+    private String orderStatusUrl;
+
 
     public PackedOrder() {
     }

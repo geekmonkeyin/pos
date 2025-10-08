@@ -1,33 +1,204 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Return Management</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>Geekmonkey — Return Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Bootstrap 4.5 -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+
   <style>
-    .btn-box {
-        width: 100%;
-        height: 150px;
-        font-size: 24px;
-        margin-bottom: 20px;
+    :root{
+      --bg:#F9FAFB;
+      --card:#ffffff;
+      --stroke:#E5E7EB;
+      --text:#111827;
+      --muted:#6B7280;
+      --accent:#FF7A00;
+      --accent-ink:#9A4D00;
+      --radius:16px;
+    }
+    html,body{height:100%;}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Header */
+    .gm-header{
+      position:sticky; top:0; z-index:1000;
+      background:#fff; border-bottom:1px solid var(--stroke);
+    }
+    .gm-brand{
+      display:flex; align-items:center; gap:.6rem; font-weight:700; letter-spacing:.2px;
+      color:var(--text); text-decoration:none;
+    }
+    .gm-dot{
+      width:28px; height:28px; border-radius:10px; background:var(--accent);
+      display:inline-block;
+      box-shadow:0 8px 18px rgba(255,122,0,.25);
+    }
+    .gm-actions .btn{ border-radius:12px; }
+    .btn-ghost{
+      background:#fff; border:1px solid var(--stroke); color:var(--text);
+    }
+    .btn-ghost:hover{border-color:#d6d9de; background:#fdfdfd;}
+    .btn-accent{ background:var(--accent); color:#fff; border:0; }
+    .btn-accent:hover{background:#ff8d26;}
+
+    .page-title{ font-weight:800; letter-spacing:.3px; }
+
+    .gm-card-link{
+      display:flex; align-items:center; justify-content:center;
+      min-height:160px; width:100%;
+      background:var(--card); color:var(--text);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      text-decoration:none; text-align:center;
+      font-size:1.15rem; font-weight:700;
+      box-shadow:0 4px 16px rgba(17,24,39,0.04);
+      transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      padding:1.25rem; gap:.6rem;
+    }
+    .gm-card-link:hover, .gm-card-link:focus{
+      transform:translateY(-2px);
+      border-color:#d6d9de;
+      box-shadow:0 10px 24px rgba(17,24,39,0.08);
+      text-decoration:none; color:var(--text);
+    }
+    .gm-card-link .gm-badge{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:36px; height:36px; border-radius:12px; background:#FFF1E6;
+      border:1px solid #FFD2AD; flex-shrink:0;
+    }
+    .gm-sub{ display:block; font-size:.85rem; font-weight:500; color:var(--muted); margin-top:.25rem; }
+
+    .gm-wrap{padding:20px;}
+    @media (min-width:992px){ .gm-wrap{padding:28px;} }
+
+    a, button{outline:0;}
+    a:focus-visible, button:focus-visible{
+      box-shadow:0 0 0 3px rgba(255,122,0,.35)!important;
+      border-radius:12px;
     }
   </style>
 </head>
 <body>
-<div class="container">
-  <h1 class="text-center my-4">Return Management</h1>
-  <div class="row">
-    <div class="col-md-4">
-      <a href="/v1/order/return/initiateReturn" class="btn btn-primary btn-box d-flex align-items-center justify-content-center">Initiate Return</a>
-    </div>
-    <div class="col-md-4">
-      <a href="/v1/order/return/status" class="btn btn-secondary btn-box d-flex align-items-center justify-content-center">Check Return Status</a>
-    </div>
-    <div class="col-md-4">
-      <a href="/v1/order/return/verify" class="btn btn-success btn-box d-flex align-items-center justify-content-center">Verify Return Product</a>
+
+<!-- Header -->
+<nav class="gm-header">
+  <div class="container d-flex align-items-center justify-content-between py-2">
+    <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">
+      <span class="gm-dot" aria-hidden="true"></span>
+      <span>Geekmonkey</span>
+    </a>
+    <div class="gm-actions d-flex gap-2">
+      <button id="gmBackBtn" type="button" class="btn btn-ghost btn-sm mr-2" aria-label="Go Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="ml-1">Back</span>
+      </button>
+      <a href="/v1/home" class="btn btn-accent btn-sm" aria-label="Go Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 10.5l9-7 9 7V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H3v-9.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="ml-1">Home</span>
+      </a>
     </div>
   </div>
-</div>
+</nav>
+
+<!-- Main -->
+<main class="gm-wrap">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h1 class="page-title m-0">Return Management</h1>
+    </div>
+
+    <p class="text-muted mb-4">Manage returns, check statuses, verify returned products, and review refund actions.</p>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/order/return/initiateReturn">
+          <span class="gm-badge">
+            <!-- initiate icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            Initiate Return
+            <small class="gm-sub">Start a new return request</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/order/return/status">
+          <span class="gm-badge">
+            <!-- status icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 12a9 9 0 1 1 9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 7v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            Check Return Status
+            <small class="gm-sub">Track progress & updates</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/order/return/verify">
+          <span class="gm-badge">
+            <!-- verify icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 6l-11 11-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            Verify Return Product
+            <small class="gm-sub">Scan & confirm items</small>
+          </span>
+        </a>
+      </div>
+
+      <!-- NEW: Return Report -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/order/return/returnreport">
+          <span class="gm-badge">
+            <!-- report icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 19h16M7 10h3m4 0h3M7 6h10M7 14h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            Return Report
+            <small class="gm-sub">Refund, reject, or reship</small>
+          </span>
+        </a>
+      </div>
+      <!-- /NEW -->
+    </div>
+  </div>
+</main>
+
+<script>
+  (function(){
+    const backBtn = document.getElementById('gmBackBtn');
+    if(backBtn){
+      backBtn.addEventListener('click', function(){
+        if (window.history && window.history.length > 1) {
+          try { window.history.back(); return; } catch(e){}
+        }
+        window.location.href = '/v1/home';
+      });
+    }
+  })();
+</script>
 </body>
 </html>

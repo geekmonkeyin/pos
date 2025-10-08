@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Geekmonkey — Return Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+  <style>
+    :root{
+      --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+      --accent:#FF7A00; --radius:16px;
+      --green:#10b981; --red:#ef4444; --blue:#3b82f6;
+    }
+    html,body{height:100%}
+    body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
+    /* Header */
+    .gm-header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke)}
+    .gm-brand{display:flex; align-items:center; gap:.6rem; font-weight:800; color:var(--text); text-decoration:none}
+    .gm-dot{width:28px; height:28px; border-radius:10px; background:var(--accent); box-shadow:0 8px 18px rgba(255,122,0,.25)}
+    .btn-ghost{background:#fff; border:1px solid var(--stroke); color:var(--text); border-radius:12px}
+    .btn-ghost:hover{background:#fdfdfd; border-color:#d6d9de}
+    .btn-accent{background:var(--accent); color:#fff; border:0; border-radius:12px}
+    .btn-accent:hover{background:#ff8f28}
+
+    /* Cards + bits */
+    .gm-card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 4px 16px rgba(17,24,39,.04)}
+    .section-title{font-weight:800}
+    .muted{color:var(--muted)}
+    .pill{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .6rem; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe}
+    .badge-soft{background:#FFF1E6; border:1px solid #FFD2AD; color:#7a3d00; border-radius:10px}
+    .table>:not(caption)>*>*{vertical-align:middle}
+    .req::after{content:" *"; color:#dc3545; font-weight:700}
+    .spinner{width:1rem; height:1rem; border:.18rem solid #e5e7eb; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Status badges */
+    .bdg-type{border:1px solid var(--stroke); border-radius:999px; padding:.15rem .5rem; font-size:.75rem}
+    .bdg-rto{background:#fff7ed; border-color:#fed7aa; color:#9a3412}
+    .bdg-return{background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8}
+    .bdg-cancel{background:#fef2f2; border-color:#fecaca; color:#991b1b}
+
+    .bdg-state-open{background:#ecfeff; border:1px solid #a5f3fc; color:#155e75; border-radius:8px; padding:.1rem .4rem}
+    .bdg-state-closed{background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; border-radius:8px; padding:.1rem .4rem}
+
+    /* Action buttons */
+    .btn-row{border-radius:10px}
+    .btn-approve{background:#16a34a; color:#fff}
+    .btn-reject{background:#ef4444; color:#fff}
+    .btn-ship{background:#3b82f6; color:#fff}
+    .btn-approve:hover{background:#22c55e}
+    .btn-reject:hover{background:#f87171}
+    .btn-ship:hover{background:#60a5fa}
+
+    /* Row expander */
+    .expander{cursor:pointer}
+    .expander i{transition:transform .2s}
+    .expander[aria-expanded="true"] i{transform:rotate(90deg)}
+    .subrow{background:#fcfcfd}
+    code{background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:.1rem .3rem}
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<nav class="gm-header">
+  <div class="container d-flex align-items-center justify-content-between py-2">
+    <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">
+      <span class="gm-dot"></span><span>Geekmonkey</span>
+    </a>
+    <div class="d-flex gap-2">
+      <button id="gmBackBtn" type="button" class="btn btn-ghost btn-sm me-2">← Back</button>
+      <a href="/v1/home" class="btn btn-accent btn-sm">⌂ Home</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container my-4">
+
+  <!-- Filters -->
+  <div class="gm-card p-3 p-md-4 mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+      <div>
+        <div class="fw-semibold mb-1">Return Type</div>
+        <div class="btn-group" role="group" aria-label="Type filter">
+          <input type="radio" class="btn-check" name="typeFilter" id="typeAll" checked>
+          <label class="btn btn-ghost btn-sm" for="typeAll">All</label>
+          <input type="radio" class="btn-check" name="typeFilter" id="typeRTO">
+          <label class="btn btn-ghost btn-sm" for="typeRTO">RTO</label>
+          <input type="radio" class="btn-check" name="typeFilter" id="typeReturn">
+          <label class="btn btn-ghost btn-sm" for="typeReturn">Return</label>
+          <input type="radio" class="btn-check" name="typeFilter" id="typeCancellation">
+          <label class="btn btn-ghost btn-sm" for="typeCancellation">Cancellation</label>
+        </div>
+      </div>
+
+      <div class="ms-auto"></div>
+
+      <div>
+        <label class="form-label fw-semibold mb-1">From</label>
+        <input id="fromDate" type="date" class="form-control form-control-sm" />
+      </div>
+      <div>
+        <label class="form-label fw-semibold mb-1">To</label>
+        <input id="toDate" type="date" class="form-control form-control-sm" />
+      </div>
+      <div>
+        <label class="form-label fw-semibold mb-1">Search</label>
+        <input id="searchBox" class="form-control form-control-sm" placeholder="Order No., Customer, Phone" />
+      </div>
+      <button id="btnRefresh" class="btn btn-accent btn-sm ms-1">
+        <span id="rfLbl">Refresh</span>
+        <span id="rfSpin" class="spinner ms-2 d-none" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Report table -->
+  <div class="gm-card p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+        <tr>
+          <th style="width:36px;"></th>
+          <th>Date</th>
+          <th>Order No.</th>
+          <th>Type</th>
+          <th>Customer</th>
+          <th class="text-center">Items</th>
+          <th class="text-end">Amount</th>
+          <th>Status</th>
+          <th class="text-end" style="width:280px;">Actions</th>
+        </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center p-3 border-top">
+      <div class="small muted" id="summary">—</div>
+      <div class="d-flex gap-2">
+        <button id="prevBtn" class="btn btn-ghost btn-sm" disabled>‹ Prev</button>
+        <button id="nextBtn" class="btn btn-ghost btn-sm" disabled>Next ›</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Confirm Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="actionForm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="actionTitle">Confirm</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="actionPrompt" class="mb-3"></div>
+        <label class="form-label fw-semibold">Note (optional)</label>
+        <input id="actionNote" class="form-control" placeholder="Add internal note"/>
+        <input type="hidden" id="actionReturnId">
+        <input type="hidden" id="actionOrderNo">
+        <input type="hidden" id="actionKind"> <!-- approve|reject|reship -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+        <button id="actionSubmitBtn" type="submit" class="btn btn-accent">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1055;">
+  <div id="toast" class="toast align-items-center text-bg-dark border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMsg">Action done</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ===== Config ===== */
+  const REPORT_URL = '/v1/order/return/returnreport';
+  const APPROVE_URL = '/v1/order/return/approve-refund';
+  const REJECT_URL  = '/v1/order/return/reject-refund';
+  const RESHIP_URL  = '/v1/order/return/reship';
+
+  /* ===== Utils ===== */
+  const $ = (s)=>document.querySelector(s);
+  const toast = (msg)=>{ $('#toastMsg').textContent = msg; new bootstrap.Toast($('#toast')).show(); };
+  const asMoney = (n)=> (n==null?'—': new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(n));
+  const pad = (n)=>String(n).padStart(2,'0');
+  const fmtDate = (iso)=> {
+    try { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+    catch { return iso || '—'; }
+  };
+
+  /* ===== Navigation header ===== */
+  $('#gmBackBtn').addEventListener('click', ()=>{ if(history.length>1) history.back(); else location.href='/v1/home'; });
+
+  /* ===== State ===== */
+  let page = 0, pageSize = 20, lastRows = [];
+  function currentType(){
+    if ($('#typeRTO').checked) return 'rto';
+    if ($('#typeReturn').checked) return 'return';
+    if ($('#typeCancellation').checked) return 'cancellation';
+    return 'all';
+  }
+
+  /* ===== Fetch ===== */
+  async function fetchReport(){
+    const from = $('#fromDate').value;
+    const to   = $('#toDate').value;
+    const q    = $('#searchBox').value.trim();
+    const type = currentType();
+
+    // spinner
+    $('#rfSpin').classList.remove('d-none'); $('#rfLbl').textContent = 'Loading…'; $('#btnRefresh').disabled = true;
+
+    const url = new URL(REPORT_URL, location.origin);
+    url.searchParams.set('type', type);
+    if (from) url.searchParams.set('from', from);
+    if (to)   url.searchParams.set('to', to);
+    if (q)    url.searchParams.set('q', q);
+    url.searchParams.set('page', page);
+    url.searchParams.set('size', pageSize);
+
+    try{
+      const res = await fetch(url.toString(), { headers: { 'Accept':'application/json' }});
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      // Expected shape: { items: [...], total: number, hasNext: boolean }
+      lastRows = Array.isArray(data.items) ? data.items : [];
+      renderRows(lastRows);
+      $('#summary').textContent = `${data.total ?? lastRows.length} results • page ${page+1}`;
+      $('#prevBtn').disabled = page<=0;
+      $('#nextBtn').disabled = !data.hasNext;
+    }catch(err){
+      console.error(err); toast('Failed to load report');
+      lastRows = []; renderRows([]);
+      $('#summary').textContent = '—';
+      $('#prevBtn').disabled = true; $('#nextBtn').disabled = true;
+    }finally{
+      $('#rfSpin').classList.add('d-none'); $('#rfLbl').textContent = 'Refresh'; $('#btnRefresh').disabled = false;
+    }
+  }
+
+  /* ===== Render ===== */
+  function typeBadge(t){
+    const map = { rto:'bdg-rto', return:'bdg-return', cancellation:'bdg-cancel' };
+    const cls = map[t?.toLowerCase?.()] || '';
+    const txt = (t || '').toUpperCase() || '—';
+    return `<span class="bdg-type ${cls}">${txt}</span>`;
+  }
+  function stateBadge(s){
+    const open = ['pending','open','created'];
+    const cls = open.includes(String(s||'').toLowerCase()) ? 'bdg-state-open' : 'bdg-state-closed';
+    const txt = (s||'—').toUpperCase();
+    return `<span class="${cls}">${txt}</span>`;
+  }
+  function renderRows(rows){
+    const tbody = $('#rows'); tbody.innerHTML = '';
+    if (!rows.length){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="9" class="text-center text-muted py-4">No results.</td>`;
+      tbody.appendChild(tr); return;
+    }
+
+    rows.forEach((r, idx)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="expander" data-bs-toggle="collapse" data-bs-target="#sub_${idx}" aria-expanded="false" title="Show items">
+          <i class="bi bi-caret-right-fill"></i>
+        </td>
+        <td>${fmtDate(r.date)}</td>
+        <td><a href="/v1/order/${encodeURIComponent(r.orderNo)}" class="text-decoration-none fw-semibold">${r.orderNo || '—'}</a></td>
+        <td>${typeBadge(r.type)}</td>
+        <td>${r.customer?.name ?? '—'} ${r.customer?.phone ? `<span class="text-muted">(${r.customer.phone})</span>`:''}</td>
+        <td class="text-center">${r.itemsCount ?? (r.lines?.length ?? '—')}</td>
+        <td class="text-end">${asMoney(r.amount)}</td>
+        <td>${stateBadge(r.status)}</td>
+        <td class="text-end">
+          <div class="btn-group" role="group">
+            <button class="btn btn-approve btn-sm btn-row" data-action="approve" data-id="${r.returnId}" data-order="${r.orderNo}">Approve Refund</button>
+            <button class="btn btn-reject btn-sm btn-row"  data-action="reject"  data-id="${r.returnId}" data-order="${r.orderNo}">Reject</button>
+            <button class="btn btn-ship btn-sm btn-row"    data-action="reship"  data-id="${r.returnId}" data-order="${r.orderNo}">Reship</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+
+      // sub row with items
+      const sub = document.createElement('tr');
+      const lines = r.lines || [];
+      sub.className = 'collapse subrow'; sub.id = `sub_${idx}`;
+      sub.innerHTML = `
+        <td></td>
+        <td colspan="8">
+          <div class="p-3">
+            <div class="fw-semibold mb-2">Items (${lines.length})</div>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead><tr><th>Title</th><th>Product/Variant</th><th class="text-center">Qty</th><th class="text-center">Marked</th></tr></thead>
+                <tbody>
+                  ${
+                    lines.length
+                      ? lines.map(li => `
+                        <tr>
+                          <td>${li.title ?? '—'}</td>
+                          <td><code>${li.productId ?? '—'}</code> / <code>${li.variantId ?? '—'}</code></td>
+                          <td class="text-center">${li.qty ?? 1}</td>
+                          <td class="text-center">${li.marked ?? '—'}</td>
+                        </tr>`).join('')
+                      : `<tr><td colspan="4" class="text-muted">No line details.</td></tr>`
+                  }
+                </tbody>
+              </table>
+            </div>
+            ${r.notes ? `<div class="mt-2"><span class="muted small">Notes:</span> ${r.notes}</div>`:''}
+          </div>
+        </td>
+      `;
+      tbody.appendChild(sub);
+    });
+  }
+
+  /* ===== Actions (Approve/Reject/Reship) with confirm modal ===== */
+  const actionModal = new bootstrap.Modal('#actionModal');
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const returnId = btn.dataset.id;
+    const orderNo = btn.dataset.order;
+
+    $('#actionKind').value = action;
+    $('#actionReturnId').value = returnId;
+    $('#actionOrderNo').value = orderNo;
+
+    const titles = {
+      approve: 'Approve Refund',
+      reject: 'Reject Refund',
+      reship: 'Create Reshipment'
+    };
+    const prompts = {
+      approve: `Approve refund for <strong>${orderNo}</strong>?`,
+      reject:  `Reject refund for <strong>${orderNo}</strong>?`,
+      reship:  `Create reshipment for <strong>${orderNo}</strong>?`
+    };
+    $('#actionTitle').innerHTML = titles[action] || 'Confirm';
+    $('#actionPrompt').innerHTML = prompts[action] || '';
+    $('#actionNote').value = '';
+    actionModal.show();
+  });
+
+  $('#actionForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const kind = $('#actionKind').value;
+    const returnId = $('#actionReturnId').value;
+    const orderNo = $('#actionOrderNo').value;
+    const note = $('#actionNote').value.trim();
+
+    const url = kind==='approve' ? APPROVE_URL : kind==='reject' ? REJECT_URL : RESHIP_URL;
+    const btn = $('#actionSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Working…';
+
+    try{
+      const res = await fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify({ returnId, orderNo, note })
+      });
+      const data = await res.json().catch(()=> ({}));
+      if (!res.ok || data.success === false){
+        throw new Error(data.message || `HTTP ${res.status}`);
+      }
+      toast(data.message || 'Action completed');
+      actionModal.hide();
+      // refresh current page
+      fetchReport();
+    }catch(err){
+      console.error(err);
+      toast('Action failed: ' + (err.message || 'Unexpected error'));
+    }finally{
+      btn.disabled = false; btn.textContent = 'Confirm';
+    }
+  });
+
+  /* ===== Paging & filters ===== */
+  $('#btnRefresh').addEventListener('click', ()=>{ page = 0; fetchReport(); });
+  $('#prevBtn').addEventListener('click', ()=>{ if (page>0){ page--; fetchReport(); } });
+  $('#nextBtn').addEventListener('click', ()=>{ page++; fetchReport(); });
+
+  // Trigger on filter change / enter
+  ['typeAll','typeRTO','typeReturn','typeCancellation'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', ()=>{ page=0; fetchReport(); });
+  });
+  $('#fromDate').addEventListener('change', ()=>{ page=0; fetchReport(); });
+  $('#toDate').addEventListener('change', ()=>{ page=0; fetchReport(); });
+  $('#searchBox').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); page=0; fetchReport(); } });
+
+  /* ===== Init ===== */
+  (async()=>{ fetchReport(); })();
+</script>
+
+<!-- Icons + Bootstrap JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

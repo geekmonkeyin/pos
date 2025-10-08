@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Geekmonkey — Vendor Ledger (Payments + Orders)</title>
+
+    <!-- Bootstrap 5 + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+    <style>
+        :root{
+          --bg:#F9FAFB; --card:#FFFFFF; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --accent-weak:#FFE5D0; --radius:14px;
+        }
+        html, body { height:100%; background:var(--bg); color:var(--text); }
+        body { line-height:1.6; }
+
+        /* ===== Top bar ===== */
+        .gm-topbar{
+          position: sticky; top: 0; z-index: 1030;
+          background: linear-gradient(90deg, var(--accent), #FF9A3D);
+          color:#fff; box-shadow:0 8px 18px rgba(0,0,0,.08);
+        }
+        .gm-topbar .brand{ font-weight:700; letter-spacing:.3px; }
+        .gm-icon-btn{
+          border-radius:12px; border:1px solid rgba(255,255,255,.6);
+          background:transparent; color:#fff; padding:.45rem .7rem;
+        }
+        .gm-icon-btn:hover{ background:rgba(255,255,255,.14); color:#fff; }
+
+        /* ===== Cards / form ===== */
+        .gm-card{
+          background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius);
+          box-shadow:0 8px 24px rgba(17,24,39,.06);
+        }
+        .page-title{ font-weight:800; font-size:1.25rem; }
+        .form-control, .form-select{ border-color:var(--stroke); border-radius:12px; }
+        .form-control:focus, .form-select:focus{
+          border-color:var(--accent); box-shadow:0 0 0 .25rem rgba(255,122,0,.15);
+        }
+        .btn-accent{ background:var(--accent); color:#fff; border:none; border-radius:12px; font-weight:600; }
+        .btn-accent:hover{ background:#ff8f29; color:#fff; }
+        .btn-ghost{ background:#fff; border:1px solid var(--stroke); border-radius:12px; }
+
+        /* Vendor autocomplete */
+        .vendor-wrap{ position:relative; }
+        #vendorList{
+          position:absolute; left:0; right:0; top:100%; z-index:1020;
+          display:none; max-height:260px; overflow:auto; margin-top:6px;
+          border-radius:12px; border:1px solid var(--stroke); background:#fff;
+          box-shadow:0 10px 24px rgba(17,24,39,.08);
+          list-style:none; padding:0;
+        }
+        #vendorList li{ padding:8px 12px; cursor:pointer; }
+        #vendorList li:hover{ background:#FFF7EF; }
+
+        /* Tables */
+        table thead th{
+          background:var(--accent); color:#fff; border-color:var(--accent);
+          vertical-align:middle;
+        }
+        .table > :not(caption) > * > *{ border-color:var(--stroke) !important; }
+        tbody tr:nth-child(even){ background:#FFF8F2; }
+
+        main{ padding:24px 16px; }
+    </style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<nav class="gm-topbar">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <div class="d-flex align-items-center gap-2">
+            <button id="backBtn" class="gm-icon-btn" type="button" title="Back">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <button id="homeBtn" class="gm-icon-btn" type="button" title="Home">
+                <i class="bi bi-house-door"></i>
+            </button>
+        </div>
+        <div class="brand">Geekmonkey • Vendor Ledger</div>
+        <div></div>
+    </div>
+</nav>
+
+<!-- ===== Content ===== -->
+<main>
+    <div class="container" style="max-width:1250px;">
+
+        <!-- Filters -->
+        <div class="gm-card p-3 p-md-4 mb-3">
+            <h1 class="page-title mb-3">Ledger (Payments + Purchases)</h1>
+
+            <form id="filterForm" class="row g-2 align-items-end">
+                <div class="col-12 col-md-4 vendor-wrap">
+                    <label class="form-label" for="vendorNameInput">Vendor Name</label>
+                    <input class="form-control" id="vendorNameInput" name="vendorName" type="text"
+                           placeholder="Type at least 3 characters" oninput="debounceSearchVendor()" />
+                    <ul id="vendorList"></ul>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label" for="startDate">Start Date</label>
+                    <input class="form-control" id="startDate" name="startDate" type="date" />
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label" for="endDate">End Date</label>
+                    <input class="form-control" id="endDate" name="endDate" type="date" />
+                </div>
+
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <button type="button" class="btn btn-accent w-100" onclick="fetchLedger()">
+                        <i class="bi bi-funnel me-1"></i> Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary -->
+        <div class="gm-card p-3 p-md-4 mb-3">
+            <div class="row g-3">
+                <div class="col-12 col-md">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Total Purchases (Orders)</span>
+                        <strong id="sumPurchases">₹0.00</strong>
+                    </div>
+                </div>
+                <div class="col-12 col-md">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Total Payments</span>
+                        <strong id="sumPayments">₹0.00</strong>
+                    </div>
+                </div>
+                <div class="col-12 col-md">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Final Balance (Purchases − Payments)</span>
+                        <div>
+                            <strong id="finalBalance">₹0.00</strong>
+                            <span id="balanceBadge" class="badge rounded-pill ms-2"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grids: Purchases & Payments -->
+        <div class="row g-3">
+            <!-- Purchases / Orders -->
+            <div class="col-12 col-lg-6">
+                <div class="gm-card p-2 p-md-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h2 class="h5 m-0">Purchases / Orders</h2>
+                        <small class="text-muted" id="ordersCount">0 records</small>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="ordersTable" class="table table-hover align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>Vendor Name</th>
+                                <th>Order ID</th>
+                                <th>Amount</th>
+                                <th>Order Date</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                            <tr>
+                                <td colspan="2" class="fw-semibold text-end">Subtotal:</td>
+                                <td id="ordersTotal" class="fw-bold">0</td>
+                                <td></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payments -->
+            <div class="col-12 col-lg-6">
+                <div class="gm-card p-2 p-md-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h2 class="h5 m-0">Payments</h2>
+                        <small class="text-muted" id="paymentsCount">0 records</small>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="paymentsTable" class="table table-hover align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>Payment To</th>
+                                <th>Vendor Name</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                                <th>WhatsApp</th>
+                                <th>Remarks</th>
+                                <th>Image</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                            <tr>
+                                <td colspan="2" class="fw-semibold text-end">Subtotal:</td>
+                                <td id="paymentsTotal" class="fw-bold">0</td>
+                                <td colspan="4"></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<!-- ===== Image Modal (Payment proofs) ===== -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalTitle">Payment Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="clearImageModal()"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imageModalImg" class="img-fluid rounded" alt="Payment Screenshot"/>
+            </div>
+            <div class="modal-footer">
+                <a id="imageModalDownload" class="btn btn-outline-secondary" download>
+                    <i class="bi bi-download me-1"></i>Download
+                </a>
+                <button type="button" class="btn btn-accent" data-bs-dismiss="modal" onclick="clearImageModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Scripts ===== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Header actions
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      window.location.href = '/v1/home';
+    });
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (history.length > 1) { history.back(); } else { window.location.href = '/v1/home'; }
+    });
+
+    // Helpers
+    function escapeHtml(str){ return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s])); }
+    function toMoney(n){ const v = Number(n||0); return '₹' + v.toFixed(2); }
+
+    // ===== Vendor autocomplete =====
+    let debounceTimer;
+    function debounceSearchVendor(){
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(searchVendor, 500);
+    }
+    function searchVendor(){
+      const q = document.getElementById('vendorNameInput').value.trim();
+      const list = document.getElementById('vendorList');
+      if (q.length < 3){ list.style.display = 'none'; return; }
+
+      fetch('/v1/vendor/searchvendor?vendorName=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+          list.innerHTML = '';
+          if (Array.isArray(data) && data.length){
+            data.forEach(v => {
+              const li = document.createElement('li');
+              li.textContent = `${v.vendorName}${v.whatsappNumber ? ' ('+v.whatsappNumber+')' : ''}`;
+              li.onclick = () => {
+                document.getElementById('vendorNameInput').value = v.vendorName || '';
+                list.style.display = 'none';
+              };
+              list.appendChild(li);
+            });
+            list.style.display = 'block';
+          } else {
+            list.style.display = 'none';
+          }
+        })
+        .catch(() => list.style.display = 'none');
+    }
+    document.addEventListener('click', (e) => {
+      const wrap = document.querySelector('.vendor-wrap');
+      if (wrap && !wrap.contains(e.target)) document.getElementById('vendorList').style.display = 'none';
+    });
+
+    // ===== Ledger fetcher =====
+    async function fetchLedger(){
+      const form = document.getElementById('filterForm');
+      const formData = new FormData(form);
+      const vendorName = (formData.get('vendorName') || '').trim();
+      const startDate = (formData.get('startDate') || '').trim();
+      const endDate = (formData.get('endDate') || '').trim();
+
+      // Build shared query string
+      const params = new URLSearchParams();
+      if (vendorName) params.set('vendorName', vendorName);
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+
+      // Parallel fetch
+      const [paymentsRes, ordersRes] = await Promise.all([
+        fetch('/v1/payment/filterReport?' + params.toString()),
+        fetch('/v1/vendor/purchase/filterReport?' + params.toString())
+      ]);
+
+      const payments = paymentsRes.ok ? await paymentsRes.json() : [];
+      const orders = ordersRes.ok ? await ordersRes.json() : [];
+
+      renderOrders(orders);
+      renderPayments(payments);
+
+      // Totals & Final Balance
+      const totalPurchases = (orders||[]).reduce((s,o) => s + Number(o.totalAmount || o.amount || 0), 0);
+      const totalPayments  = (payments||[]).reduce((s,p) => s + Number(p.amount || 0), 0);
+      const final = totalPurchases - totalPayments;
+
+      document.getElementById('sumPurchases').textContent = toMoney(totalPurchases);
+      document.getElementById('sumPayments').textContent  = toMoney(totalPayments);
+      document.getElementById('finalBalance').textContent = toMoney(final);
+
+      const badge = document.getElementById('balanceBadge');
+      if (final > 0){
+        badge.textContent = 'Payable';
+        badge.className = 'badge rounded-pill text-bg-warning';
+      } else if (final < 0) {
+        badge.textContent = 'Advance';
+        badge.className = 'badge rounded-pill text-bg-success';
+      } else {
+        badge.textContent = 'Settled';
+        badge.className = 'badge rounded-pill text-bg-secondary';
+      }
+    }
+
+    function renderOrders(data){
+      const tbody = document.querySelector('#ordersTable tbody');
+      const totalCell = document.getElementById('ordersTotal');
+      const countEl = document.getElementById('ordersCount');
+      tbody.innerHTML = '';
+      let total = 0;
+
+      (data||[]).forEach(o => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(o.vendorName)}</td>
+          <td>${escapeHtml(o.orderId)}</td>
+          <td>${Number(o.totalAmount||o.amount||0).toFixed(2)}</td>
+          <td>${escapeHtml(o.orderDate || o.date || '')}</td>
+        `;
+        total += Number(o.totalAmount||o.amount||0);
+        tbody.appendChild(tr);
+      });
+
+      totalCell.textContent = total.toFixed(2);
+      countEl.textContent = `${(data||[]).length} record${(data||[]).length===1?'':'s'}`;
+    }
+
+    function renderPayments(data){
+      const tbody = document.querySelector('#paymentsTable tbody');
+      const totalCell = document.getElementById('paymentsTotal');
+      const countEl = document.getElementById('paymentsCount');
+      tbody.innerHTML = '';
+      let total = 0;
+
+      (data||[]).forEach(p => {
+        const tr = document.createElement('tr');
+        const imgBtn = p.imageId ? `<button class="btn btn-sm btn-ghost" onclick="openImage('${escapeHtml(p.imageId)}')"><i class=\"bi bi-image\"></i></button>` : '';
+        tr.innerHTML = `
+          <td>${escapeHtml(p.paymentTo)}</td>
+          <td>${escapeHtml(p.vendorName || '')}</td>
+          <td>${Number(p.amount||0).toFixed(2)}</td>
+          <td>${escapeHtml(p.date || '')}</td>
+          <td>${escapeHtml(p.whatsappNumber || '')}</td>
+          <td>${escapeHtml(p.remarks || '')}</td>
+          <td>${imgBtn}</td>
+        `;
+        total += Number(p.amount||0);
+        tbody.appendChild(tr);
+      });
+
+      totalCell.textContent = total.toFixed(2);
+      countEl.textContent = `${(data||[]).length} record${(data||[]).length===1?'':'s'}`;
+    }
+
+    // ===== Payment image modal =====
+    const _imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+
+    function arrayBufferToBase64(buf){
+      let binary = '';
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+
+    async function openImage(imageId){
+      const imgEl = document.getElementById('imageModalImg');
+      const titleEl = document.getElementById('imageModalTitle');
+      const dlEl = document.getElementById('imageModalDownload');
+      titleEl.textContent = 'Payment Image • ' + imageId;
+
+      try{
+        const res = await fetch(`/v1/inventory/images/${encodeURIComponent(imageId)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        let dataUrl;
+
+        if (ct.includes('application/json')) {
+          const json = await res.json();
+          const base64 = json.base64 || json[0] || '';
+          const mime = json.mimeType || 'image/png';
+          dataUrl = `data:${mime};base64,${base64}`;
+        } else {
+          const ab = await res.arrayBuffer();
+          const base64 = arrayBufferToBase64(ab);
+          const mime = ct.startsWith('image/') ? ct.split(';')[0] : 'image/png';
+          dataUrl = `data:${mime};base64,${base64}`;
+        }
+
+        imgEl.src = dataUrl;
+        dlEl.href = dataUrl;
+        dlEl.download = `payment_${imageId}.${(dataUrl.match(/^data:image\/(\w+)/)||[])[1] || 'png'}`;
+
+        _imageModal.show();
+      }catch(e){
+        alert('Could not load image: ' + e.message);
+      }
+    }
+
+    function clearImageModal(){ document.getElementById('imageModalImg').src = ''; }
+
+    // Auto-run once
+    fetchLedger();
+</script>
+</body>
+</html>

@@ -2,6 +2,7 @@ package com.gkmonk.pos.pod.services;
 
 import com.gkmonk.pos.model.pod.PackedOrder;
 import com.gkmonk.pos.utils.MapperUtils;
+import com.gkmonk.pos.utils.StringUtils;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import org.bson.Document;
@@ -52,6 +53,8 @@ public class PODServiceImpl {
         packedOrder.setTotalAmount(Double.valueOf(result.getString("total_price")));
         packedOrder.setProductDetails(MapperUtils.getProductDetailsFromDocument(result));
         packedOrder.setPaymentMode(result.getBoolean("cod") ? "COD" : "Prepaid");
+        packedOrder.setOrderStatusUrl(result.getString("order_status_url"));
+        packedOrder.setGmId(result.getString("name"));
         return packedOrder;
     }
 
@@ -68,7 +71,11 @@ public class PODServiceImpl {
     }
 
     public PackedOrder findByOrderId(String orderId) {
-        return findByCriteria(Criteria.where("_id").is(orderId));
+        if(StringUtils.isBlank(orderId)){
+            return null;
+        }
+        return orderId.toLowerCase().contains("gm") ?
+            findByCriteria(Criteria.where("name").is(orderId)) : findByCriteria(Criteria.where("_id").is(orderId));
     }
 
 

@@ -1,10 +1,582 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <meta charset="UTF-8" />
+    <title>Geekmonkey — Return Product Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+    <style>
+        :root{ --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280; --accent:#FF7A00; --radius:16px; }
+        html,body{height:100%}
+        body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
+        .gm-header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke)}
+        .gm-brand{display:flex; align-items:center; gap:.6rem; font-weight:800; color:var(--text); text-decoration:none}
+        .gm-dot{width:28px; height:28px; border-radius:10px; background:var(--accent); box-shadow:0 8px 18px rgba(255,122,0,.25)}
+        .btn-ghost{background:#fff; border:1px solid var(--stroke); color:var(--text); border-radius:12px}
+        .btn-accent{background:var(--accent); color:#fff; border:0; border-radius:12px}
+        .gm-card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 4px 16px rgba(17,24,39,.04)}
+        .section-title{font-weight:800}
+        .muted{color:var(--muted)}
+        .badge-soft{background:#FFF1E6; border:1px solid #FFD2AD; color:#7a3d00; border-radius:10px}
+        .table > :not(caption) > * > *{vertical-align:middle}
+        .pill{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .6rem; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe}
+        .req::after{content:" *"; color:#dc3545; font-weight:700}
+    </style>
 </head>
 <body>
+<nav class="gm-header">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <a class="gm-brand" href="/v1/home"><span class="gm-dot"></span><span>Geekmonkey</span></a>
+        <div class="d-flex gap-2">
+            <button id="gmBackBtn" type="button" class="btn btn-ghost btn-sm me-2">← Back</button>
+            <a href="/v1/home" class="btn btn-accent btn-sm">⌂ Home</a>
+        </div>
+    </div>
+</nav>
 
+<main class="container my-4">
+    <div class="gm-card p-3 p-md-4 mb-4">
+        <div class="d-flex flex-column flex-md-row align-items-md-end gap-3">
+            <div class="flex-grow-1">
+                <label class="form-label fw-semibold req">Search Order Number</label>
+                <input id="orderSearch" class="form-control" placeholder="e.g., GMK-2025-000123" />
+                <div class="form-text">Press Enter or click Search.</div>
+            </div>
+            <button id="searchBtn" class="btn btn-accent mt-2 mt-md-0">
+                <span id="searchLabel">Search</span>
+                <span id="searchSpin" class="spinner ms-2 d-none" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <hr class="my-3">
+
+        <div id="orderSummary" class="row gy-3" style="display:none">
+            <div class="col-md-4">
+                <div class="p-3 border rounded-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-bold">Order</div>
+                        <span id="orderStatus" class="badge badge-soft">Loaded</span>
+                    </div>
+                    <div class="small text-muted">Order No.</div>
+                    <div id="sumOrderNo" class="fw-semibold"></div>
+                    <div class="small text-muted mt-2">Customer</div>
+                    <div id="sumCustomer" class="fw-semibold"></div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="p-3 border rounded-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="fw-bold">Products</div>
+                        <div class="small muted">Select the items physically received</div>
+                    </div>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th style="width:36px;"><input class="form-check-input" type="checkbox" id="checkAll"></th>
+                                <th>Item</th>
+                                <th>ProductId</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                            </thead>
+                            <tbody id="productRows"></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <button id="btnMarkGood" class="btn btn-success btn-sm">Mark Goods Received</button>
+                        <button id="btnMarkDamaged" class="btn btn-danger btn-sm">Mark Damaged</button>
+                        <select id="disposition" class="form-select form-select-sm" style="max-width:260px">
+                            <option value="">Select Disposition…</option>
+                            <option value="RTO">RTO</option>
+                            <option value="Customer Return">Customer Return</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <div class="ms-auto small muted">Tip: Use the checkboxes to select the lines you’re marking.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Capture -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="gm-card p-3 p-md-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="section-title mb-0">Video Evidence</h5>
+                    <span class="pill"><span id="recStateDot">●</span> <span id="recStateLabel">Idle</span></span>
+                </div>
+                <div class="ratio ratio-4x3 mt-3">
+                    <video id="liveVideo" autoplay muted playsinline class="rounded-3 border" style="object-fit:cover;"></video>
+                </div>
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                    <button id="btnStartRec" class="btn btn-accent">Start Recording</button>
+                    <button id="btnStopRec" class="btn btn-ghost" disabled>Stop & Save</button>
+                    <a id="downloadLink" class="btn btn-success d-none">Download Recording</a>
+                </div>
+                <div id="recordedPreview" class="mt-3 d-none">
+                    <div class="small muted mb-1">Recorded Preview</div>
+                    <video id="playback" controls class="w-100 rounded-3 border"></video>
+                </div>
+                <div class="form-text mt-2">Saved filename: <code id="vidFilenameHint">—</code></div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="gm-card p-3 p-md-4 h-100">
+                <h5 class="section-title">Capture Photos of Product</h5>
+                <div class="ratio ratio-4x3 mt-2">
+                    <video id="photoVideo" autoplay muted playsinline class="rounded-3 border" style="object-fit:cover;"></video>
+                </div>
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                    <button id="btnCapture" class="btn btn-accent">📸 Capture Photo</button>
+                    <button id="btnClearPhotos" class="btn btn-ghost">Clear Photos</button>
+                    <span class="small muted">Ensure label, item, and packaging are visible.</span>
+                </div>
+                <div class="mt-3">
+                    <div class="small muted mb-1">Captured Photos</div>
+                    <div id="thumbRow" class="row g-3"></div>
+                    <div id="noPhotos" class="text-muted">No photos captured yet.</div>
+                </div>
+                <canvas id="photoCanvas" class="d-none"></canvas>
+
+                <hr class="my-3">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold req">Employee ID (who unpacked)</label>
+                        <input id="empId" class="form-control" placeholder="e.g., EMP-102" required />
+                        <div class="invalid-feedback">Employee ID is required.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Notes (optional)</label>
+                        <input id="notes" class="form-control" placeholder="e.g., Outer box crushed, seal intact" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview + Submit -->
+    <div class="gm-card p-3 p-md-4 mt-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <h5 class="section-title mb-0">Preview</h5>
+            <button id="btnSubmit" class="btn btn-success" disabled>Submit Verification</button>
+        </div>
+        <div class="row mt-3 gy-3">
+            <div class="col-lg-4">
+                <div class="p-3 border rounded-3">
+                    <div class="small muted">Order</div>
+                    <div id="pvOrder" class="fw-bold">—</div>
+                    <div class="small muted mt-2">Customer</div>
+                    <div id="pvCustomer" class="fw-semibold">—</div>
+                    <div class="small muted mt-2">Disposition</div>
+                    <div id="pvDisposition" class="fw-semibold">—</div>
+                    <div class="small muted mt-2">Emp ID</div>
+                    <div id="pvEmpId" class="fw-semibold">—</div>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="p-3 border rounded-3">
+                    <div class="fw-bold mb-2">Selected Lines & Status</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Item</th><th>ProductID</th><th class="text-center">Qty</th><th class="text-center">Marked</th></tr></thead>
+                            <tbody id="pvLines"><tr><td colspan="4" class="text-muted">No items selected yet.</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 small muted">Video & images will be included in submission; ensure you’ve captured all evidence.</div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="p-3 border rounded-3">
+                    <div class="fw-bold mb-2">Media Preview</div>
+                    <div class="row g-3 align-items-start">
+                        <div class="col-md-6">
+                            <div class="small muted mb-1">Video</div>
+                            <video id="pvVideo" controls class="w-100 rounded-3 border d-none"></video>
+                            <div id="pvVideoEmpty" class="text-muted">No video recorded.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="small muted mb-1">Images</div>
+                            <div id="pvImages" class="row g-2"></div>
+                            <div id="pvImagesEmpty" class="text-muted">No images added.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1055;">
+    <div id="toast" class="toast align-items-center text-bg-dark border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMsg">Action done</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ORDER_LOOKUP_URL = '/v1/order/return/lookup';
+    const VERIFY_SUBMIT_URL = '/v1/order/return/verify/submit';            // <— target endpoint
+    const $ = (sel) => document.querySelector(sel);
+    const fmtDate = (d=new Date())=>{
+      const pad = (n)=>String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+    };
+    const toast = (msg)=>{ $('#toastMsg').textContent = msg; new bootstrap.Toast($('#toast')).show(); };
+    const setBtnBusy = (btn, busy, busyText='Submitting...')=>{
+      btn.dataset.orig = btn.dataset.orig || btn.textContent;
+      btn.disabled = !!busy;
+      btn.textContent = busy ? busyText : btn.dataset.orig;
+    };
+
+    let currentOrder = null;
+    let statuses = {}; // { variantId: 'Good'|'Damaged' }
+    let photos = [];   // [{blob,url,name}]
+    let videoBlob = null, mediaStream = null, mediaRecorder = null, chunks = [];
+
+    /* ===== Navigation ===== */
+    $('#gmBackBtn').addEventListener('click', ()=>{ if (history.length > 1) history.back(); else location.href='/v1/home'; });
+
+    /* ===== API ===== */
+    async function fetchOrder(orderNo){
+      const url = `${ORDER_LOOKUP_URL}?orderNo=${encodeURIComponent(orderNo)}`;
+      const res = await fetch(url, { method:'GET', headers:{ 'Accept':'application/json' }});
+      if (!res.ok) throw new Error(`Lookup failed (${res.status})`);
+      return await res.json();
+    }
+
+    /* ===== Populate products ===== */
+    const populateOrder = (ord)=>{
+      currentOrder = ord; statuses = {};
+      $('#orderSummary').style.display = '';
+      $('#sumOrderNo').textContent = ord.orderNo;
+      $('#sumCustomer').textContent = `${ord.customer?.name ?? ''} ${ord.customer?.phone ? '('+ord.customer.phone+')':''}`;
+
+      const tbody = $('#productRows'); tbody.innerHTML = '';
+      (ord.lines || []).forEach(line=>{
+        const key = line.variantId;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" class="form-check-input line-check" data-id="${key}"></td>
+          <td>${line.title}</td>
+          <td><code>${line.variantId ?? '-'}</code></td>
+          <td class="text-center">${line.qty}</td>
+          <td class="text-center"><span class="badge text-bg-secondary" id="st_${key}">Unmarked</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      $('#checkAll').checked = false;
+      updatePreview();
+      validateForm();
+    };
+
+    async function doSearch(){
+      const q = $('#orderSearch').value.trim();
+      if (!q) { toast('Enter an order number'); return; }
+      const btn = $('#searchBtn'); setBtnBusy(btn, true, 'Searching...');
+      try{
+        const ord = await fetchOrder(q);
+        if (!ord || !ord.orderNo) { toast('Order not found'); return; }
+        populateOrder(ord);
+        $('#orderStatus').textContent = 'Loaded';
+      }catch(err){ console.error(err); toast('Order lookup failed'); }
+      finally{ setBtnBusy(btn, false); }
+    }
+    $('#searchBtn').addEventListener('click', doSearch);
+    $('#orderSearch').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSearch(); }});
+
+    /* ===== Selection & status ===== */
+    const selectedLineIds = ()=> Array.from(document.querySelectorAll('.line-check:checked')).map(x=>x.dataset.id);
+    $('#checkAll').addEventListener('change', (e)=>{
+      document.querySelectorAll('.line-check').forEach(cb=>cb.checked = e.target.checked);
+      updatePreview(); validateForm();
+    });
+    function setStatus(ids, val){
+      ids.forEach(variantId=>{
+        statuses[variantId] = val;
+        const badge = document.getElementById(`st_${variantId}`);
+        if (badge){
+          badge.textContent = (val==='Good' ? 'Goods Received' : 'Damaged');
+          badge.className = `badge ${val==='Good' ? 'text-bg-success' : 'text-bg-danger'}`;
+        }
+      });
+      updatePreview(); validateForm();
+    }
+    $('#btnMarkGood').addEventListener('click', ()=>{ const ids = selectedLineIds(); if (!ids.length) return toast('Select at least one line'); setStatus(ids, 'Good'); });
+    $('#btnMarkDamaged').addEventListener('click', ()=>{ const ids = selectedLineIds(); if (!ids.length) return toast('Select at least one line'); setStatus(ids, 'Damaged'); });
+    $('#disposition').addEventListener('change', ()=>{ updatePreview(); validateForm(); });
+
+    /* ===== Camera (shared) ===== */
+    function setRecState(state){
+      const dot=$('#recStateDot'), lab=$('#recStateLabel');
+      if(state==='recording'){dot.style.color='#e11d48'; lab.textContent='Recording';}
+      else if(state==='ready'){dot.style.color='#10b981'; lab.textContent='Ready';}
+      else {dot.style.color='#6b7280'; lab.textContent='Idle';}
+    }
+    const fmt = (n)=>String(n).padStart(2,'0');
+    const filenameBase = ()=> {
+      const ord=currentOrder?.orderNo || 'NOORDER';
+      const d=new Date(); const ts = `${d.getFullYear()}-${fmt(d.getMonth()+1)}-${fmt(d.getDate())}_${fmt(d.getHours())}-${fmt(d.getMinutes())}`;
+      const emp=($('#empId').value.trim() || 'noemp').replace(/\s+/g,'');
+      return `${ord}_${ts}_${emp}`;
+    };
+
+    async function startCamera(){
+      if (mediaStream) return mediaStream;
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } }, audio: true
+      });
+      const live = $('#liveVideo'); if (live) { live.srcObject = mediaStream; live.playsInline = true; }
+      const pv = $('#photoVideo'); if (pv) { pv.srcObject = mediaStream; pv.playsInline = true; }
+      setRecState('ready');
+
+      await Promise.all([live, pv].map(v => v && v.readyState < 2
+        ? new Promise(res => v.addEventListener('loadedmetadata', res, { once:true })) : Promise.resolve()));
+      return mediaStream;
+    }
+
+    /* ===== Video recording ===== */
+    async function startRecording(){
+      if (!currentOrder) return toast('Load an order first');
+      await startCamera();
+      chunks=[]; videoBlob=null;
+      mediaRecorder = new MediaRecorder(mediaStream);
+      mediaRecorder.ondataavailable = (e)=>{ if (e.data.size) chunks.push(e.data); };
+      mediaRecorder.onstop = ()=>{
+        videoBlob = new Blob(chunks, { type:'video/webm' });
+        const url = URL.createObjectURL(videoBlob);
+        $('#playback').src = url;
+        $('#recordedPreview').classList.remove('d-none');
+        $('#pvVideo').src = url; $('#pvVideo').classList.remove('d-none');
+        $('#pvVideoEmpty').style.display = 'none';
+        $('#vidFilenameHint').textContent = `${filenameBase()}.webm`;
+        const a = $('#downloadLink'); a.href = url; a.download = `${filenameBase()}.webm`; a.classList.remove('d-none');
+        setRecState('ready');
+      };
+      mediaRecorder.start();
+      $('#btnStartRec').disabled = true; $('#btnStopRec').disabled = false; setRecState('recording');
+    }
+    function stopRecording(){
+      if (mediaRecorder && mediaRecorder.state==='recording'){
+        mediaRecorder.stop();
+        $('#btnStartRec').disabled = false; $('#btnStopRec').disabled = true;
+        toast('Recording saved. Use Download to store on disk.');
+      }
+    }
+    $('#btnStartRec').addEventListener('click', startRecording);
+    $('#btnStopRec').addEventListener('click', stopRecording);
+
+    /* ===== Photo capture ===== */
+    function dataURLToBlob(dataURL){
+      const [hdr, b64] = dataURL.split(',');
+      const mime = (hdr.match(/data:(.*);base64/)||[])[1] || 'image/jpeg';
+      const bin = atob(b64); const len = bin.length; const arr = new Uint8Array(len);
+      for (let i=0;i<len;i++) arr[i]=bin.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    }
+    async function grabFrameBlob(video, type='image/jpeg', quality=0.92){
+      const canvas = document.getElementById('photoCanvas');
+      if (video.readyState < 2) await new Promise(res => video.addEventListener('loadedmetadata', res, { once:true }));
+      const w = video.videoWidth || 1280, h = video.videoHeight || 720;
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, w, h);
+      return await new Promise(resolve=>{
+        if (canvas.toBlob) canvas.toBlob(b=>resolve(b), type, quality);
+        else resolve(dataURLToBlob(canvas.toDataURL(type, quality)));
+      });
+    }
+    function refreshThumbsAndPreview(){
+      const row = $('#thumbRow'); row.innerHTML = '';
+      $('#noPhotos').style.display = photos.length ? 'none' : '';
+      photos.forEach((p, idx)=>{
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4';
+        col.innerHTML = `
+          <div class="position-relative">
+            <img class="thumb" src="${p.url}" alt="${p.name}">
+            <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" data-idx="${idx}">✕</button>
+          </div>
+          <div class="small text-muted mt-1">${p.name}</div>
+        `;
+        row.appendChild(col);
+      });
+      row.querySelectorAll('button.btn-danger').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          const i = Number(e.currentTarget.dataset.idx);
+          URL.revokeObjectURL(photos[i].url);
+          photos.splice(i,1);
+          refreshThumbsAndPreview();
+        });
+      });
+
+      const pvImgWrap = $('#pvImages'); pvImgWrap.innerHTML = '';
+      if (photos.length){
+        $('#pvImagesEmpty').style.display = 'none';
+        photos.forEach(p=>{
+          const col = document.createElement('div');
+          col.className = 'col-4';
+          col.innerHTML = `<img class="thumb" src="${p.url}" alt="${p.name}">`;
+          pvImgWrap.appendChild(col);
+        });
+      } else {
+        $('#pvImagesEmpty').style.display = '';
+      }
+    }
+    async function capturePhoto(){
+      if (!currentOrder) return toast('Load an order first');
+      try{
+        await startCamera();
+        const video = $('#photoVideo');
+        if (video.paused) { try { await video.play(); } catch(e){} }
+        const blob = await grabFrameBlob(video);
+        const name = `${filenameBase()}_img${String(photos.length+1).padStart(2,'0')}.jpg`;
+        const url = URL.createObjectURL(blob);
+        photos.push({ blob, url, name });
+        refreshThumbsAndPreview();
+        toast('Photo captured');
+      }catch(err){ console.error(err); toast('Failed to capture photo'); }
+    }
+    function clearPhotos(){ photos.forEach(p=> URL.revokeObjectURL(p.url)); photos = []; refreshThumbsAndPreview(); }
+    document.getElementById('btnCapture').addEventListener('click', capturePhoto);
+    document.getElementById('btnClearPhotos').addEventListener('click', clearPhotos);
+
+    /* ===== Preview & validation ===== */
+    function updatePreview(){
+      $('#pvOrder').textContent = currentOrder?.orderNo || '—';
+      $('#pvCustomer').textContent = currentOrder ? `${currentOrder.customer?.name ?? ''} ${currentOrder.customer?.phone ? '('+currentOrder.customer.phone+')':''}` : '—';
+      $('#pvDisposition').textContent = $('#disposition').value || '—';
+      $('#pvEmpId').textContent = $('#empId').value.trim() || '—';
+
+      const tbody = $('#pvLines'); tbody.innerHTML = '';
+      if (!currentOrder){
+        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">No order loaded.</td></tr>`;
+        return;
+      }
+      const lines = (currentOrder.lines || []).filter(l => statuses[l.variantId]);
+      if (!lines.length){
+        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">No items selected yet.</td></tr>`;
+      } else {
+        lines.forEach(l=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${l.title}</td>
+            <td><code>${l.variantId}</code></td>
+            <td class="text-center">${l.qty}</td>
+            <td class="text-center">${statuses[l.variantId]==='Good' ? 'Goods Received' : 'Damaged'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+    function validateForm(){
+      const empInput = $('#empId');
+      const hasEmp = !!empInput.value.trim();
+      empInput.classList.toggle('is-invalid', !hasEmp);
+      const canSubmit = !!currentOrder && hasEmp && !!$('#disposition').value && Object.keys(statuses).length > 0;
+      $('#btnSubmit').disabled = !canSubmit;
+    }
+    $('#empId').addEventListener('input', ()=>{ updatePreview(); validateForm(); });
+    document.addEventListener('change', (e)=>{ if (e.target.classList?.contains('line-check')){ updatePreview(); validateForm(); } });
+
+    /* ===== Submit to /verify/submit ===== */
+    async function blobToDataURL(blob){ return await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result)); fr.onerror=rej; fr.readAsDataURL(blob); }); }
+    async function submitPayload(){
+  const btn = document.getElementById('btnSubmit');
+  const restoreHTML = btn.innerHTML;
+
+  // ---- client-side guards ----
+  if (!$('#empId').value.trim()) {
+    $('#empId').classList.add('is-invalid');
+    toast('Employee ID is required');
+    return;
+  }
+  if (!currentOrder) { toast('Please load an order'); return; }
+  if (!$('#disposition').value) { toast('Select a disposition'); return; }
+
+  const selected = (currentOrder.lines || [])
+    .filter(l => statuses[l.variantId])
+    .map(l => ({
+      lineId: l.variantId,
+      productId: l.productId,
+      variantId: l.variantId,
+      qty: l.qty,
+      marked: statuses[l.variantId]
+    }));
+  if (!selected.length) { toast('Mark at least one line'); return; }
+
+  // ---- metadata JSON ----
+  const metadata = {
+    orderNo: currentOrder.orderNo,
+    customer: currentOrder.customer,
+    disposition: $('#disposition').value,
+    empId: $('#empId').value.trim(),
+    notes: $('#notes').value.trim(),
+    lines: selected,
+    timestamp: new Date().toISOString(),
+    videoFilename: videoBlob ? `${filenameBase()}.webm` : null
+  };
+
+  // ---- build multipart body ----
+  const fd = new FormData();
+  fd.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  if (videoBlob) fd.append('video', videoBlob, `${filenameBase()}.webm`);
+  photos.forEach(p => fd.append('images', p.blob, p.name));
+
+  // ---- submit ----
+  btn.disabled = true;
+  btn.innerHTML = 'Submitting…';
+  try {
+    const res = await fetch('/v1/order/return/verify/submit', {
+      method: 'POST',
+      // IMPORTANT: no headers.Content-Type here; let the browser set multipart boundaries
+      body: fd
+    });
+
+    // friendly error message
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try {
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const j = await res.json();
+          if (j?.message) msg = j.message;
+        } else {
+          const t = await res.text();
+          if (t) msg = t;
+        }
+      } catch {}
+      throw new Error(msg);
+    }
+
+    toast('Verification submitted successfully ✔');
+    // Optionally reset:
+    // location.reload();
+  } catch (err) {
+    console.error(err);
+    toast('Submit failed: ' + (err.message || 'Unexpected error'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = restoreHTML;
+  }
+}
+
+document.getElementById('btnSubmit').addEventListener('click', submitPayload);
+
+
+    /* ===== Init ===== */
+    (async()=>{ try { await startCamera(); } catch(e){ console.warn('Camera not started:', e); } })();
+    ['change','input'].forEach(evt=> document.addEventListener(evt, validateForm));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
