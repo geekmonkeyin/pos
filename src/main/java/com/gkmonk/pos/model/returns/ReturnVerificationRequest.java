@@ -6,6 +6,7 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -24,7 +25,15 @@ public class ReturnVerificationRequest {
     private String timestamp;
     private String videoFilename;
     private ReturnStatus returnStatus;
+    private List<String> images;
+    private List<byte[]> returnProductImages;
 
+    public List<String> getImages() {
+        if( images == null ) {
+            this.images = new ArrayList<>();
+        }
+        return images;
+    }
     @Data public static class Customer {
         private String name;
         private String phone;
@@ -36,5 +45,6 @@ public class ReturnVerificationRequest {
         private String variantId;  // if you send it
         private Integer qty;
         private String marked;     // "Good" | "Damaged"
+        private String productName;
     }
 }

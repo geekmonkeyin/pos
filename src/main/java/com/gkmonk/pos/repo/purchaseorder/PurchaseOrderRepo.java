@@ -14,4 +14,7 @@ public interface PurchaseOrderRepo extends MongoRepository<PurchaseOrder,Long> {
 
     @Query(value = "{$and:[ {'orderDate' : { $gte: ?0, $lte: ?1 }}] }",sort = "{orderDate:-1,vendor:-1}")
     Optional<List<PurchaseOrder>> findFilteredReceipts(String startDate, String endDate);
+
+    @Query(value = "{'vendorName':?0}",sort = "{orderDate:-1,vendor:-1}")
+    Optional<List<PurchaseOrder>> findByVendorName(String vendorName);
 }

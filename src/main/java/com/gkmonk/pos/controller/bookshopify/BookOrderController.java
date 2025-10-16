@@ -1,5 +1,8 @@
 package com.gkmonk.pos.controller.bookshopify;
 
+import com.gkmonk.pos.model.legacy.ShopifyFulfillment;
+import com.gkmonk.pos.model.legacy.ShopifyOrders;
+import com.gkmonk.pos.model.order.OrderStatus;
 import com.gkmonk.pos.services.orders.OrderCacheServiceImpl;
 import com.gkmonk.pos.services.shopify.ShopifyServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +32,22 @@ public class BookOrderController {
     public ModelAndView bookShopify() {
         ModelAndView model = new ModelAndView();
         //fetch shopify orders.
+        List<ShopifyOrders> dispatchedOrders = shopifyServiceImpl.fetchOrderByStatus(OrderStatus.DISPATCHED);
+        if(dispatchedOrders == null || dispatchedOrders.isEmpty()) {
+           dispatchedOrders = new ArrayList<>();
+        }
+        dispatchedOrders.stream().filter(dispatchedOrder -> dispatchedOrder.getItems() == null || dispatchedOrder.getItems().isEmpty()).forEach(dispatchedOrder -> {
+             for(ShopifyFulfillment shopifyFulfillment : dispatchedOrder.getFulfillments()) {
+                 if( dispatchedOrder.getItems() == null){
+                        dispatchedOrder.setItems(new ArrayList<>());
+                 }
+                 if(shopifyFulfillment.getLine_items() != null && !shopifyFulfillment.getLine_items().isEmpty()) {
+                     dispatchedOrder.getItems().addAll(shopifyFulfillment.getLine_items());
+                 }
+             }
+        });
         model.setViewName("bookshopify");
+        model.addObject("fetchedOrders",dispatchedOrders);
         return model;
     }
 

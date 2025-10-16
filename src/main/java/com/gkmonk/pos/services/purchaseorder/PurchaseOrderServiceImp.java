@@ -23,4 +23,8 @@ public class PurchaseOrderServiceImp {
         return StringUtils.isNotBlank(vendorName) ? purchaseOrderRepo.findFilteredReceipts(vendorName,startDate, endDate) :
                 purchaseOrderRepo.findFilteredReceipts(startDate, endDate);
     }
+
+    public Optional<List<PurchaseOrder>> findAll(String vendorName) {
+        return purchaseOrderRepo.findByVendorName(vendorName);
+    }
 }

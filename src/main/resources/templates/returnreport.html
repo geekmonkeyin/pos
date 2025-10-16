@@ -2,19 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Geekmonkey — Return Report</title>
+  <title>Geekmonkey — Return Received</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
 
   <style>
     :root{
       --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
-      --accent:#FF7A00; --radius:16px;
-      --green:#10b981; --red:#ef4444; --blue:#3b82f6;
+      --accent:#FF7A00; --radius:16px; --green:#10b981; --red:#ef4444; --blue:#3b82f6;
     }
     html,body{height:100%}
     body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
-    /* Header */
     .gm-header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke)}
     .gm-brand{display:flex; align-items:center; gap:.6rem; font-weight:800; color:var(--text); text-decoration:none}
     .gm-dot{width:28px; height:28px; border-radius:10px; background:var(--accent); box-shadow:0 8px 18px rgba(255,122,0,.25)}
@@ -22,42 +20,25 @@
     .btn-ghost:hover{background:#fdfdfd; border-color:#d6d9de}
     .btn-accent{background:var(--accent); color:#fff; border:0; border-radius:12px}
     .btn-accent:hover{background:#ff8f28}
-
-    /* Cards + bits */
     .gm-card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 4px 16px rgba(17,24,39,.04)}
-    .section-title{font-weight:800}
     .muted{color:var(--muted)}
-    .pill{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .6rem; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe}
-    .badge-soft{background:#FFF1E6; border:1px solid #FFD2AD; color:#7a3d00; border-radius:10px}
     .table>:not(caption)>*>*{vertical-align:middle}
-    .req::after{content:" *"; color:#dc3545; font-weight:700}
     .spinner{width:1rem; height:1rem; border:.18rem solid #e5e7eb; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* Status badges */
-    .bdg-type{border:1px solid var(--stroke); border-radius:999px; padding:.15rem .5rem; font-size:.75rem}
-    .bdg-rto{background:#fff7ed; border-color:#fed7aa; color:#9a3412}
-    .bdg-return{background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8}
-    .bdg-cancel{background:#fef2f2; border-color:#fecaca; color:#991b1b}
-
     .bdg-state-open{background:#ecfeff; border:1px solid #a5f3fc; color:#155e75; border-radius:8px; padding:.1rem .4rem}
     .bdg-state-closed{background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; border-radius:8px; padding:.1rem .4rem}
-
-    /* Action buttons */
-    .btn-row{border-radius:10px}
-    .btn-approve{background:#16a34a; color:#fff}
-    .btn-reject{background:#ef4444; color:#fff}
-    .btn-ship{background:#3b82f6; color:#fff}
-    .btn-approve:hover{background:#22c55e}
-    .btn-reject:hover{background:#f87171}
-    .btn-ship:hover{background:#60a5fa}
-
-    /* Row expander */
     .expander{cursor:pointer}
     .expander i{transition:transform .2s}
     .expander[aria-expanded="true"] i{transform:rotate(90deg)}
     .subrow{background:#fcfcfd}
     code{background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:.1rem .3rem}
+    .img-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px}
+    .img-grid .cell{border:1px solid #E5E7EB; border-radius:10px; overflow:hidden; background:#fff}
+    .img-grid img{display:block; width:100%; height:140px; object-fit:cover}
+    .img-empty{color:#6B7280; border:1px dashed #d1d5db; border-radius:12px; padding:18px; text-align:center}
+    .img-thumb{width:42px;height:42px;object-fit:cover;border-radius:8px;border:1px solid #E5E7EB;margin-left:6px;vertical-align:middle}
+    .req::after{content:" *"; color:#dc3545; font-weight:700}
+    .form-text-danger{color:#dc3545}
   </style>
 </head>
 <body>
@@ -80,30 +61,11 @@
   <!-- Filters -->
   <div class="gm-card p-3 p-md-4 mb-4">
     <div class="d-flex flex-wrap gap-2 align-items-end">
-      <div>
-        <div class="fw-semibold mb-1">Return Type</div>
-        <div class="btn-group" role="group" aria-label="Type filter">
-          <input type="radio" class="btn-check" name="typeFilter" id="typeAll" checked>
-          <label class="btn btn-ghost btn-sm" for="typeAll">All</label>
-          <input type="radio" class="btn-check" name="typeFilter" id="typeRTO">
-          <label class="btn btn-ghost btn-sm" for="typeRTO">RTO</label>
-          <input type="radio" class="btn-check" name="typeFilter" id="typeReturn">
-          <label class="btn btn-ghost btn-sm" for="typeReturn">Return</label>
-          <input type="radio" class="btn-check" name="typeFilter" id="typeCancellation">
-          <label class="btn btn-ghost btn-sm" for="typeCancellation">Cancellation</label>
-        </div>
+      <div class="me-auto">
+        <div class="fw-bold">Return Received</div>
+        <div class="small muted">Loaded from <code>/v1/order/return/returnreceived</code></div>
       </div>
 
-      <div class="ms-auto"></div>
-
-      <div>
-        <label class="form-label fw-semibold mb-1">From</label>
-        <input id="fromDate" type="date" class="form-control form-control-sm" />
-      </div>
-      <div>
-        <label class="form-label fw-semibold mb-1">To</label>
-        <input id="toDate" type="date" class="form-control form-control-sm" />
-      </div>
       <div>
         <label class="form-label fw-semibold mb-1">Search</label>
         <input id="searchBox" class="form-control form-control-sm" placeholder="Order No., Customer, Phone" />
@@ -115,7 +77,7 @@
     </div>
   </div>
 
-  <!-- Report table -->
+  <!-- Table -->
   <div class="gm-card p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
@@ -124,12 +86,13 @@
           <th style="width:36px;"></th>
           <th>Date</th>
           <th>Order No.</th>
-          <th>Type</th>
+          <th>Disposition</th>
           <th>Customer</th>
           <th class="text-center">Items</th>
-          <th class="text-end">Amount</th>
+          <th>Video</th>
+          <th>Images</th>
           <th>Status</th>
-          <th class="text-end" style="width:280px;">Actions</th>
+          <th class="text-end" style="width:320px;">Actions</th>
         </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -146,27 +109,100 @@
 
 </main>
 
-<!-- Confirm Modal -->
+<!-- Action Modal -->
 <div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form class="modal-content" id="actionForm">
+  <div class="modal-dialog modal-lg"><!-- lg so reship list fits -->
+    <form class="modal-content" id="actionForm" novalidate>
       <div class="modal-header">
         <h5 class="modal-title" id="actionTitle">Confirm</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+
       <div class="modal-body">
         <div id="actionPrompt" class="mb-3"></div>
-        <label class="form-label fw-semibold">Note (optional)</label>
-        <input id="actionNote" class="form-control" placeholder="Add internal note"/>
+
+        <!-- Approve: refunded ref -->
+        <div class="row g-2 align-items-end mb-2" id="refundRefWrap" style="display:none;">
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold req">Refunded reference</label>
+            <input id="refundedReference" class="form-control" placeholder="UTR#/Txn ID/Ref no." />
+            <div class="invalid-feedback">Refunded reference is required to approve a refund.</div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold">Note (optional)</label>
+            <input id="actionNote" class="form-control" placeholder="Add internal note"/>
+          </div>
+        </div>
+
+        <!-- Reject: only note -->
+        <div class="row g-2 mb-2" id="rejectWrap" style="display:none;">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Note (optional)</label>
+            <input id="rejectNote" class="form-control" placeholder="Add internal note"/>
+          </div>
+        </div>
+
+        <!-- Reship: product checklist -->
+        <div id="reshipWrap" style="display:none;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="fw-semibold">Select products to reship</div>
+            <div class="form-text">Minimum 1 product must be selected.</div>
+          </div>
+
+          <div class="table-responsive border rounded">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+              <tr>
+                <th style="width:42px;">
+                  <input class="form-check-input" type="checkbox" id="reshipCheckAll" title="Select all">
+                </th>
+                <th>Item</th>
+                <th>ProductId</th>
+                <th>VariantId</th>
+                <th class="text-center" style="width:110px;">Qty</th>
+              </tr>
+              </thead>
+              <tbody id="reshipList">
+              <!-- rows injected -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="text-danger small mt-2 d-none" id="reshipError">Select at least one product.</div>
+
+          <div class="mt-3">
+            <label class="form-label fw-semibold">Note (optional)</label>
+            <input id="reshipNote" class="form-control" placeholder="Any instruction for reshipment"/>
+          </div>
+        </div>
+
         <input type="hidden" id="actionReturnId">
         <input type="hidden" id="actionOrderNo">
         <input type="hidden" id="actionKind"> <!-- approve|reject|reship -->
+        <input type="hidden" id="actionRecordIdx"><!-- absolute index into filtered list -->
       </div>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
         <button id="actionSubmitBtn" type="submit" class="btn btn-accent">Confirm</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Images Modal -->
+<div class="modal fade" id="imagesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Return Images</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="imagesGrid" class="img-grid"></div>
+        <div id="imagesEmpty" class="img-empty d-none">No images found for this return.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -180,233 +216,390 @@
   </div>
 </div>
 
+<!-- Bootstrap first -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-  /* ===== Config ===== */
-  const REPORT_URL = '/v1/order/return/returnreport';
-  const APPROVE_URL = '/v1/order/return/approve-refund';
-  const REJECT_URL  = '/v1/order/return/reject-refund';
-  const RESHIP_URL  = '/v1/order/return/reship';
+  document.addEventListener('DOMContentLoaded', () => {
+    /* ===== Endpoints ===== */
+    const RETURN_RECEIVED_URL = '/v1/order/return/returnreceived';
+    const APPROVE_URL = '/v1/order/return/approve-refund';
+    const REJECT_URL  = '/v1/order/return/reject-refund';
+    const RESHIP_URL  = '/v1/order/return/reship';  // expects {returnId, orderNo, note?, items:[{productId,variantId,productName?,qty}]}
 
-  /* ===== Utils ===== */
-  const $ = (s)=>document.querySelector(s);
-  const toast = (msg)=>{ $('#toastMsg').textContent = msg; new bootstrap.Toast($('#toast')).show(); };
-  const asMoney = (n)=> (n==null?'—': new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(n));
-  const pad = (n)=>String(n).padStart(2,'0');
-  const fmtDate = (iso)=> {
-    try { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
-    catch { return iso || '—'; }
-  };
+    /* ===== Utils ===== */
+    const $ = (s)=>document.querySelector(s);
+    const toast = (msg)=>{ $('#toastMsg').textContent = msg; new window.bootstrap.Toast($('#toast')).show(); };
+    const pad = (n)=>String(n).padStart(2,'0');
+    const fmtDate = (iso)=> { if(!iso) return '—'; try { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; } catch { return iso; } };
+    const stateBadge = (s)=>{ const open = ['PENDING','OPEN','CREATED','DRAFT']; const cls = open.includes(String(s||'').toUpperCase()) ? 'bdg-state-open' : 'bdg-state-closed'; return `<span class="${cls}">${(s||'—')}</span>`; };
 
-  /* ===== Navigation header ===== */
-  $('#gmBackBtn').addEventListener('click', ()=>{ if(history.length>1) history.back(); else location.href='/v1/home'; });
+    /* ===== Nav ===== */
+    $('#gmBackBtn').addEventListener('click', ()=>{ if(history.length>1) history.back(); else location.href='/v1/home'; });
 
-  /* ===== State ===== */
-  let page = 0, pageSize = 20, lastRows = [];
-  function currentType(){
-    if ($('#typeRTO').checked) return 'rto';
-    if ($('#typeReturn').checked) return 'return';
-    if ($('#typeCancellation').checked) return 'cancellation';
-    return 'all';
-  }
+    /* ===== State ===== */
+    let ALL = [];
+    let page = 0;
+    const pageSize = 20;
+    const filters = { q: '' };
 
-  /* ===== Fetch ===== */
-  async function fetchReport(){
-    const from = $('#fromDate').value;
-    const to   = $('#toDate').value;
-    const q    = $('#searchBox').value.trim();
-    const type = currentType();
+    $('#searchBox').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); filters.q = $('#searchBox').value.trim(); page=0; renderRows(); } });
 
-    // spinner
-    $('#rfSpin').classList.remove('d-none'); $('#rfLbl').textContent = 'Loading…'; $('#btnRefresh').disabled = true;
-
-    const url = new URL(REPORT_URL, location.origin);
-    url.searchParams.set('type', type);
-    if (from) url.searchParams.set('from', from);
-    if (to)   url.searchParams.set('to', to);
-    if (q)    url.searchParams.set('q', q);
-    url.searchParams.set('page', page);
-    url.searchParams.set('size', pageSize);
-
-    try{
-      const res = await fetch(url.toString(), { headers: { 'Accept':'application/json' }});
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      // Expected shape: { items: [...], total: number, hasNext: boolean }
-      lastRows = Array.isArray(data.items) ? data.items : [];
-      renderRows(lastRows);
-      $('#summary').textContent = `${data.total ?? lastRows.length} results • page ${page+1}`;
-      $('#prevBtn').disabled = page<=0;
-      $('#nextBtn').disabled = !data.hasNext;
-    }catch(err){
-      console.error(err); toast('Failed to load report');
-      lastRows = []; renderRows([]);
-      $('#summary').textContent = '—';
-      $('#prevBtn').disabled = true; $('#nextBtn').disabled = true;
-    }finally{
-      $('#rfSpin').classList.add('d-none'); $('#rfLbl').textContent = 'Refresh'; $('#btnRefresh').disabled = false;
-    }
-  }
-
-  /* ===== Render ===== */
-  function typeBadge(t){
-    const map = { rto:'bdg-rto', return:'bdg-return', cancellation:'bdg-cancel' };
-    const cls = map[t?.toLowerCase?.()] || '';
-    const txt = (t || '').toUpperCase() || '—';
-    return `<span class="bdg-type ${cls}">${txt}</span>`;
-  }
-  function stateBadge(s){
-    const open = ['pending','open','created'];
-    const cls = open.includes(String(s||'').toLowerCase()) ? 'bdg-state-open' : 'bdg-state-closed';
-    const txt = (s||'—').toUpperCase();
-    return `<span class="${cls}">${txt}</span>`;
-  }
-  function renderRows(rows){
-    const tbody = $('#rows'); tbody.innerHTML = '';
-    if (!rows.length){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="9" class="text-center text-muted py-4">No results.</td>`;
-      tbody.appendChild(tr); return;
-    }
-
-    rows.forEach((r, idx)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="expander" data-bs-toggle="collapse" data-bs-target="#sub_${idx}" aria-expanded="false" title="Show items">
-          <i class="bi bi-caret-right-fill"></i>
-        </td>
-        <td>${fmtDate(r.date)}</td>
-        <td><a href="/v1/order/${encodeURIComponent(r.orderNo)}" class="text-decoration-none fw-semibold">${r.orderNo || '—'}</a></td>
-        <td>${typeBadge(r.type)}</td>
-        <td>${r.customer?.name ?? '—'} ${r.customer?.phone ? `<span class="text-muted">(${r.customer.phone})</span>`:''}</td>
-        <td class="text-center">${r.itemsCount ?? (r.lines?.length ?? '—')}</td>
-        <td class="text-end">${asMoney(r.amount)}</td>
-        <td>${stateBadge(r.status)}</td>
-        <td class="text-end">
-          <div class="btn-group" role="group">
-            <button class="btn btn-approve btn-sm btn-row" data-action="approve" data-id="${r.returnId}" data-order="${r.orderNo}">Approve Refund</button>
-            <button class="btn btn-reject btn-sm btn-row"  data-action="reject"  data-id="${r.returnId}" data-order="${r.orderNo}">Reject</button>
-            <button class="btn btn-ship btn-sm btn-row"    data-action="reship"  data-id="${r.returnId}" data-order="${r.orderNo}">Reship</button>
-          </div>
-        </td>
-      `;
-      tbody.appendChild(tr);
-
-      // sub row with items
-      const sub = document.createElement('tr');
-      const lines = r.lines || [];
-      sub.className = 'collapse subrow'; sub.id = `sub_${idx}`;
-      sub.innerHTML = `
-        <td></td>
-        <td colspan="8">
-          <div class="p-3">
-            <div class="fw-semibold mb-2">Items (${lines.length})</div>
-            <div class="table-responsive">
-              <table class="table table-sm mb-0">
-                <thead><tr><th>Title</th><th>Product/Variant</th><th class="text-center">Qty</th><th class="text-center">Marked</th></tr></thead>
-                <tbody>
-                  ${
-                    lines.length
-                      ? lines.map(li => `
-                        <tr>
-                          <td>${li.title ?? '—'}</td>
-                          <td><code>${li.productId ?? '—'}</code> / <code>${li.variantId ?? '—'}</code></td>
-                          <td class="text-center">${li.qty ?? 1}</td>
-                          <td class="text-center">${li.marked ?? '—'}</td>
-                        </tr>`).join('')
-                      : `<tr><td colspan="4" class="text-muted">No line details.</td></tr>`
-                  }
-                </tbody>
-              </table>
-            </div>
-            ${r.notes ? `<div class="mt-2"><span class="muted small">Notes:</span> ${r.notes}</div>`:''}
-          </div>
-        </td>
-      `;
-      tbody.appendChild(sub);
-    });
-  }
-
-  /* ===== Actions (Approve/Reject/Reship) with confirm modal ===== */
-  const actionModal = new bootstrap.Modal('#actionModal');
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const action = btn.dataset.action;
-    const returnId = btn.dataset.id;
-    const orderNo = btn.dataset.order;
-
-    $('#actionKind').value = action;
-    $('#actionReturnId').value = returnId;
-    $('#actionOrderNo').value = orderNo;
-
-    const titles = {
-      approve: 'Approve Refund',
-      reject: 'Reject Refund',
-      reship: 'Create Reshipment'
-    };
-    const prompts = {
-      approve: `Approve refund for <strong>${orderNo}</strong>?`,
-      reject:  `Reject refund for <strong>${orderNo}</strong>?`,
-      reship:  `Create reshipment for <strong>${orderNo}</strong>?`
-    };
-    $('#actionTitle').innerHTML = titles[action] || 'Confirm';
-    $('#actionPrompt').innerHTML = prompts[action] || '';
-    $('#actionNote').value = '';
-    actionModal.show();
-  });
-
-  $('#actionForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const kind = $('#actionKind').value;
-    const returnId = $('#actionReturnId').value;
-    const orderNo = $('#actionOrderNo').value;
-    const note = $('#actionNote').value.trim();
-
-    const url = kind==='approve' ? APPROVE_URL : kind==='reject' ? REJECT_URL : RESHIP_URL;
-    const btn = $('#actionSubmitBtn');
-    btn.disabled = true; btn.textContent = 'Working…';
-
-    try{
-      const res = await fetch(url, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-        body: JSON.stringify({ returnId, orderNo, note })
-      });
-      const data = await res.json().catch(()=> ({}));
-      if (!res.ok || data.success === false){
-        throw new Error(data.message || `HTTP ${res.status}`);
+    /* ===== Fetch ===== */
+    async function loadReturnReceived(){
+      $('#rfSpin').classList.remove('d-none'); $('#rfLbl').textContent = 'Loading…'; $('#btnRefresh').disabled = true;
+      try{
+        const res = await fetch(RETURN_RECEIVED_URL, { headers:{ 'Accept':'application/json' }});
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        ALL = Array.isArray(data) ? data : [];
+        page = 0;
+        renderRows();
+      }catch(err){
+        console.error(err);
+        ALL = []; renderRows();
+        toast('Failed to load returns');
+      }finally{
+        $('#rfSpin').classList.add('d-none'); $('#rfLbl').textContent = 'Refresh'; $('#btnRefresh').disabled = false;
       }
-      toast(data.message || 'Action completed');
-      actionModal.hide();
-      // refresh current page
-      fetchReport();
-    }catch(err){
-      console.error(err);
-      toast('Action failed: ' + (err.message || 'Unexpected error'));
-    }finally{
-      btn.disabled = false; btn.textContent = 'Confirm';
     }
+
+    $('#btnRefresh').addEventListener('click', ()=>{ loadReturnReceived(); });
+    $('#prevBtn').addEventListener('click', ()=>{ if(page>0){ page--; renderRows(); } });
+    $('#nextBtn').addEventListener('click', ()=>{ const total = getFiltered().length; if ((page+1)*pageSize < total){ page++; renderRows(); } });
+
+    function getFiltered(){
+      const q = (filters.q || '').toLowerCase();
+      if(!q) return ALL;
+      return ALL.filter(r =>
+        (r.orderNo||'').toLowerCase().includes(q) ||
+        (r.customer?.name||'').toLowerCase().includes(q) ||
+        (r.customer?.phone||'').toLowerCase().includes(q) ||
+        (r.returnId||'').toLowerCase().includes(q)
+      );
+    }
+
+    /* ===== Image helpers ===== */
+    function makeImageUrl(one){
+      if (!one) return null;
+      try{
+        if (typeof one === 'string') {
+          if (one.startsWith('data:image')) return one;
+          const bstr = atob(one); const len = bstr.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) bytes[i] = bstr.charCodeAt(i);
+          return URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' }));
+        }
+        if (Array.isArray(one)) {
+          return URL.createObjectURL(new Blob([new Uint8Array(one)], { type: 'image/jpeg' }));
+        }
+      }catch(e){ console.warn('Image decode failed', e); }
+      return null;
+    }
+
+    /* ===== Render main table ===== */
+    function renderRows(){
+      const tbody = $('#rows'); tbody.innerHTML = '';
+      const filtered = getFiltered();
+      const total = filtered.length;
+      const start = page * pageSize;
+      const rows = filtered.slice(start, start + pageSize);
+
+      if (!rows.length){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="10" class="text-center text-muted py-4">No results.</td>`;
+        tbody.appendChild(tr);
+        $('#summary').textContent = '—';
+        $('#prevBtn').disabled = true; $('#nextBtn').disabled = true;
+        return;
+      }
+
+      rows.forEach((r, idx)=>{
+        const lines = Array.isArray(r.lines) ? r.lines : [];
+        const video = r.videoFilename
+          ? `<a class="text-decoration-none" href="/v1/order/return/video/${encodeURIComponent(r.videoFilename)}" target="_blank">View</a>`
+          : '—';
+
+        const imgs = Array.isArray(r.returnProductImages) ? r.returnProductImages : [];
+        const hasImgs = imgs.length > 0;
+        const firstThumbUrl = hasImgs ? makeImageUrl(imgs[0]) : null;
+        const imagesCell = hasImgs
+          ? `<a href="#" class="text-decoration-none view-images" data-images-idx="${start+idx}">View (${imgs.length})</a>${firstThumbUrl ? `<img class="img-thumb" alt="thumb" src="${firstThumbUrl}">` : ''}`
+          : '—';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="expander" data-bs-toggle="collapse" data-bs-target="#sub_${page}_${idx}" aria-expanded="false" title="Show items">
+            <i class="bi bi-caret-right-fill"></i>
+          </td>
+          <td>${fmtDate(r.timestamp)}</td>
+          <td><a href="/v1/order/${encodeURIComponent(r.orderNo||'')}" class="text-decoration-none fw-semibold">${r.orderNo || '—'}</a></td>
+          <td>${r.disposition || '—'}</td>
+          <td>${r.customer?.name ?? '—'} ${r.customer?.phone ? `<span class="text-muted">(${r.customer.phone})</span>`:''}</td>
+          <td class="text-center">${lines.length}</td>
+          <td>${video}</td>
+          <td>${imagesCell}</td>
+          <td>${stateBadge(r.returnStatus)}</td>
+          <td class="text-end">
+            <div class="btn-group" role="group">
+              <button class="btn btn-success btn-sm" data-action="approve" data-id="${r.returnId}" data-order="${r.orderNo}" data-idx="${start+idx}">Approve Refund</button>
+              <button class="btn btn-danger  btn-sm" data-action="reject"  data-id="${r.returnId}" data-order="${r.orderNo}" data-idx="${start+idx}">Reject</button>
+              <button class="btn btn-primary btn-sm" data-action="reship"  data-id="${r.returnId}" data-order="${r.orderNo}" data-idx="${start+idx}">Reship</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        const sub = document.createElement('tr');
+        sub.className = 'collapse subrow'; sub.id = `sub_${page}_${idx}`;
+        sub.innerHTML = `
+          <td></td>
+          <td colspan="9">
+            <div class="p-3">
+              <div class="fw-semibold mb-2">Items (${lines.length})</div>
+              <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                  <thead><tr><th>Line ID</th><th>Product</th><th>Variant</th><th class="text-center">Qty</th><th class="text-center">Marked</th></tr></thead>
+                  <tbody>
+                    ${
+                      lines.length
+                        ? lines.map(li => `
+                          <tr>
+                            <td><code>${li.lineId ?? '—'}</code></td>
+                            <td><code>${li.productName ?? '—'}</code></td>
+                            <td><code>${li.variantId ?? '—'}</code></td>
+                            <td class="text-center">${li.qty ?? 1}</td>
+                            <td class="text-center">${li.marked ?? '—'}</td>
+                          </tr>`).join('')
+                        : `<tr><td colspan="5" class="text-muted">No line details.</td></tr>`
+                    }
+                  </tbody>
+                </table>
+              </div>
+              ${r.notes ? `<div class="mt-2"><span class="muted small">Notes:</span> ${r.notes}</div>`:''}
+              ${r.empId ? `<div class="mt-1"><span class="muted small">Employee:</span> ${r.empId}</div>`:''}
+            </div>
+          </td>
+        `;
+        tbody.appendChild(sub);
+      });
+
+      // Images handlers
+      document.querySelectorAll('.view-images').forEach(a=>{
+        a.addEventListener('click', (ev)=>{
+          ev.preventDefault();
+          const absoluteIndex = Number(a.getAttribute('data-images-idx'));
+          const record = getFiltered()[absoluteIndex];
+          openImagesModal(record?.returnProductImages || []);
+        });
+      });
+
+      $('#summary').textContent = `${total} results • page ${page+1}`;
+      $('#prevBtn').disabled = page<=0;
+      $('#nextBtn').disabled = (page+1)*pageSize >= total;
+    }
+
+    /* ===== Images modal ===== */
+    const imagesModal = new window.bootstrap.Modal('#imagesModal');
+    let ACTIVE_IMG_URLS = [];
+    function openImagesModal(byteList){
+      cleanupImageUrls();
+      const grid = $('#imagesGrid');
+      const empty = $('#imagesEmpty');
+      grid.innerHTML = '';
+      const urls = (Array.isArray(byteList) ? byteList : [])
+        .map(s => (typeof s === 'string' && s.startsWith('data:image')) ? s : makeImageUrl(s))
+        .filter(Boolean);
+      if (!urls.length){
+        empty.classList.remove('d-none');
+        imagesModal.show();
+        return;
+      }
+      empty.classList.add('d-none');
+      urls.forEach((u, i)=>{
+        if (typeof u === 'string' && u.startsWith('blob:')) ACTIVE_IMG_URLS.push(u);
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.innerHTML = `<img alt="Return image ${i+1}" src="${u}">`;
+        grid.appendChild(cell);
+      });
+      imagesModal.show();
+    }
+    function cleanupImageUrls(){
+      ACTIVE_IMG_URLS.forEach(u=>{ try{ URL.revokeObjectURL(u); }catch{} });
+      ACTIVE_IMG_URLS = [];
+    }
+    document.getElementById('imagesModal').addEventListener('hidden.bs.modal', cleanupImageUrls);
+
+    /* ===== Action modal ===== */
+    const actionModal = new window.bootstrap.Modal('#actionModal');
+
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-action]'); if (!btn) return;
+      const action = btn.dataset.action;
+      const returnId = btn.dataset.id;
+      const orderNo  = btn.dataset.order;
+      const recIdx   = Number(btn.dataset.idx);
+
+      $('#actionKind').value = action;
+      $('#actionReturnId').value = returnId;
+      $('#actionOrderNo').value = orderNo;
+      $('#actionRecordIdx').value = String(recIdx);
+
+      const titles  = { approve:'Approve Refund', reject:'Reject Refund', reship:'Create Reshipment' };
+      const prompts = {
+        approve: `Approve refund for <strong>${orderNo}</strong>?`,
+        reject:  `Reject refund for <strong>${orderNo}</strong>?`,
+        reship:  `Create reshipment for <strong>${orderNo}</strong>. Select products to include:`
+      };
+      $('#actionTitle').innerHTML = titles[action] || 'Confirm';
+      $('#actionPrompt').innerHTML = prompts[action] || '';
+
+      // Reset sections
+      $('#refundRefWrap').style.display = 'none';
+      $('#rejectWrap').style.display = 'none';
+      $('#reshipWrap').style.display = 'none';
+      $('#reshipError').classList.add('d-none');
+
+      if (action === 'approve') {
+        $('#refundRefWrap').style.display = '';
+        $('#refundedReference').value = '';
+        $('#actionNote').value = '';
+        $('#refundedReference').classList.remove('is-invalid');
+      } else if (action === 'reject') {
+        $('#rejectWrap').style.display = '';
+        $('#rejectNote').value = '';
+      } else if (action === 'reship') {
+        // Build product checklist from the selected record
+        const rec = getFiltered()[recIdx] || {};
+        buildReshipList(Array.isArray(rec.lines) ? rec.lines : []);
+        $('#reshipNote').value = '';
+        $('#reshipWrap').style.display = '';
+      }
+
+      actionModal.show();
+    });
+
+    // Build reship list (checkbox + qty) from lines
+    function buildReshipList(lines){
+      const tbody = $('#reshipList');
+      tbody.innerHTML = '';
+      if (!lines.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="text-muted text-center py-3">No items available for reship.</td></tr>`;
+        return;
+      }
+      lines.forEach((li, idx)=>{
+        const maxQty = Math.max(1, Number(li.qty ?? 1));
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>
+            <input class="form-check-input reship-check" type="checkbox"
+                   data-pid="${li.productId||''}" data-vid="${li.variantId||''}" data-name="${(li.productName||'').replace(/"/g,'&quot;')}"
+                   id="rs_${idx}">
+          </td>
+          <td><label class="form-label mb-0" for="rs_${idx}">${li.productName ?? '—'}</label></td>
+          <td><code>${li.productId ?? '—'}</code></td>
+          <td><code>${li.variantId ?? '—'}</code></td>
+          <td class="text-center">
+            <input type="number" class="form-control form-control-sm reship-qty" value="1" min="1" max="${maxQty}" style="width:90px;" ${maxQty===1?'readonly':''}>
+            <div class="form-text">max ${maxQty}</div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Select-all checkbox
+      const allCb = $('#reshipCheckAll');
+      allCb.checked = false;
+      allCb.onchange = (e)=>{
+        const checked = e.target.checked;
+        document.querySelectorAll('.reship-check').forEach(cb => cb.checked = checked);
+      };
+    }
+
+    // Submit actions
+    $('#actionForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const kind     = $('#actionKind').value;
+      const returnId = $('#actionReturnId').value;
+      const orderNo  = $('#actionOrderNo').value;
+      const btn      = $('#actionSubmitBtn');
+
+      let url   = '';
+      let body  = {};
+      let note  = '';
+
+      if (kind === 'approve') {
+        const refundedReference = $('#refundedReference').value.trim();
+        if (!refundedReference){
+          $('#refundedReference').classList.add('is-invalid');
+          $('#refundedReference').focus();
+          return;
+        }
+        $('#refundedReference').classList.remove('is-invalid');
+        note = $('#actionNote').value.trim();
+        url  = APPROVE_URL;
+        body = { returnId, orderNo, note, refundedReference };
+      } else if (kind === 'reject') {
+        note = $('#rejectNote').value.trim();
+        url  = REJECT_URL;
+        body = { returnId, orderNo, note };
+      } else if (kind === 'reship') {
+        // collect selected products
+        const rows = Array.from(document.querySelectorAll('#reshipList tr'));
+        const items = [];
+        rows.forEach((tr)=>{
+          const cb  = tr.querySelector('.reship-check');
+          const qtyEl = tr.querySelector('.reship-qty');
+          if (cb && cb.checked){
+            const qty = Math.max(1, Number(qtyEl.value||1));
+            items.push({
+              productId: cb.dataset.pid || null,
+              variantId: cb.dataset.vid || null,
+              productName: cb.dataset.name || null,
+              qty
+            });
+          }
+        });
+        if (!items.length){
+          $('#reshipError').classList.remove('d-none');
+          return;
+        }
+        $('#reshipError').classList.add('d-none');
+        note = $('#reshipNote').value.trim();
+        url  = RESHIP_URL;
+        body = { returnId, orderNo, note, items };
+      } else {
+        return; // unknown action
+      }
+
+      btn.disabled = true; btn.textContent = 'Working…';
+      try{
+        const res = await fetch(url, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok || data.success === false){
+          throw new Error(data.message || `HTTP ${res.status}`);
+        }
+        toast(data.message || (kind==='reship' ? 'Reship order created' : 'Action completed'));
+        actionModal.hide();
+        loadReturnReceived();
+      }catch(err){
+        console.error(err);
+        toast('Action failed: ' + (err.message || 'Unexpected error'));
+      }finally{
+        btn.disabled = false; btn.textContent = 'Confirm';
+      }
+    });
+
+    /* ===== Init ===== */
+    loadReturnReceived();
   });
-
-  /* ===== Paging & filters ===== */
-  $('#btnRefresh').addEventListener('click', ()=>{ page = 0; fetchReport(); });
-  $('#prevBtn').addEventListener('click', ()=>{ if (page>0){ page--; fetchReport(); } });
-  $('#nextBtn').addEventListener('click', ()=>{ page++; fetchReport(); });
-
-  // Trigger on filter change / enter
-  ['typeAll','typeRTO','typeReturn','typeCancellation'].forEach(id=>{
-    document.getElementById(id).addEventListener('change', ()=>{ page=0; fetchReport(); });
-  });
-  $('#fromDate').addEventListener('change', ()=>{ page=0; fetchReport(); });
-  $('#toDate').addEventListener('change', ()=>{ page=0; fetchReport(); });
-  $('#searchBox').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); page=0; fetchReport(); } });
-
-  /* ===== Init ===== */
-  (async()=>{ fetchReport(); })();
 </script>
 
-<!-- Icons + Bootstrap JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

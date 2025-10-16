@@ -12,4 +12,7 @@ import java.util.Optional;
 public interface ShopifyOrderRepo extends MongoRepository<ShopifyOrders, String> {
     @Query("{ 'customStatus':{$regex:?0,$options:'i'} }")
     Optional<List<ShopifyOrders>> findByStatus(String orderStatus);
+
+    @Query("{ 'name': ?0 }")
+    Optional<ShopifyOrders> findByName(String orderNo);
 }

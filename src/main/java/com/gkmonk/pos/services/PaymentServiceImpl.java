@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.aggregation.SortOperation;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
 
@@ -35,4 +36,7 @@ public class PaymentServiceImpl {
                 paymentRepo.findFilteredReceipts(minAmount, maxAmount, startDate, endDate);
     }
 
+    public Optional<List<PaymentReceipts>> findAll(String vendorName) {
+        return paymentRepo.findByVendorName(vendorName);
+    }
 }

@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Document("shopifyorders")
@@ -18,7 +19,7 @@ public class ShopifyOrders {
 	private String fulfillment_status;
 	private String order_status_url;
 	private String total_outstanding;
-	private String total_price;
+	private double total_price;
 	private ShopifyAddress billing_address;
 	private ShopifyAddress shipping_address;
 	private ShopifyFulfillment[] fulfillments;
@@ -46,9 +47,12 @@ public class ShopifyOrders {
 	private double estimatedRate;
 	private String estimatedDays;
 	private String courierPreference;
+	private int pastOrders;
+	private List<ShopifyLineItems> items;
+	private String parentOrderNo;
 
 
-	
+
 	public LocalDateTime getPackOrderDate() {
 		return packOrderDate != null ? packOrderDate : LocalDateTime.of(2000,1,1,0,0);
 	}

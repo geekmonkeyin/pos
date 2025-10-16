@@ -1,6 +1,5 @@
 package com.gkmonk.pos.repo.returns;
 
-import com.gkmonk.pos.model.returns.ReturnOrder;
 import com.gkmonk.pos.model.returns.ReturnVerificationRequest;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
@@ -12,6 +11,6 @@ import java.util.List;
 public interface ReturnVerificationRepo extends MongoRepository<ReturnVerificationRequest, String> {
 
 
-    @Query( "{ 'status' : ?0 }")
+    @Query( "{ 'returnStatus' : ?0 }")
     List<ReturnVerificationRequest> findByStatus(String name);
 }

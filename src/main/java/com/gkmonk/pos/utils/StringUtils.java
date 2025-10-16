@@ -55,7 +55,7 @@ public class StringUtils {
     }
 
     public static String updateStartDate(String date) {
-        return StringUtils.isBlank(date) ? LocalDate.now().minusDays(30).toString() : date.trim();
+        return date == null || StringUtils.isBlank(date) ? LocalDate.now().minusDays(30).toString() : date.trim();
     }
 
     public static Double updateMinAmount(Double amount) {
@@ -71,6 +71,6 @@ public class StringUtils {
     }
 
     public static String updateEndDate(String date) {
-        return StringUtils.isBlank(date) ? LocalDate.now().toString() : date.trim();
+        return date == null || StringUtils.isBlank(date) ? LocalDate.now().toString() : date.trim();
     }
 }

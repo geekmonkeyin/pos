@@ -1,113 +1,277 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purchase Order</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script>
-        let selectedVendorId;
+    <meta charset="UTF-8" />
+    <title>Geekmonkey — Purchase Order</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap 4.5 -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
 
-        function fetchVendors(input) {
-            const query = input.value.trim();
-            if (query.length < 3) return; // Minimum 3 characters required
-
-            fetch(`/v1/vendor/search/${query}`)
-                .then(response => response.json())
-                .then(data => {
-                    const vendorList = document.getElementById('vendorList');
-                    vendorList.innerHTML = ''; // Clear previous results
-
-                    data.forEach(data => {
-                        const listItem = document.createElement('li');
-                        listItem.className = 'list-group-item';
-                        listItem.textContent = data.vendorName;
-                        listItem.onclick = () => selectVendor(data);
-                        vendorList.appendChild(listItem);
-                    });
-
-                    document.getElementById('vendorListContainer').style.display = 'block';
-                })
-                .catch(error => console.error('Error fetching vendors:', error));
+    <style>
+        :root{
+          --bg:#F9FAFB; --card:#ffffff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --radius:16px;
         }
+        html,body{height:100%}
+        body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
 
-        function selectVendor(vendor) {
-            document.getElementById('vendorName').value = vendor.vendorName;
-            selectedVendorId = vendor.vendorId; // Store the selected vendor ID
-            document.getElementById('vendorListContainer').style.display = 'none';
+        /* Header */
+        .gm-header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke)}
+        .gm-brand{display:flex; align-items:center; gap:.6rem; font-weight:700; letter-spacing:.2px; color:var(--text); text-decoration:none}
+        .gm-dot{width:28px; height:28px; border-radius:10px; background:var(--accent); display:inline-block; box-shadow:0 8px 18px rgba(255,122,0,.25)}
+        .btn-ghost{background:#fff; border:1px solid var(--stroke); color:var(--text); border-radius:12px}
+        .btn-ghost:hover{border-color:#d6d9de; background:#fdfdfd}
+        .btn-accent{background:var(--accent); color:#fff; border:0; border-radius:12px}
+        .btn-accent:hover{background:#ff8d26}
+
+        /* Page */
+        .gm-wrap{padding:20px}
+        @media (min-width:992px){ .gm-wrap{padding:28px} }
+        .gm-card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 4px 16px rgba(17,24,39,.04)}
+        .req::after{content:" *"; color:#dc3545; font-weight:700}
+        .form-help{color:var(--muted); font-size:.9rem}
+
+        /* Vendor dropdown */
+        .vendor-results{
+          position:relative;
         }
-
-         async function submitPurchaseOrder(event) {
-            event.preventDefault(); // Prevent default form submission
-
-            const orderId = document.getElementById('orderId').value;
-            const vendorName = document.getElementById('vendorName').value;
-            const orderDate = document.getElementById('orderDate').value;
-            const totalAmount = document.getElementById('purchaseAmount').value;
-
-            const purchaseOrder = {
-                orderId,
-                vendorName,
-                orderDate,
-                totalAmount
-            };
-
-            try {
-                const response = await fetch('/v1/vendor/purchase/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(purchaseOrder)
-                });
-
-                if (response.ok) {
-                    alert('Purchase order updated successfully!');
-                } else {
-                    const errorMessage = await response.text();
-                    alert(`Failed to update purchase order: ${errorMessage}`);
-                }
-            } catch (error) {
-                console.error('Error updating purchase order:', error);
-                alert('An error occurred while updating the purchase order.');
-            }
+        .vendor-panel{
+          position:absolute; left:0; right:0; top:100%; z-index:1050;
+          background:#fff; border:1px solid var(--stroke); border-radius:12px;
+          box-shadow:0 12px 24px rgba(17,24,39,.08);
+          margin-top:.35rem; max-height:260px; overflow:auto; display:none;
         }
+        .vendor-item{padding:.6rem .8rem; cursor:pointer}
+        .vendor-item:hover{background:#FFF8F1}
+        .spinner-sm{
+          width:1rem; height:1rem; border:.18rem solid #e5e7eb; border-top-color:var(--accent); border-radius:50%;
+          animation:spin .8s linear infinite; display:inline-block
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
 
-    </script>
+        /* Toast */
+        .toast.gm-toast{background:#111827; color:#fff; border-radius:12px}
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1 class="text-center">Purchase Order</h1>
-        <form onsubmit="submitPurchaseOrder(event)">
-            <!-- Order ID -->
-            <div class="form-group">
-                <label for="orderId">Order ID</label>
-                <input type="text" class="form-control" id="orderId" name="orderId" placeholder="Enter order ID">
-            </div>
 
-            <!-- Vendor Name -->
-            <div class="form-group">
-                <label for="vendorName">Vendor Name</label>
-                <input type="text" class="form-control" id="vendorName" oninput="fetchVendors(this)" placeholder="Type vendor name">
-                <div id="vendorListContainer" style="display: none; margin-top: 10px;">
-                    <ul id="vendorList" class="list-group"></ul>
-                </div>
-            </div>
-
-            <!-- Order Placed Date -->
-            <div class="form-group">
-                <label for="orderDate">Order Placed Date</label>
-                <input type="date" class="form-control" id="orderDate" name="orderDate">
-            </div>
-
-            <!-- Purchase Amount -->
-            <div class="form-group">
-                <label for="purchaseAmount">Purchase Amount</label>
-                <input type="number" class="form-control" id="purchaseAmount" name="purchaseAmount" placeholder="Enter purchase amount">
-            </div>
-
-            <button type="submit" class="btn btn-primary">Submit</button>
-        </form>
+<!-- Header -->
+<nav class="gm-header">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">
+            <span class="gm-dot" aria-hidden="true"></span>
+            <span>Geekmonkey</span>
+        </a>
+        <div class="d-flex">
+            <button id="gmBackBtn" type="button" class="btn btn-ghost btn-sm mr-2" aria-label="Go Back">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="ml-1">Back</span>
+            </button>
+            <a href="/v1/home" class="btn btn-accent btn-sm" aria-label="Go Home">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M3 10.5l9-7 9 7V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H3v-9.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="ml-1">Home</span>
+            </a>
+        </div>
     </div>
+</nav>
+
+<!-- Main -->
+<main class="gm-wrap">
+    <div class="container">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h1 class="m-0 font-weight-bold">Purchase Order</h1>
+        </div>
+
+        <div class="gm-card p-3 p-md-4">
+            <form id="poForm" novalidate>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label class="req" for="orderId">Order ID</label>
+                        <input type="text" class="form-control" id="orderId" placeholder="Enter order ID" required />
+                        <div class="invalid-feedback">Order ID is required.</div>
+                    </div>
+
+                    <div class="form-group col-md-4 vendor-results">
+                        <label class="req" for="vendorName">Vendor Name</label>
+                        <div class="d-flex align-items-center">
+                            <input type="text" class="form-control" id="vendorName" placeholder="Type vendor name (min 3 chars)" autocomplete="off" />
+                            <span id="vendorSpin" class="spinner-sm ml-2" style="display:none"></span>
+                        </div>
+                        <small class="form-help">Start typing to search; click a result to select.</small>
+                        <div id="vendorPanel" class="vendor-panel"></div>
+                        <div class="invalid-feedback">Please choose a vendor from the list.</div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label class="req" for="orderDate">Order Placed Date</label>
+                        <input type="date" class="form-control" id="orderDate" required />
+                        <div class="invalid-feedback">Order date is required.</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label class="req" for="purchaseAmount">Purchase Amount</label>
+                        <input type="number" class="form-control" id="purchaseAmount" placeholder="Enter purchase amount" min="0" step="0.01" required />
+                        <div class="invalid-feedback">Valid amount is required.</div>
+                    </div>
+                </div>
+
+                <div class="d-flex">
+                    <button id="submitBtn" type="submit" class="btn btn-accent">
+                        <span id="submitLabel">Submit</span>
+                        <span id="submitSpin" class="spinner-sm ml-2" style="display:none"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<!-- Toast -->
+<div class="position-fixed" style="bottom:16px; right:16px; z-index:1080;">
+    <div id="toast" class="toast gm-toast" role="alert" data-delay="2500">
+        <div class="toast-body" id="toastMsg">—</div>
+    </div>
+</div>
+
+<script>
+    // --- Helpers & State ---
+    const $ = (s)=>document.querySelector(s);
+    const toast = (msg)=>{ $('#toastMsg').textContent = msg; $('.toast').classList.add('show'); setTimeout(()=>$('.toast').classList.remove('show'), 2600); };
+    let selectedVendor = null; // {vendorId, vendorName}
+
+    // Header Back
+    (function(){
+      const backBtn = $('#gmBackBtn');
+      if(backBtn){
+        backBtn.addEventListener('click', ()=>{
+          if (history.length > 1) { try{ history.back(); return; }catch(e){} }
+          location.href = '/v1/home';
+        });
+      }
+    })();
+
+    // Debounce
+    function debounce(fn, wait=300){
+      let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); }
+    }
+
+    // Vendor search
+    async function fetchVendors(q){
+      if (!q || q.trim().length < 3) { $('#vendorPanel').style.display='none'; return; }
+      $('#vendorSpin').style.display = '';
+      try{
+        const res = await fetch(`/v1/vendor/search/${encodeURIComponent(q.trim())}`);
+        const data = await res.json();
+        const panel = $('#vendorPanel'); panel.innerHTML = '';
+        (data || []).forEach(v=>{
+          const item = document.createElement('div');
+          item.className = 'vendor-item';
+          item.innerHTML = `<div class="font-weight-bold">${v.vendorName}</div><div class="text-muted small">ID: ${v.vendorId}</div>`;
+          item.addEventListener('click', ()=> selectVendor(v));
+          panel.appendChild(item);
+        });
+        panel.style.display = (data && data.length) ? 'block' : 'none';
+      }catch(e){
+        console.error(e);
+        $('#vendorPanel').style.display='none';
+      }finally{
+        $('#vendorSpin').style.display = 'none';
+      }
+    }
+    const debouncedFetch = debounce(fetchVendors, 350);
+
+    function selectVendor(v){
+      selectedVendor = { vendorId: v.vendorId, vendorName: v.vendorName };
+      $('#vendorName').value = v.vendorName;
+      $('#vendorPanel').style.display = 'none';
+      // clear invalid if any
+      $('#vendorName').classList.remove('is-invalid');
+    }
+
+    // Close panel on outside click
+    document.addEventListener('click', (e)=>{
+      const within = e.target.closest('.vendor-results');
+      if (!within){ $('#vendorPanel').style.display='none'; }
+    });
+
+    // Inputs
+    $('#vendorName').addEventListener('input', (e)=>{
+      selectedVendor = null; // reset until user picks
+      debouncedFetch(e.target.value);
+    });
+
+    // Form submit
+    $('#poForm').addEventListener('submit', submitPurchaseOrder);
+
+    function setSubmitting(busy){
+      $('#submitSpin').style.display = busy ? '' : 'none';
+      $('#submitBtn').disabled = !!busy;
+      $('#submitLabel').textContent = busy ? 'Submitting...' : 'Submit';
+    }
+
+    async function submitPurchaseOrder(e){
+      e.preventDefault();
+
+      // basic validation
+      const orderId = $('#orderId').value.trim();
+      const vendorName = $('#vendorName').value.trim();
+      const orderDate = $('#orderDate').value;
+      const totalAmount = $('#purchaseAmount').value;
+
+      let valid = true;
+      if (!orderId){ $('#orderId').classList.add('is-invalid'); valid = false; } else { $('#orderId').classList.remove('is-invalid'); }
+      if (!orderDate){ $('#orderDate').classList.add('is-invalid'); valid = false; } else { $('#orderDate').classList.remove('is-invalid'); }
+      if (!totalAmount || Number(totalAmount) < 0){ $('#purchaseAmount').classList.add('is-invalid'); valid = false; } else { $('#purchaseAmount').classList.remove('is-invalid'); }
+
+      // force choosing a vendor from list (has an id)
+      if (!selectedVendor || selectedVendor.vendorName !== vendorName){
+        $('#vendorName').classList.add('is-invalid');
+        valid = false;
+      } else {
+        $('#vendorName').classList.remove('is-invalid');
+      }
+
+      if (!valid){ toast('Please fix the highlighted fields.'); return; }
+
+      const purchaseOrder = {
+        orderId,
+        vendorId: selectedVendor.vendorId,
+        vendorName: selectedVendor.vendorName,
+        orderDate,
+        totalAmount: Number(totalAmount)
+      };
+
+      try{
+        setSubmitting(true);
+        const res = await fetch('/v1/vendor/purchase/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(purchaseOrder)
+        });
+
+        if (!res.ok){
+          const text = await res.text().catch(()=> 'Failed');
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+        toast('Purchase order updated successfully ✔');
+        // Optional: reset form
+        // document.getElementById('poForm').reset(); selectedVendor = null;
+      }catch(err){
+        console.error(err);
+        toast('Update failed: ' + (err.message || 'Unexpected error'));
+      }finally{
+        setSubmitting(false);
+      }
+    }
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

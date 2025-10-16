@@ -22,6 +22,18 @@
         .table > :not(caption) > * > *{vertical-align:middle}
         .pill{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .6rem; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe}
         .req::after{content:" *"; color:#dc3545; font-weight:700}
+        .thumb{width:100%; height:160px; object-fit:cover; border:1px solid #e5e7eb; border-radius:10px}
+
+        /* New: tiny product thumb in table */
+        .itm-thumb{
+          width:42px; height:42px; border-radius:8px;
+          border:1px solid #E5E7EB; object-fit:cover; background:#f8fafc;
+        }
+        .itm-cell{ display:flex; align-items:center; gap:.5rem; }
+        .itm-fallback{
+          width:42px; height:42px; border-radius:8px; border:1px dashed #E5E7EB;
+          display:flex; align-items:center; justify-content:center; font-size:.85rem; color:#6B7280; background:#fff;
+        }
     </style>
 </head>
 <body>
@@ -40,12 +52,12 @@
         <div class="d-flex flex-column flex-md-row align-items-md-end gap-3">
             <div class="flex-grow-1">
                 <label class="form-label fw-semibold req">Search Order Number</label>
-                <input id="orderSearch" class="form-control" placeholder="e.g., GMK-2025-000123" />
+                <input id="orderSearch" class="form-control" placeholder="e.g., GM36175" />
                 <div class="form-text">Press Enter or click Search.</div>
             </div>
             <button id="searchBtn" class="btn btn-accent mt-2 mt-md-0">
                 <span id="searchLabel">Search</span>
-                <span id="searchSpin" class="spinner ms-2 d-none" aria-hidden="true"></span>
+                <span id="searchSpin" class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span>
             </button>
         </div>
 
@@ -59,30 +71,30 @@
                         <span id="orderStatus" class="badge badge-soft">Loaded</span>
                     </div>
                     <div class="small text-muted">Order No.</div>
-                    <div  class="fw-semibold">
-                        <a id="sumOrderNo"
-                           class="fw-semibold text-decoration-underline"
-                           href="#"
-                           aria-live="polite"
-                           data-base-url="/v1/orders/">Loading…</a>
+                    <div class="fw-semibold">
+                        <a id="sumOrderNo" class="fw-semibold text-decoration-underline" href="#" data-base-url="/v1/orders/">—</a>
                     </div>
                     <div class="small text-muted mt-2">Customer</div>
-                    <div id="sumCustomer" class="fw-semibold"></div>
+                    <div id="sumCustomer" class="fw-semibold">—</div>
                 </div>
             </div>
+
             <div class="col-md-8">
                 <div class="p-3 border rounded-3">
                     <div class="d-flex align-items-center justify-content-between">
-                        <div class="fw-bold">Products</div>
-                        <div class="small muted">Select the items physically received</div>
+                        <div class="fw-bold">Physical Items Received</div>
+                        <div class="small muted">Each row represents exactly <b>1 qty</b></div>
                     </div>
+
                     <div class="table-responsive mt-2">
                         <table class="table table-sm align-middle mb-0">
                             <thead>
                             <tr>
                                 <th style="width:36px;"><input class="form-check-input" type="checkbox" id="checkAll"></th>
+                                <th style="width:56px;">Image</th>
                                 <th>Item</th>
                                 <th>ProductId</th>
+                                <th>VariantId</th>
                                 <th class="text-center">Qty</th>
                                 <th class="text-center">Status</th>
                             </tr>
@@ -90,23 +102,25 @@
                             <tbody id="productRows"></tbody>
                         </table>
                     </div>
+
                     <div class="mt-2 d-flex gap-2 flex-wrap">
                         <button id="btnMarkGood" class="btn btn-success btn-sm">Mark Goods Received</button>
                         <button id="btnMarkDamaged" class="btn btn-danger btn-sm">Mark Damaged</button>
+                        <button id="btnMarkDifferent" class="btn btn-warning btn-sm">Received Different Item</button>
                         <select id="disposition" class="form-select form-select-sm" style="max-width:260px">
                             <option value="">Select Disposition…</option>
                             <option value="RTO">RTO</option>
                             <option value="Customer Return">Customer Return</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
-                        <div class="ms-auto small muted">Tip: Use the checkboxes to select the lines you’re marking.</div>
+                        <div class="ms-auto small muted">Tip: Use the checkboxes to select rows you’re marking.</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Capture -->
+    <!-- Media capture -->
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="gm-card p-3 p-md-4 h-100">
@@ -185,16 +199,17 @@
             </div>
             <div class="col-lg-8">
                 <div class="p-3 border rounded-3">
-                    <div class="fw-bold mb-2">Selected Lines & Status</div>
+                    <div class="fw-bold mb-2">Selected Units & Status</div>
                     <div class="table-responsive">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>Item</th><th>ProductID</th><th class="text-center">Qty</th><th class="text-center">Marked</th></tr></thead>
-                            <tbody id="pvLines"><tr><td colspan="4" class="text-muted">No items selected yet.</td></tr></tbody>
+                            <thead><tr><th>Item</th><th>ProductID</th><th>VariantID</th><th class="text-center">Qty</th><th class="text-center">Marked</th></tr></thead>
+                            <tbody id="pvLines"><tr><td colspan="5" class="text-muted">No units selected yet.</td></tr></tbody>
                         </table>
                     </div>
-                    <div class="mt-3 small muted">Video & images will be included in submission; ensure you’ve captured all evidence.</div>
+                    <div class="mt-3 small muted">Video & images will be included; ensure you’ve captured all evidence.</div>
                 </div>
             </div>
+
             <div class="col-12">
                 <div class="p-3 border rounded-3">
                     <div class="fw-bold mb-2">Media Preview</div>
@@ -212,9 +227,9 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
-
 </main>
 
 <!-- Toast -->
@@ -227,134 +242,172 @@
     </div>
 </div>
 
+<!-- Load Bootstrap first -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-    const ORDER_LOOKUP_URL = '/v1/order/return/lookup';
-    const VERIFY_SUBMIT_URL = '/v1/order/return/verify/submit';            // <— target endpoint
-    const $ = (sel) => document.querySelector(sel);
-    const fmtDate = (d=new Date())=>{
-      const pad = (n)=>String(n).padStart(2,'0');
-      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
-    };
-    const toast = (msg)=>{ $('#toastMsg').textContent = msg; new bootstrap.Toast($('#toast')).show(); };
-    const setBtnBusy = (btn, busy, busyText='Submitting...')=>{
-      btn.dataset.orig = btn.dataset.orig || btn.textContent;
-      btn.disabled = !!busy;
-      btn.textContent = busy ? busyText : btn.dataset.orig;
-    };
+    const ORDER_LOOKUP_URL   = '/v1/order/return/lookup';
+    const VERIFY_SUBMIT_URL  = '/v1/order/return/verify/submit';
+
+    const $ = (sel)=>document.querySelector(sel);
+    const toast = (msg)=>{ $('#toastMsg').textContent = msg; new window.bootstrap.Toast($('#toast')).show(); };
+    const pad2 = (n)=> String(n).padStart(2,'0');
 
     let currentOrder = null;
-    let statuses = {}; // { variantId: 'Good'|'Damaged' }
-    let photos = [];   // [{blob,url,name}]
-    let videoBlob = null, mediaStream = null, mediaRecorder = null, chunks = [];
+    // key = `${variantId}#${index}` -> 'Good' | 'Damaged' | 'Different'
+    const unitStatus = {};
+    let photos = [];
+    // SINGLE declaration here (do NOT redeclare later)
+    let mediaStream = null, mediaRecorder = null, chunks = [], videoBlob = null;
 
-    /* ===== Navigation ===== */
-    $('#gmBackBtn').addEventListener('click', ()=>{ if (history.length > 1) history.back(); else location.href='/v1/home'; });
+    $('#gmBackBtn').addEventListener('click', ()=>{ if (history.length>1) history.back(); else location.href='/v1/home'; });
 
-    /* ===== API ===== */
+    const filenameBase = ()=>{
+      const ord = currentOrder?.orderNo || 'NOORDER';
+      const d   = new Date();
+      const ts  = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}_${pad2(d.getHours())}-${pad2(d.getMinutes())}`;
+      const emp = ($('#empId').value.trim() || 'noemp').replace(/\s+/g,'');
+      return `${ord}_${ts}_${emp}`;
+    };
+
     async function fetchOrder(orderNo){
       const url = `${ORDER_LOOKUP_URL}?orderNo=${encodeURIComponent(orderNo)}`;
-      const res = await fetch(url, { method:'GET', headers:{ 'Accept':'application/json' }});
-      if (!res.ok) throw new Error(`Lookup failed (${res.status})`);
+      const res = await fetch(url, { headers: { 'Accept':'application/json' }});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     }
 
-    /* ===== Populate products ===== */
-    const populateOrder = (ord)=>{
-      currentOrder = ord; statuses = {};
+    // Build “unit rows” (explode qty), carry imageUrl for each row
+    function buildUnitRows(lines){
+      const units = [];
+      (lines || []).forEach(line=>{
+        const total = Math.max(1, Number(line.qty||1));
+        const imageUrl = line.imageUrl || line.imageURL || line.image || null;
+        for (let i=0;i<total;i++){
+          units.push({
+            key: `${line.variantId}#${i}`,
+            title: line.title,
+            productId: line.productId || '-',
+            variantId: line.variantId || '-',
+            imageUrl,
+            seqIdx: i+1,
+            qty: 1
+          });
+        }
+      });
+      return units;
+    }
+
+    function imgCellHTML(imageUrl, title){
+      if (imageUrl) {
+        return `<img class="itm-thumb" src="${imageUrl}"
+                    alt="${title ? title.replace(/"/g,'&quot;') : 'Product'}"
+                    onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'itm-fallback',textContent:'📦'}));">`;
+      }
+      return `<div class="itm-fallback" title="No image">📦</div>`;
+    }
+
+    function populateOrder(ord){
+      currentOrder = ord;
+      Object.keys(unitStatus).forEach(k=>delete unitStatus[k]);
+
       $('#orderSummary').style.display = '';
-      $('#sumOrderNo').textContent = ord.orderNo;
-      $('#sumOrderNo').href = ord.orderURL;
+      $('#sumOrderNo').textContent = ord.orderNo || '—';
+      $('#sumOrderNo').href       = ord.orderURL || '#';
       $('#sumCustomer').textContent = `${ord.customer?.name ?? ''} ${ord.customer?.phone ? '('+ord.customer.phone+')':''}`;
 
       const tbody = $('#productRows'); tbody.innerHTML = '';
-      (ord.lines || []).forEach(line=>{
-        const key = line.variantId;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><input type="checkbox" class="form-check-input line-check" data-id="${key}"></td>
-          <td>${line.title}</td>
-          <td><code>${line.variantId ?? '-'}</code></td>
-          <td class="text-center">${line.qty}</td>
-          <td class="text-center"><span class="badge text-bg-secondary" id="st_${key}">Unmarked</span></td>
-        `;
-        tbody.appendChild(tr);
-      });
+      const units = buildUnitRows(ord.lines || []);
+
+      if (!units.length){
+        tbody.innerHTML = `<tr><td colspan="7" class="text-muted text-center">No line items.</td></tr>`;
+      } else {
+        units.forEach(u=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><input type="checkbox" class="form-check-input unit-check" data-key="${u.key}"></td>
+            <td>${imgCellHTML(u.imageUrl, u.title)}</td>
+            <td class="itm-cell">
+              <div>${u.title} <span class="text-muted small">(Unit ${u.seqIdx})</span></div>
+            </td>
+            <td><code>${u.productId}</code></td>
+            <td><code>${u.variantId}</code></td>
+            <td class="text-center">1</td>
+            <td class="text-center"><span class="badge text-bg-secondary" id="st_${u.key}">Unmarked</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
 
       $('#checkAll').checked = false;
       updatePreview();
       validateForm();
-    };
+    }
 
     async function doSearch(){
       const q = $('#orderSearch').value.trim();
-      if (!q) { toast('Enter an order number'); return; }
-      const btn = $('#searchBtn'); setBtnBusy(btn, true, 'Searching...');
+      if(!q){ toast('Enter an order number'); return; }
+      $('#searchSpin').classList.remove('d-none'); $('#searchBtn').disabled = true;
       try{
         const ord = await fetchOrder(q);
-        if (!ord || !ord.orderNo) { toast('Order not found'); return; }
+        if (!ord || !Array.isArray(ord.lines)){ toast('Order not found or empty'); return; }
         populateOrder(ord);
         $('#orderStatus').textContent = 'Loaded';
-      }catch(err){ console.error(err); toast('Order lookup failed'); }
-      finally{ setBtnBusy(btn, false); }
+      }catch(err){
+        console.error(err); toast('Order lookup failed');
+      }finally{
+        $('#searchSpin').classList.add('d-none'); $('#searchBtn').disabled = false;
+      }
     }
     $('#searchBtn').addEventListener('click', doSearch);
-    $('#orderSearch').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSearch(); }});
+    $('#orderSearch').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSearch(); } });
 
-    /* ===== Selection & status ===== */
-    const selectedLineIds = ()=> Array.from(document.querySelectorAll('.line-check:checked')).map(x=>x.dataset.id);
+    const selectedKeys = ()=> Array.from(document.querySelectorAll('.unit-check:checked')).map(cb=>cb.dataset.key);
+
     $('#checkAll').addEventListener('change', (e)=>{
-      document.querySelectorAll('.line-check').forEach(cb=>cb.checked = e.target.checked);
+      document.querySelectorAll('.unit-check').forEach(cb => cb.checked = e.target.checked);
       updatePreview(); validateForm();
     });
-    function setStatus(ids, val){
-      ids.forEach(variantId=>{
-        statuses[variantId] = val;
-        const badge = document.getElementById(`st_${variantId}`);
-        if (badge){
-          badge.textContent = (val==='Good' ? 'Goods Received' : 'Damaged');
-          badge.className = `badge ${val==='Good' ? 'text-bg-success' : 'text-bg-danger'}`;
+
+    function setMark(keys, mark){
+      if (!keys.length) { toast('Select at least one unit'); return; }
+      keys.forEach(k=>{
+        unitStatus[k] = mark;
+        const bdg = document.getElementById(`st_${k}`);
+        if (bdg){
+          const map = { Good:'success', Damaged:'danger', Different:'warning' };
+          bdg.textContent = (mark === 'Good' ? 'Goods Received' : mark === 'Damaged' ? 'Damaged' : 'Different Item');
+          bdg.className = `badge text-bg-${map[mark]||'secondary'}`;
         }
       });
       updatePreview(); validateForm();
     }
-    $('#btnMarkGood').addEventListener('click', ()=>{ const ids = selectedLineIds(); if (!ids.length) return toast('Select at least one line'); setStatus(ids, 'Good'); });
-    $('#btnMarkDamaged').addEventListener('click', ()=>{ const ids = selectedLineIds(); if (!ids.length) return toast('Select at least one line'); setStatus(ids, 'Damaged'); });
+
+    $('#btnMarkGood').addEventListener('click', ()=> setMark(selectedKeys(), 'Good'));
+    $('#btnMarkDamaged').addEventListener('click', ()=> setMark(selectedKeys(), 'Damaged'));
+    $('#btnMarkDifferent').addEventListener('click', ()=> setMark(selectedKeys(), 'Different'));
+    document.addEventListener('change', (e)=>{ if(e.target.classList?.contains('unit-check')){ updatePreview(); validateForm(); } });
     $('#disposition').addEventListener('change', ()=>{ updatePreview(); validateForm(); });
 
-    /* ===== Camera (shared) ===== */
+    // Camera & recording
     function setRecState(state){
       const dot=$('#recStateDot'), lab=$('#recStateLabel');
       if(state==='recording'){dot.style.color='#e11d48'; lab.textContent='Recording';}
       else if(state==='ready'){dot.style.color='#10b981'; lab.textContent='Ready';}
       else {dot.style.color='#6b7280'; lab.textContent='Idle';}
     }
-    const fmt = (n)=>String(n).padStart(2,'0');
-    const filenameBase = ()=> {
-      const ord=currentOrder?.orderNo || 'NOORDER';
-      const d=new Date(); const ts = `${d.getFullYear()}-${fmt(d.getMonth()+1)}-${fmt(d.getDate())}_${fmt(d.getHours())}-${fmt(d.getMinutes())}`;
-      const emp=($('#empId').value.trim() || 'noemp').replace(/\s+/g,'');
-      return `${ord}_${ts}_${emp}`;
-    };
-
-    async function startCamera(){
-      if (mediaStream) return mediaStream;
-      mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } }, audio: true
-      });
-      const live = $('#liveVideo'); if (live) { live.srcObject = mediaStream; live.playsInline = true; }
-      const pv = $('#photoVideo'); if (pv) { pv.srcObject = mediaStream; pv.playsInline = true; }
+    (async()=>{ try{
+      if (mediaStream) return;
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:{ ideal:'environment'}}, audio:true });
+      $('#liveVideo').srcObject  = mediaStream;
+      $('#photoVideo').srcObject = mediaStream;
       setRecState('ready');
+    }catch(e){ console.warn('Camera not started:', e); } })();
 
-      await Promise.all([live, pv].map(v => v && v.readyState < 2
-        ? new Promise(res => v.addEventListener('loadedmetadata', res, { once:true })) : Promise.resolve()));
-      return mediaStream;
-    }
-
-    /* ===== Video recording ===== */
     async function startRecording(){
       if (!currentOrder) return toast('Load an order first');
-      await startCamera();
-      chunks=[]; videoBlob=null;
+      if (!mediaStream) return;
+      chunks = []; videoBlob = null;
       mediaRecorder = new MediaRecorder(mediaStream);
       mediaRecorder.ondataavailable = (e)=>{ if (e.data.size) chunks.push(e.data); };
       mediaRecorder.onstop = ()=>{
@@ -375,30 +428,21 @@
       if (mediaRecorder && mediaRecorder.state==='recording'){
         mediaRecorder.stop();
         $('#btnStartRec').disabled = false; $('#btnStopRec').disabled = true;
-        toast('Recording saved. Use Download to store on disk.');
+        toast('Recording saved.');
       }
     }
     $('#btnStartRec').addEventListener('click', startRecording);
     $('#btnStopRec').addEventListener('click', stopRecording);
 
-    /* ===== Photo capture ===== */
-    function dataURLToBlob(dataURL){
-      const [hdr, b64] = dataURL.split(',');
-      const mime = (hdr.match(/data:(.*);base64/)||[])[1] || 'image/jpeg';
-      const bin = atob(b64); const len = bin.length; const arr = new Uint8Array(len);
-      for (let i=0;i<len;i++) arr[i]=bin.charCodeAt(i);
-      return new Blob([arr], { type: mime });
-    }
-    async function grabFrameBlob(video, type='image/jpeg', quality=0.92){
-      const canvas = document.getElementById('photoCanvas');
-      if (video.readyState < 2) await new Promise(res => video.addEventListener('loadedmetadata', res, { once:true }));
-      const w = video.videoWidth || 1280, h = video.videoHeight || 720;
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(video, 0, 0, w, h);
-      return await new Promise(resolve=>{
-        if (canvas.toBlob) canvas.toBlob(b=>resolve(b), type, quality);
-        else resolve(dataURLToBlob(canvas.toDataURL(type, quality)));
+    // Photo capture
+    function blobFromVideoFrame(video, type='image/jpeg', quality=0.92){
+      return new Promise(resolve=>{
+        const canvas = document.getElementById('photoCanvas');
+        const w = video.videoWidth || 1280, h = video.videoHeight || 720;
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently:true });
+        ctx.drawImage(video, 0, 0, w, h);
+        canvas.toBlob(b=>resolve(b), type, quality);
       });
     }
     function refreshThumbsAndPreview(){
@@ -440,150 +484,122 @@
     }
     async function capturePhoto(){
       if (!currentOrder) return toast('Load an order first');
-      try{
-        await startCamera();
-        const video = $('#photoVideo');
-        if (video.paused) { try { await video.play(); } catch(e){} }
-        const blob = await grabFrameBlob(video);
-        const name = `${filenameBase()}_img${String(photos.length+1).padStart(2,'0')}.jpg`;
-        const url = URL.createObjectURL(blob);
-        photos.push({ blob, url, name });
-        refreshThumbsAndPreview();
-        toast('Photo captured');
-      }catch(err){ console.error(err); toast('Failed to capture photo'); }
+      const v = $('#photoVideo');
+      try{ if (v.paused) await v.play(); }catch{}
+      const blob = await blobFromVideoFrame(v);
+      const name = `${filenameBase()}_img${String(photos.length+1).padStart(2,'0')}.jpg`;
+      const url = URL.createObjectURL(blob);
+      photos.push({ blob, url, name });
+      refreshThumbsAndPreview();
+      toast('Photo captured');
     }
-    function clearPhotos(){ photos.forEach(p=> URL.revokeObjectURL(p.url)); photos = []; refreshThumbsAndPreview(); }
-    document.getElementById('btnCapture').addEventListener('click', capturePhoto);
-    document.getElementById('btnClearPhotos').addEventListener('click', clearPhotos);
+    function clearPhotos(){ photos.forEach(p=>URL.revokeObjectURL(p.url)); photos = []; refreshThumbsAndPreview(); }
+    $('#btnCapture').addEventListener('click', capturePhoto);
+    $('#btnClearPhotos').addEventListener('click', clearPhotos);
 
-    /* ===== Preview & validation ===== */
     function updatePreview(){
-      $('#pvOrder').textContent = currentOrder?.orderNo || '—';
-      $('#pvCustomer').textContent = currentOrder ? `${currentOrder.customer?.name ?? ''} ${currentOrder.customer?.phone ? '('+currentOrder.customer.phone+')':''}` : '—';
-      $('#pvDisposition').textContent = $('#disposition').value || '—';
-      $('#pvEmpId').textContent = $('#empId').value.trim() || '—';
+      $('#pvOrder').textContent      = currentOrder?.orderNo || '—';
+      $('#pvCustomer').textContent   = currentOrder ? `${currentOrder.customer?.name ?? ''} ${currentOrder.customer?.phone ? '('+currentOrder.customer.phone+')':''}` : '—';
+      $('#pvDisposition').textContent= $('#disposition').value || '—';
+      $('#pvEmpId').textContent      = $('#empId').value.trim() || '—';
 
-      const tbody = $('#pvLines'); tbody.innerHTML = '';
-      if (!currentOrder){
-        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">No order loaded.</td></tr>`;
+      const body = $('#pvLines'); body.innerHTML = '';
+      if (!currentOrder){ body.innerHTML = `<tr><td colspan="5" class="text-muted">No order loaded.</td></tr>`; return; }
+
+      const units = buildUnitRows(currentOrder.lines || []);
+      const chosen = units.filter(u => unitStatus[u.key]);
+      if (!chosen.length){
+        body.innerHTML = `<tr><td colspan="5" class="text-muted">No units selected yet.</td></tr>`;
         return;
       }
-      const lines = (currentOrder.lines || []).filter(l => statuses[l.variantId]);
-      if (!lines.length){
-        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">No items selected yet.</td></tr>`;
-      } else {
-        lines.forEach(l=>{
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${l.title}</td>
-            <td><code>${l.variantId}</code></td>
-            <td class="text-center">${l.qty}</td>
-            <td class="text-center">${statuses[l.variantId]==='Good' ? 'Goods Received' : 'Damaged'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+
+      chosen.forEach(u=>{
+        const tr = document.createElement('tr');
+        const label = unitStatus[u.key]==='Good' ? 'Goods Received'
+                    : unitStatus[u.key]==='Damaged' ? 'Damaged'
+                    : 'Different Item';
+        tr.innerHTML = `
+          <td>${u.title} <span class="text-muted small">(Unit ${u.seqIdx})</span></td>
+          <td><code>${u.productId}</code></td>
+          <td><code>${u.variantId}</code></td>
+          <td class="text-center">1</td>
+          <td class="text-center">${label}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function validateForm(){
+      const emp = $('#empId');
+      const hasEmp = !!emp.value.trim();
+      emp.classList.toggle('is-invalid', !hasEmp);
+
+      const anyMarked = Object.keys(unitStatus).length > 0;
+      const hasDisp   = !!$('#disposition').value;
+
+      $('#btnSubmit').disabled = !(currentOrder && hasEmp && hasDisp && anyMarked);
+    }
+
+    $('#empId').addEventListener('input', ()=>{ updatePreview(); validateForm(); });
+    ['change','input'].forEach(evt=> document.addEventListener(evt, (e)=>{ if (e.target.id==='disposition') { updatePreview(); validateForm(); }}));
+
+    async function submitPayload(){
+      const btn = $('#btnSubmit');
+      const restore = btn.innerHTML;
+
+      if (!$('#empId').value.trim()){ $('#empId').classList.add('is-invalid'); toast('Employee ID is required'); return; }
+      if (!currentOrder){ toast('Please load an order'); return; }
+      if (!$('#disposition').value){ toast('Select a disposition'); return; }
+      if (!Object.keys(unitStatus).length){ toast('Mark at least one unit'); return; }
+
+      const units = buildUnitRows(currentOrder.lines || []);
+      const lines = units
+        .filter(u => unitStatus[u.key])
+        .map(u => ({
+          lineId: u.variantId,        // use server lineId if available
+          productId: u.productId,
+          variantId: u.variantId,
+          productName: u.title,
+          qty: 1,
+          marked: unitStatus[u.key]   // "Good" | "Damaged" | "Different"
+        }));
+
+      const metadata = {
+        orderNo: currentOrder.orderNo,
+        customer: currentOrder.customer,
+        disposition: $('#disposition').value,
+        empId: $('#empId').value.trim(),
+        notes: $('#notes').value.trim(),
+        lines,
+        timestamp: new Date().toISOString(),
+        videoFilename: videoBlob ? `${filenameBase()}.webm` : null
+      };
+
+      const fd = new FormData();
+      fd.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      if (videoBlob) fd.append('video', videoBlob, `${filenameBase()}.webm`);
+      photos.forEach(p => fd.append('images', p.blob, p.name));
+
+      btn.disabled = true; btn.innerHTML = 'Submitting…';
+      try{
+        const res = await fetch(VERIFY_SUBMIT_URL, { method:'POST', body: fd });
+        if (!res.ok){
+          let msg = `HTTP ${res.status}`;
+          try{
+            const ct = res.headers.get('content-type')||'';
+            if (ct.includes('application/json')){ const j=await res.json(); if(j?.message) msg=j.message; }
+            else { const t = await res.text(); if (t) msg = t; }
+          }catch{}
+          throw new Error(msg);
+        }
+        toast('Verification submitted ✔');
+      }catch(err){
+        console.error(err); toast('Submit failed: ' + (err.message || 'Unexpected error'));
+      }finally{
+        btn.disabled = false; btn.innerHTML = restore;
       }
     }
-    function validateForm(){
-      const empInput = $('#empId');
-      const hasEmp = !!empInput.value.trim();
-      empInput.classList.toggle('is-invalid', !hasEmp);
-      const canSubmit = !!currentOrder && hasEmp && !!$('#disposition').value && Object.keys(statuses).length > 0;
-      $('#btnSubmit').disabled = !canSubmit;
-    }
-    $('#empId').addEventListener('input', ()=>{ updatePreview(); validateForm(); });
-    document.addEventListener('change', (e)=>{ if (e.target.classList?.contains('line-check')){ updatePreview(); validateForm(); } });
-
-    /* ===== Submit to /verify/submit ===== */
-    async function blobToDataURL(blob){ return await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result)); fr.onerror=rej; fr.readAsDataURL(blob); }); }
-    async function submitPayload(){
-  const btn = document.getElementById('btnSubmit');
-  const restoreHTML = btn.innerHTML;
-
-  // ---- client-side guards ----
-  if (!$('#empId').value.trim()) {
-    $('#empId').classList.add('is-invalid');
-    toast('Employee ID is required');
-    return;
-  }
-  if (!currentOrder) { toast('Please load an order'); return; }
-  if (!$('#disposition').value) { toast('Select a disposition'); return; }
-
-  const selected = (currentOrder.lines || [])
-    .filter(l => statuses[l.variantId])
-    .map(l => ({
-      lineId: l.variantId,
-      productId: l.productId,
-      variantId: l.variantId,
-      qty: l.qty,
-      marked: statuses[l.variantId]
-    }));
-  if (!selected.length) { toast('Mark at least one line'); return; }
-
-  // ---- metadata JSON ----
-  const metadata = {
-    orderNo: currentOrder.orderNo,
-    customer: currentOrder.customer,
-    disposition: $('#disposition').value,
-    empId: $('#empId').value.trim(),
-    notes: $('#notes').value.trim(),
-    lines: selected,
-    timestamp: new Date().toISOString(),
-    videoFilename: videoBlob ? `${filenameBase()}.webm` : null
-  };
-
-  // ---- build multipart body ----
-  const fd = new FormData();
-  fd.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  if (videoBlob) fd.append('video', videoBlob, `${filenameBase()}.webm`);
-  photos.forEach(p => fd.append('images', p.blob, p.name));
-
-  // ---- submit ----
-  btn.disabled = true;
-  btn.innerHTML = 'Submitting…';
-  try {
-    const res = await fetch('/v1/order/return/verify/submit', {
-      method: 'POST',
-      // IMPORTANT: no headers.Content-Type here; let the browser set multipart boundaries
-      body: fd
-    });
-
-    // friendly error message
-    if (!res.ok) {
-      let msg = `HTTP ${res.status}`;
-      try {
-        const ct = res.headers.get('content-type') || '';
-        if (ct.includes('application/json')) {
-          const j = await res.json();
-          if (j?.message) msg = j.message;
-        } else {
-          const t = await res.text();
-          if (t) msg = t;
-        }
-      } catch {}
-      throw new Error(msg);
-    }
-
-    toast('Verification submitted successfully ✔');
-    // Optionally reset:
-    // location.reload();
-  } catch (err) {
-    console.error(err);
-    toast('Submit failed: ' + (err.message || 'Unexpected error'));
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = restoreHTML;
-  }
-}
-
-document.getElementById('btnSubmit').addEventListener('click', submitPayload);
-
-
-    /* ===== Init ===== */
-    (async()=>{ try { await startCamera(); } catch(e){ console.warn('Camera not started:', e); } })();
-    ['change','input'].forEach(evt=> document.addEventListener(evt, validateForm));
+    $('#btnSubmit').addEventListener('click', submitPayload);
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

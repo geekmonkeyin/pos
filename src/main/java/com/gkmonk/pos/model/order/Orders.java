@@ -1,5 +1,6 @@
 package com.gkmonk.pos.model.order;
 
+import com.gkmonk.pos.model.legacy.OrderSourceType;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -24,4 +25,5 @@ public class Orders {
     private Customer customer;
     private List<LineItem> items;
     private int pastOrdersCount;
+    private OrderSourceType orderSourceType;
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Shopify Orders → Ship</title>
+    <title>Geekmonkey — Shopify Orders → Ship</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <style>
         :root{
@@ -12,15 +12,24 @@
         }
         *{box-sizing:border-box}
         body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
-        header{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid var(--stroke);height:64px;padding:0 20px}
+
+        /* Header */
+        .gm-topbar{position:sticky;top:0;z-index:1000;background:#fff;border-bottom:1px solid var(--stroke)}
+        .gm-topbar .inner{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+        .brand{display:flex;align-items:center;gap:10px;font-weight:800}
         .logo{width:32px;height:32px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700}
-        main{max-width:1200px;margin:24px auto;padding:0 20px}
+        .gm-actions{display:flex;gap:8px}
+
+        /* Base UI */
+        main{max-width:1200px;margin:16px auto;padding:0 20px}
         .view{display:none}.view.active{display:block}
         .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius)}
         .row{display:flex;gap:12px;flex-wrap:wrap}
         .btn{height:36px;padding:0 12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
         .btn.secondary{background:#fff;color:var(--text);border:1px solid var(--stroke)}
         .btn.small{height:30px;border-radius:8px}
+        .btn.linklike{background:#fff;border:1px solid var(--stroke);color:var(--text)}
+        .btn.linklike:hover{background:#fff8f2}
         .field{display:grid;gap:6px}
         .field input,.field select,.field textarea{height:36px;padding:0 10px;border:1px solid var(--stroke);border-radius:10px;background:#fff}
         .field textarea{height:72px;padding:8px 10px;resize:vertical}
@@ -37,9 +46,22 @@
         .grid.cols2{grid-template-columns:1fr 1fr}
         .grid.cols3{grid-template-columns:repeat(3,1fr)}
         .grid.cols4{grid-template-columns:repeat(4,1fr)}
-        .split-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-        .package{border:1px dashed var(--stroke);border-radius:10px;padding:10px}
-        .package h4{margin:6px 0 10px 0;font-size:13px}
+
+        /* Line items with images */
+        .item{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;border:1px solid #E5E7EB;border-radius:10px;padding:8px}
+        .item-thumb{width:56px;height:56px;border-radius:8px;border:1px solid #E5E7EB;background:#F3F4F6;overflow:hidden}
+        .item-thumb img{width:100%;height:100%;object-fit:cover}
+        .item-title{font-weight:600}
+        .item-sub{font-size:12px;color:#6B7280}
+
+        /* Packages manager */
+        .pkg-list{display:grid;gap:10px}
+        .pkg{border:1px dashed var(--stroke);border-radius:10px;padding:10px}
+        .pkg-head{display:flex;align-items:center;justify-content:space-between}
+        .pkg-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:8px}
+        .pkg .field input{height:34px}
+        .pkg-actions{display:flex;gap:8px}
+        .pkg-badge{font-size:12px;border:1px solid var(--stroke);border-radius:999px;padding:2px 8px;background:#fff}
 
         /* Media capture */
         .cam-wrap{display:grid;grid-template-columns:360px 1fr;gap:12px}
@@ -51,40 +73,40 @@
         .cap-note{font-size:12px;color:#6B7280;text-align:center;margin-top:4px}
         .control{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid #E5E7EB;border-radius:8px;background:#F9FAFB}
 
-        /* ===== Anime Spinner Overlay ===== */
-        .loading-overlay{
-          position:fixed; inset:0; z-index:9999;
-          display:none; align-items:center; justify-content:center;
-          background:rgba(17,24,39,.55); backdrop-filter:blur(2px);
-        }
-        .loader-card{
-          width:min(420px,90vw);
-          background:#111827; color:#E5E7EB;
-          border:1px solid rgba(255,255,255,.08);
-          border-radius:14px; padding:18px;
-          box-shadow:0 20px 40px rgba(0,0,0,.35);
-          display:grid; place-items:center; gap:10px; text-align:center;
-        }
-        .spinner{
-          width:96px;height:96px;border-radius:50%;
-          border:8px solid rgba(255,255,255,.15);
-          border-top:8px solid var(--accent);
-          animation:spin 1.1s linear infinite;
-          box-shadow:0 0 28px rgba(255,122,0,.45), 0 0 60px rgba(255,122,0,.25);
-        }
+        /* Spinner */
+        .loading-overlay{position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; background:rgba(17,24,39,.55); backdrop-filter:blur(2px)}
+        .loader-card{width:min(420px,90vw); background:#111827; color:#E5E7EB; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,.35); display:grid; place-items:center; gap:10px; text-align:center}
+        .spinner{width:96px;height:96px;border-radius:50%; border:8px solid rgba(255,255,255,.15); border-top:8px solid var(--accent); animation:spin 1.1s linear infinite; box-shadow:0 0 28px rgba(255,122,0,.45), 0 0 60px rgba(255,122,0,.25)}
         @keyframes spin{to{transform:rotate(360deg)}}
         .spin-text{font-size:14px;color:#e5e7eb}
         .spin-hint{font-size:12px;color:#a7abb3}
+
+        @media (max-width: 960px){
+          .grid.cols2{grid-template-columns:1fr}
+          .cam-wrap{grid-template-columns:1fr}
+          .pkg-grid{grid-template-columns:repeat(2,1fr)}
+          video, canvas{max-width:100%}
+        }
     </style>
 </head>
 <body>
-<header>
-    <div class="logo">GM</div>
-    <div style="font-weight:600">Orders — Picked / Packed</div>
-</header>
+
+<!-- Header -->
+<div class="gm-topbar">
+    <div class="inner">
+        <div class="brand">
+            <div class="logo">GM</div>
+            <div>Orders — Picked / Packed</div>
+        </div>
+        <div class="gm-actions">
+            <button id="btnBack" class="btn linklike" type="button">← Back</button>
+            <a class="btn" href="/v1/home">⌂ Home</a>
+        </div>
+    </div>
+</div>
 
 <main>
-    <!-- VIEW 1: Orders list -->
+    <!-- LIST -->
     <section id="listView" class="view active">
         <div class="row" style="margin-bottom:12px">
             <input id="search" type="search" placeholder="Search by order # or customer" style="flex:1;min-width:260px">
@@ -92,11 +114,10 @@
                 <option value="">Status: Picked + Packed</option>
                 <option value="Picked">Picked</option>
                 <option value="Packed">Packed</option>
+                <option value="DISPATCHED">Dispatched</option>
             </select>
             <button class="btn" id="refreshBtn">Refresh</button>
-            <button class="btn" id="syncShopifyBtn">
-                <i class="fas fa-cloud"></i> Sync Shopify
-            </button>
+            <button class="btn" id="syncShopifyBtn"><i class="fas fa-cloud"></i> Sync Shopify</button>
         </div>
 
         <div class="card">
@@ -113,13 +134,12 @@
                     <th style="width:170px">Notes</th>
                 </tr>
                 </thead>
-                <tbody><!-- rows injected -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </section>
 
-    <!-- VIEW 2: Order detail -->
+    <!-- DETAIL -->
     <section id="detailView" class="view">
         <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
             <div class="row" style="align-items:center">
@@ -186,35 +206,33 @@
                     <th style="width:110px">Cost</th><th style="width:140px">COD</th><th style="width:120px">Select</th>
                 </tr>
                 </thead>
-                <tbody><!-- injected --></tbody>
+                <tbody></tbody>
             </table>
         </div>
 
-        <!-- Line items + split -->
-        <div class="grid cols2" style="margin-bottom:12px">
-            <div class="card" style="padding:12px">
-                <div style="font-weight:600;margin-bottom:6px">Line Items (assign to packages)</div>
-                <div id="lineItems"><!-- injected --></div>
-            </div>
-            <div class="card" style="padding:12px">
-                <div style="font-weight:600;margin-bottom:6px">Split Order</div>
-                <div class="split-columns">
-                    <div class="package">
-                        <h4>Package A</h4>
-                        <div id="pkgA" class="grid"></div>
-                    </div>
-                    <div class="package">
-                        <h4>Package B</h4>
-                        <div id="pkgB" class="grid"></div>
-                    </div>
-                </div>
-            </div>
+        <!-- Line items (with images) + assignment -->
+        <div class="card" style="padding:12px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:6px">Line Items (assign to packages)</div>
+            <div id="lineItems"></div>
         </div>
 
-        <!-- Product media (webcam photos per item) -->
+        <!-- Packages & Tracking (MULTI-PACK) -->
+        <div class="card" style="padding:12px;margin-bottom:12px">
+            <div class="row" style="align-items:center;justify-content:space-between">
+                <div style="font-weight:600">Packages & Tracking</div>
+                <div class="pkg-actions">
+                    <label class="hint" style="display:flex;align-items:center;gap:6px">
+                        <input id="sameTrackingAll" type="checkbox"> Use same Tracking ID for all
+                    </label>
+                    <button id="addPackageBtn" class="btn small">+ Add Package</button>
+                </div>
+            </div>
+            <div id="packagesWrap" class="pkg-list" style="margin-top:10px"></div>
+        </div>
+
+        <!-- Media: product photos -->
         <div class="card" style="padding:12px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:6px">Product Images (Webcam Only)</div>
-
             <div class="cam-wrap">
                 <div>
                     <video id="camPhoto" playsinline autoplay muted></video>
@@ -223,8 +241,7 @@
                         <button class="btn small" id="startPhotoCam">Start Camera</button>
                         <button class="btn small" id="stopPhotoCam" disabled>Stop</button>
                         <div class="control" id="zoomCtlPhoto" hidden>
-                            <span class="hint">Zoom</span>
-                            <input type="range" id="zoomPhoto" min="1" max="1" step="0.1" value="1">
+                            <span class="hint">Zoom</span><input type="range" id="zoomPhoto" min="1" max="1" step="0.1" value="1">
                         </div>
                         <div class="control">
                             <span class="hint">Quality</span>
@@ -235,13 +252,10 @@
                             </select>
                         </div>
                         <button class="btn small" id="takePhoto" disabled>Take Photo</button>
-                        <select id="photoTarget" class="btn small" style="background:#fff;color:#111;border:1px solid #E5E7EB">
-                            <!-- per-item options injected -->
-                        </select>
+                        <select id="photoTarget" class="btn small" style="background:#fff;color:#111;border:1px solid #E5E7EB"></select>
                     </div>
                     <div class="hint" id="photoMsg">Use HTTPS/localhost and allow camera.</div>
                 </div>
-
                 <div>
                     <div class="hint" style="margin-bottom:6px">Captured Photos</div>
                     <div id="photoGallery" class="thumbs"></div>
@@ -249,7 +263,7 @@
             </div>
         </div>
 
-        <!-- Packaging video + dimensions -->
+        <!-- Packaging video + dims -->
         <div class="grid cols2" style="margin-bottom:12px">
             <div class="card" style="padding:12px">
                 <div style="font-weight:600;margin-bottom:6px">Final Packaging — Video Capture</div>
@@ -264,7 +278,6 @@
                         </div>
                         <div class="hint" id="videoMsg">Recording saves as WebM in most browsers.</div>
                     </div>
-
                     <div>
                         <div class="hint" style="margin-bottom:6px">Captured Packaging Videos</div>
                         <div id="videoGallery" class="thumbs"></div>
@@ -287,7 +300,7 @@
             </div>
         </div>
 
-        <!-- Contact & address validations + pincode DB avg -->
+        <!-- Contact -->
         <div class="card" style="padding:12px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:6px">Contact & Address</div>
             <div class="grid cols3">
@@ -305,7 +318,7 @@
     </section>
 </main>
 
-<!-- ===== Spinner Overlay HTML ===== -->
+<!-- Spinner -->
 <div id="syncOverlay" class="loading-overlay" aria-hidden="true">
     <div class="loader-card" role="dialog" aria-live="polite" aria-label="Syncing Shopify">
         <div class="spinner" aria-hidden="true"></div>
@@ -315,34 +328,32 @@
     </div>
 </div>
 
+<!-- Inject server-fetched orders (if any) -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    window.FETCHED_ORDERS = /*[[${fetchedOrders}]]*/ [];
+    /*]]>*/
+</script>
+
 <script>
-    /* ------------------ Mock Data ------------------ */
-    const ORDERS = [
-      { id:"#100045", status:"Packed", date:"2025-08-10", total:1899, courier:"Delhivery",
-        note:"Please call before delivery", gift:false,
-        customer:{ name:"Deepthi Rao", email:"deepthi@example.com", phone:"+91 9876543210",
-          address:"403, Sunrise Apts, Bandra West, Mumbai 400050", pincode:"400050" },
-        items:[
-          {sku:"ZORO-01", name:"Zoro Figure", qty:1, weight:0.45},
-          {sku:"LUFF-02", name:"Luffy Keychain", qty:2, weight:0.08}
-        ],
-        pastOrders: 2
-      },
-      { id:"#100046", status:"Picked", date:"2025-08-11", total:999, courier:"BlueDart",
-        note:"", gift:true,
-        customer:{ name:"Arjun Mehta", email:"arjun@example.com", phone:"+91 9123456789",
-          address:"21, Palm Grove, Pune 411001", pincode:"411001" },
-        items:[ {sku:"KEY-DBZ", name:"DBZ Keychain", qty:3, weight:0.05} ],
-        pastOrders: 6
-      },
-      { id:"#100047", status:"Packed", date:"2025-08-12", total:1299, courier:"Ecom Express",
-        note:"Gift wrap pls", gift:true,
-        customer:{ name:"Priya Iyer", email:"priya@example.com", phone:"+91 9988776655",
-          address:"12, MG Road, Bengaluru 560001", pincode:"560001" },
-        items:[ {sku:"NARU-TEE", name:"Naruto Tee L", qty:1, weight:0.25} ],
-        pastOrders: 1
-      },
-    ];
+    // Back/Home
+    document.getElementById('btnBack').addEventListener('click', ()=>{
+      if (history.length > 1) { try{ history.back(); return; }catch(e){} }
+      location.href = '/v1/home';
+    });
+
+    /* Dummy fallback */
+    const DUMMY = [{
+      id:"#100045", status:"Packed", date:"2025-08-10", total:1899, courier:"Delhivery",
+      note:"Please call before delivery", gift:false,
+      customer:{ name:"Deepthi Rao", email:"deepthi@example.com", phone:"+91 9876543210",
+        address:"403, Sunrise Apts, Bandra West, Mumbai 400050", pincode:"400050" },
+      items:[
+        {sku:"ZORO-01", name:"Zoro Figure", quantity:1, weight:0.45, imageUrl:"https://picsum.photos/seed/z1/200/200"},
+        {sku:"LUFF-02", name:"Luffy Keychain", quantity:2, weight:0.08, imageUrl:"https://picsum.photos/seed/z2/200/200"}
+      ],
+      pastOrders: 2
+    }];
 
     const COURIERS = [
       {name:"BlueDart", service:"Priority", eta:"1-3 days", cost:160, cod:true},
@@ -350,11 +361,81 @@
       {name:"Xpressbees", service:"Surface", eta:"4-7 days", cost:99, cod:false},
       {name:"Ecom Express", service:"Air", eta:"2-3 days", cost:149, cod:true}
     ];
-
-    // Mock DB for pincode historical delivery times (days)
     const PINCODE_HISTORY = { "400050":[2,3,3,2], "411001":[4,5], "560001":[3] };
 
-    /* ------------------ Utility + State ------------------ */
+    /* Normalize API orders to UI */
+    function imageFromLineItem(li){
+      // Try variant.image.url → product.featuredImage.url → product.images[0].url → imageListMap[sku]
+      try {
+        return li?.variant?.image?.url
+            || li?.variant?.product?.featuredImage?.url
+            || (li?.variant?.product?.images?.nodes?.[0]?.url)
+            || li?.imageUrl
+            || '';
+      } catch(e){ return ''; }
+    }
+
+    function normalizeFromApi(list){
+      if (!Array.isArray(list)) return [];
+      return list.map(o=>{
+        const cust = o.customer || {};
+        const ship = o.shipping_address || {};
+        const first = (cust.firstName || cust.displayName || '').trim();
+        const last  = (cust.lastName || '').trim();
+        const fullName = (first || (cust.email||'').split('@')[0] || '—') + (last ? (' ' + last) : '');
+
+        // Try to pull line items from possible GraphQL-like structure if present
+        // Expect o.items (flat) OR o.fulfillmentOrders[].lineItems[].lineItem with variant/product/images
+        let items = [];
+        if (Array.isArray(o.items)) {
+          items = o.items.map(it => ({
+            sku: it.sku || it.SKU || '',
+            name: it.name || '',
+            quantity: it.quantity || it.qty || 0,
+            weight: it.weight || 0,
+            imageUrl: it.imageUrl || imageFromLineItem(it)
+          }));
+        } else if (o.fulfillmentOrders?.nodes?.length) {
+          o.fulfillmentOrders.nodes.forEach(fo=>{
+            fo.lineItems?.nodes?.forEach(n=>{
+              const li = n.lineItem || n;
+              items.push({
+                sku: li?.sku || '',
+                name: li?.name || '',
+                quantity: li?.quantity || n?.remainingQuantity || 0,
+                weight: 0,
+                imageUrl: imageFromLineItem(li)
+              });
+            });
+          });
+        }
+
+        return {
+          id: o.name || o.id || '—',
+          status: o.customStatus || o.fulfillment_status || 'Picked',
+          date: o.created_at || o.processedAt || '',
+          total: Number(o.total_price || o.current_total_price || 0),
+          courier: (o.courierCompany && o.courierCompany.name) ? o.courierCompany.name : '-',
+          note: o.note || '',
+          gift: false,
+          customer: {
+            name: fullName,
+            email: cust.email || '',
+            phone: cust.phone || o.phone || '',
+            address: ship.address1 ? `${ship.address1}, ${ship.city||''}`.replace(/, $/,'') : '',
+            pincode: o.pincode || ship.zip || ''
+          },
+          items,
+          pastOrders: cust.numberOfOrders || 1
+        };
+      });
+    }
+
+    const FROM_API = (Array.isArray(window.FETCHED_ORDERS) && window.FETCHED_ORDERS.length)
+      ? normalizeFromApi(window.FETCHED_ORDERS) : [];
+    let ORDERS = (FROM_API.length ? FROM_API : DUMMY);
+
+    /* UI refs */
     const listView = document.getElementById("listView");
     const detailView = document.getElementById("detailView");
     const tbody = document.querySelector("#ordersTable tbody");
@@ -362,40 +443,25 @@
     const statusFilter = document.getElementById("statusFilter");
     document.getElementById("refreshBtn").addEventListener("click", renderList);
 
-    function classifyCustomer(n){
-      if(n<=1) return "New";
-      if(n===2) return "Good (delivered order)";
-      if(n>2 && n<=5) return "Premium";
-      return "Extremely Premium";
-    }
-    function avgDaysForPincode(pin){
-      const arr = PINCODE_HISTORY[pin]||[];
-      if(arr.length < 2) return null;
-      const sum = arr.reduce((a,b)=>a+b,0);
-      return (sum/arr.length).toFixed(1)+" days";
-    }
+    function classifyCustomer(n){ if(n<=1) return "New"; if(n===2) return "Good (delivered order)"; if(n<=5) return "Premium"; return "Extremely Premium"; }
+    function avgDaysForPincode(pin){ const arr = PINCODE_HISTORY[pin]||[]; if(arr.length<2) return null; const sum = arr.reduce((a,b)=>a+b,0); return (sum/arr.length).toFixed(1)+" days"; }
 
-    /* ------------------ List Screen ------------------ */
     function renderList(){
-      const q = (search.value||"").toLowerCase();
-      const f = statusFilter.value;
+      const q=(search.value||"").toLowerCase(), f=statusFilter.value;
       const rows = ORDERS
-        .filter(o => ["Picked","Packed"].includes(o.status))
+        .filter(o => ["DISPATCHED","Picked","Packed"].includes(o.status||''))
         .filter(o => !f || o.status===f)
-        .filter(o => !q || (o.id+o.customer.name).toLowerCase().includes(q));
+        .filter(o => !q || ((o.id||'')+(o.customer?.name||'')).toLowerCase().includes(q));
       tbody.innerHTML = rows.map(o => `
         <tr data-id="${o.id}">
           <td>${o.id}</td>
-          <td>${o.customer.name}</td>
-          <td>${o.date}</td>
-          <td>Rs ${o.total}</td>
+          <td>${o.customer?.name || '—'}</td>
+          <td>${o.date || ''}</td>
+          <td>Rs ${Number(o.total||0).toLocaleString('en-IN')}</td>
           <td>${o.courier||"-"}</td>
-          <td><span class="status">${o.status}</span></td>
-          <td>${o.items.reduce((n,i)=>n+i.qty,0)}</td>
-          <td>
-            ${o.gift ? '<span class="tag">Gift</span>' : ''}
-            ${o.note ? '<span class="tag">Note</span>' : ''}
-          </td>
+          <td><span class="status">${o.status||''}</span></td>
+          <td>${(o.items||[]).reduce((n,i)=>n+(i.quantity||0),0)}</td>
+          <td>${o.note ? '<span class="tag">Note</span>' : ''}</td>
         </tr>
       `).join("");
     }
@@ -403,11 +469,11 @@
 
     tbody.addEventListener("click", (e)=>{
       const tr = e.target.closest("tr"); if(!tr) return;
-      const order = ORDERS.find(o=>o.id===tr.dataset.id);
-      openDetail(order);
+      const order = ORDERS.find(o=>String(o.id)===String(tr.dataset.id));
+      if (order) openDetail(order);
     });
 
-    /* ------------------ Detail Screen ------------------ */
+    /* Detail refs */
     const detailTitle = document.getElementById("detailTitle");
     const customerName = document.getElementById("customerName");
     const customerEmail = document.getElementById("customerEmail");
@@ -422,30 +488,112 @@
     const avgDelivery = document.getElementById("avgDelivery");
     const courierTbody = document.querySelector("#courierTable tbody");
     const lineItemsDiv = document.getElementById("lineItems");
-    const pkgA = document.getElementById("pkgA");
-    const pkgB = document.getElementById("pkgB");
-    const warehouse = document.getElementById("warehouse");
+    const packagesWrap = document.getElementById("packagesWrap");
+    const sameTrackingAll = document.getElementById("sameTrackingAll");
 
     document.getElementById("backBtn").addEventListener("click", ()=>{
       detailView.classList.remove("active");
       listView.classList.add("active");
     });
 
+    // Packages state for current order
+    let PACKAGES = [];
+
+    function newPackage(idx){
+      return {
+        id: crypto.randomUUID(),
+        name: `Package ${idx+1}`,
+        courier: '',
+        trackingId: '',
+        length: '', width: '', height: '', weight: ''
+      };
+    }
+
+    function renderPackages(){
+      packagesWrap.innerHTML = PACKAGES.map((p,idx)=>`
+        <div class="pkg" data-id="${p.id}">
+          <div class="pkg-head">
+            <div class="pkg-badge">${p.name}</div>
+            <div class="pkg-actions">
+              ${idx>0 ? `<button class="btn small secondary" data-act="copyTrack" data-id="${p.id}">Same tracking as previous</button>`:''}
+              <button class="btn small secondary" data-act="remove" data-id="${p.id}">Remove</button>
+            </div>
+          </div>
+          <div class="pkg-grid">
+            <div class="field"><label class="hint">Courier</label><input data-field="courier" value="${p.courier||''}" placeholder="Delhivery / Xpressbees"></div>
+            <div class="field"><label class="hint">Tracking ID</label><input data-field="trackingId" value="${p.trackingId||''}" placeholder="AWB / Tracking"></div>
+            <div class="field"><label class="hint">Length (cm)</label><input type="number" min="0" data-field="length" value="${p.length||''}"></div>
+            <div class="field"><label class="hint">Width (cm)</label><input type="number" min="0" data-field="width" value="${p.width||''}"></div>
+            <div class="field"><label class="hint">Height (cm)</label><input type="number" min="0" data-field="height" value="${p.height||''}"></div>
+            <div class="field"><label class="hint">Weight (kg)</label><input type="number" step="0.01" min="0" data-field="weight" value="${p.weight||''}"></div>
+          </div>
+        </div>
+      `).join("");
+
+      // Wire inputs
+      packagesWrap.querySelectorAll('.pkg input').forEach(inp=>{
+        inp.addEventListener('input', (e)=>{
+          const wrap = e.target.closest('.pkg');
+          const id = wrap.dataset.id;
+          const f = e.target.dataset.field;
+          const pkg = PACKAGES.find(x=>x.id===id);
+          if (pkg){ pkg[f] = e.target.value; }
+          // Apply "same tracking to all"
+          if (sameTrackingAll.checked && f==='trackingId'){
+            PACKAGES.forEach(x=>x.trackingId = pkg.trackingId);
+            renderPackages();
+          }
+        });
+      });
+
+      // Buttons
+      packagesWrap.querySelectorAll('button[data-act]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const act = btn.dataset.act;
+          const id = btn.dataset.id;
+          const idx = PACKAGES.findIndex(x=>x.id===id);
+          if (act==='remove'){
+            PACKAGES.splice(idx,1);
+            PACKAGES.forEach((p,i)=>p.name=`Package ${i+1}`);
+            renderPackages();
+          }
+          if (act==='copyTrack' && idx>0){
+            PACKAGES[idx].trackingId = PACKAGES[idx-1].trackingId;
+            renderPackages();
+          }
+        });
+      });
+    }
+
+    document.getElementById('addPackageBtn').addEventListener('click', ()=>{
+      PACKAGES.push(newPackage(PACKAGES.length));
+      renderPackages();
+    });
+
+    sameTrackingAll.addEventListener('change', ()=>{
+      if (sameTrackingAll.checked){
+        const first = PACKAGES[0]?.trackingId || '';
+        PACKAGES.forEach(p=>p.trackingId = first);
+        renderPackages();
+      }
+    });
+
     function openDetail(o){
       listView.classList.remove("active");
       detailView.classList.add("active");
-      detailTitle.textContent = `${o.id} — ${o.customer.name}`;
-      customerName.textContent = o.customer.name;
-      customerEmail.textContent = o.customer.email;
-      customerPhone.textContent = o.customer.phone;
-      customerAddress.textContent = `${o.customer.address} (Pin: ${o.customer.pincode})`;
-      customerTier.textContent = classifyCustomer(o.pastOrders);
-      orderStatus.textContent = o.status;
+
+      detailTitle.textContent = `${o.id} — ${o.customer?.name || '—'}`;
+      customerName.textContent = o.customer?.name || '—';
+      customerEmail.textContent = o.customer?.email || '';
+      customerPhone.textContent = o.customer?.phone || '';
+      customerAddress.textContent = `${o.customer?.address || ''}${o.customer?.pincode ? ' (Pin: '+o.customer.pincode+')' : ''}`;
+      customerTier.textContent = classifyCustomer(o.pastOrders||1);
+      orderStatus.textContent = o.status || '';
       orderGift.textContent = o.gift ? "Gift wrap: Yes" : "Gift wrap: No";
       orderNote.textContent = o.note ? "Note present" : "No note";
-      orderItems.textContent = o.items.reduce((n,i)=>n+i.qty,0);
-      orderTotal.textContent = `Rs ${o.total}`;
-      avgDelivery.textContent = avgDaysForPincode(o.customer.pincode) || "N/A";
+      orderItems.textContent = (o.items||[]).reduce((n,i)=>n+(i.quantity||0),0);
+      orderTotal.textContent = `Rs ${Number(o.total||0).toLocaleString('en-IN')}`;
+      avgDelivery.textContent = avgDaysForPincode(o.customer?.pincode||'') || "N/A";
 
       // Courier options
       courierTbody.innerHTML = COURIERS.map(c=>`
@@ -456,77 +604,67 @@
         </tr>
       `).join("");
 
-      // Line items + assignments
-      lineItemsDiv.innerHTML = o.items.map(it=>`
-        <div class="row" style="align-items:center;border:1px solid #E5E7EB;border-radius:10px;padding:8px">
-          <div style="flex:1">
-            <div style="font-weight:600">${it.name}</div>
-            <div class="hint">SKU: ${it.sku} • Qty: ${it.qty} • ${it.weight} kg</div>
+      // Line items with images + assignment select (to packages, by index)
+      const items = (o.items && o.items.length) ? o.items : [];
+      lineItemsDiv.innerHTML = items.map((it,idx)=>`
+        <div class="item" data-sku="${it.sku||''}">
+          <div class="item-thumb">${(it.imageUrl)?`<img src="${it.imageUrl}" alt="${(it.name||'Item')}" loading="lazy">`:'</div>'}
           </div>
-          <select data-sku="${it.sku}" class="assignSel">
-            <option value="A">Pkg A</option>
-            <option value="B">Pkg B</option>
-          </select>
+          <div>
+            <div class="item-title">${it.name||'(Unnamed item)'}</div>
+            <div class="item-sub">SKU: ${it.sku||'-'} • Qty: ${it.quantity||0} • ${it.weight||0} kg</div>
+          </div>
+          <div>
+            <select class="assignSel">
+              ${PACKAGES.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('')}
+            </select>
+          </div>
         </div>
-      `).join("");
-      pkgA.innerHTML = ""; pkgB.innerHTML = ""; detailUpdatePackages();
+      `).join("") || '<div class="hint">No items present for this order.</div>';
 
-      // Prefill validations
-      document.getElementById("phoneInput").value   = o.customer.phone.replace(/^\+91\s?/, '').replace(/\D/g,'').slice(-10);
-      document.getElementById("addressInput").value = o.customer.address;
-      document.getElementById("pincodeInput").value = o.customer.pincode;
+      // Reset packages (start with one)
+      PACKAGES = [newPackage(0)];
+      renderPackages();
 
-      // Populate photo target dropdown with item names
+      // Populate photo target dropdown
       const photoTarget = document.getElementById("photoTarget");
-      photoTarget.innerHTML = o.items.map(it=>`<option value="item:${it.sku}">Item: ${it.name}</option>`).join("") + `<option value="item:OTHER">Item: Other</option>`;
+      photoTarget.innerHTML = items.map(it=>`<option value="item:${it.sku||'NA'}">Item: ${it.name||it.sku||'NA'}</option>`).join("")
+        + `<option value="item:OTHER">Item: Other</option>`;
     }
 
-    /* split */
-    function detailUpdatePackages(){
-      const assigns = [...document.querySelectorAll(".assignSel")].map(sel => ({
-        sku: sel.dataset.sku, to: sel.value,
-        name: sel.closest(".row").querySelector("div[style*='font-weight:600']").textContent
-      }));
-      pkgA.innerHTML = assigns.filter(a=>a.to==="A").map(a=>`<div class="pill">• ${a.name}</div>`).join("") || '<div class="hint">No items in A</div>';
-      pkgB.innerHTML = assigns.filter(a=>a.to==="B").map(a=>`<div class="pill">• ${a.name}</div>`).join("") || '<div class="hint">No items in B</div>';
-    }
-    document.addEventListener("change",(e)=>{ if(e.target.matches(".assignSel")) detailUpdatePackages(); });
-
-    /* courier select */
+    // Simple placeholder hook
     function selectCourier(name, svc, cost){ alert(`Selected: ${name} – ${svc} (Rs ${cost})`); }
 
-    /* packaging calc */
-    ["lenCm","widCm","heiCm"].forEach(id=>document.getElementById(id).addEventListener("input", ()=>{
+    // Volumetric calc
+    ["lenCm","widCm","heiCm"].forEach(id=>document.getElementById(id)?.addEventListener("input", ()=>{
       const L=+document.getElementById("lenCm").value||0;
       const W=+document.getElementById("widCm").value||0;
       const H=+document.getElementById("heiCm").value||0;
       document.getElementById("volWt").textContent = ((L*W*H)/5000).toFixed(2);
     }));
 
-    /* validations */
+    // Validations
     const phoneInput = document.getElementById("phoneInput");
     const addressInput = document.getElementById("addressInput");
     const pincodeInput = document.getElementById("pincodeInput");
     const phoneMsg = document.getElementById("phoneMsg");
     const addrMsg = document.getElementById("addrMsg");
     const pinMsg = document.getElementById("pinMsg");
-    document.getElementById("validateBtn").addEventListener("click", runValidations);
-    function validPhone10India(v){ return /^[6-9]\d{9}$/.test(v); }
-    function validAddress(v){ return (v||"").replace(/\s/g,"").length > 8; }
-    function validPincode(v){ return /^\d{6}$/.test(v); }
-    function runValidations(){
-      const ph = phoneInput.value.trim(), ad = addressInput.value.trim(), pc = pincodeInput.value.trim();
-      phoneMsg.textContent = validPhone10India(ph) ? "Phone OK" : "Invalid Indian mobile (10 digits, starts 6-9)";
-      phoneMsg.className = validPhone10India(ph) ? "ok" : "error";
-      addrMsg.textContent = validAddress(ad) ? "Address OK" : "Address must be > 8 characters";
-      addrMsg.className = validAddress(ad) ? "ok" : "error";
-      pinMsg.textContent = validPincode(pc) ? "Pincode OK" : "Invalid pincode (6 digits)";
-      pinMsg.className = validPincode(pc) ? "ok" : "error";
-      // mock DB avg
+    document.getElementById("validateBtn").addEventListener("click", ()=>{
+      const ph = (phoneInput.value||'').trim(), ad = (addressInput.value||'').trim(), pc = (pincodeInput.value||'').trim();
+      const validPhone = /^[6-9]\d{9}$/.test(ph);
+      const validAddr  = ad.replace(/\s/g,'').length>8;
+      const validPin   = /^\d{6}$/.test(pc);
+      phoneMsg.textContent = validPhone ? "Phone OK" : "Invalid Indian mobile (10 digits, starts 6-9)";
+      phoneMsg.className = validPhone ? "ok" : "error";
+      addrMsg.textContent = validAddr ? "Address OK" : "Address must be > 8 characters";
+      addrMsg.className = validAddr ? "ok" : "error";
+      pinMsg.textContent = validPin ? "Pincode OK" : "Invalid pincode (6 digits)";
+      pinMsg.className = validPin ? "ok" : "error";
       document.getElementById("avgDelivery").textContent = avgDaysForPincode(pc) || "N/A";
-    }
+    });
 
-    /* ------------------ Webcam: Product Photos ------------------ */
+    /* Webcam: Photos */
     const videoPhoto = document.getElementById("camPhoto");
     const photoCanvas = document.getElementById("photoCanvas");
     const startPhotoCam = document.getElementById("startPhotoCam");
@@ -537,58 +675,27 @@
     const photoMsg = document.getElementById("photoMsg");
     const photoGallery = document.getElementById("photoGallery");
     const photoTargetSel = document.getElementById("photoTarget");
-
-    let photoStream=null, photoTrack=null;
-    const PHOTO_CAPTURES=[]; // {blob,url,target}
+    let photoStream=null, photoTrack=null; const PHOTO_CAPTURES=[];
 
     startPhotoCam.addEventListener("click", async ()=>{
       try{
         if (photoStream) photoStream.getTracks().forEach(t=>t.stop());
         photoStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width:  { ideal: 4032 },
-            height: { ideal: 3024 },
-            focusMode: "continuous",
-            facingMode: { ideal: "environment" }
-          },
-          audio: false
+          video: { width:{ideal:4032}, height:{ideal:3024}, focusMode:"continuous", facingMode:{ideal:"environment"} }, audio:false
         });
         videoPhoto.srcObject = photoStream;
         photoTrack = photoStream.getVideoTracks()[0];
-        takePhotoBtn.disabled = false;
-        stopPhotoCam.disabled = true; // enable after track established a bit
-        stopPhotoCam.disabled = false;
-        startPhotoCam.disabled = true;
-        // zoom support
+        takePhotoBtn.disabled = false; stopPhotoCam.disabled = false; startPhotoCam.disabled = true;
         const caps = photoTrack.getCapabilities ? photoTrack.getCapabilities() : {};
         if (caps.zoom){
-          zoomPhoto.min = caps.zoom.min || 1;
-          zoomPhoto.max = caps.zoom.max || 1;
-          zoomPhoto.step = caps.zoom.step || 0.1;
-          zoomPhoto.value = photoTrack.getSettings().zoom || zoomPhoto.min;
-          zoomCtlPhoto.hidden = false;
-        } else {
-          zoomCtlPhoto.hidden = true;
-        }
-        photoMsg.textContent = "Camera started.";
-        photoMsg.style.color = "#065F46";
-      }catch(e){
-        photoMsg.textContent = "Camera error: "+e.message+" (use HTTPS/localhost and allow permissions)";
-        photoMsg.style.color = "#B91C1C";
-      }
+          zoomPhoto.min=caps.zoom.min||1; zoomPhoto.max=caps.zoom.max||1; zoomPhoto.step=caps.zoom.step||0.1;
+          zoomPhoto.value = photoTrack.getSettings().zoom || zoomPhoto.min; zoomCtlPhoto.hidden=false;
+        } else { zoomCtlPhoto.hidden=true; }
+        photoMsg.textContent = "Camera started."; photoMsg.style.color = "#065F46";
+      }catch(e){ photoMsg.textContent = "Camera error: "+e.message+" (use HTTPS/localhost and allow permissions)"; photoMsg.style.color = "#B91C1C"; }
     });
-
-    stopPhotoCam.addEventListener("click", ()=>{
-      if (photoStream) photoStream.getTracks().forEach(t=>t.stop());
-      videoPhoto.srcObject = null; photoStream=null; photoTrack=null;
-      takePhotoBtn.disabled = true; startPhotoCam.disabled = false; stopPhotoCam.disabled = true;
-    });
-
-    zoomPhoto.addEventListener("input", async ()=>{
-      if (!photoTrack) return;
-      try{ await photoTrack.applyConstraints({ advanced:[{ zoom: parseFloat(zoomPhoto.value) }] }); }catch(e){}
-    });
-
+    stopPhotoCam.addEventListener("click", ()=>{ if(photoStream) photoStream.getTracks().forEach(t=>t.stop()); videoPhoto.srcObject=null; photoStream=null; photoTrack=null; takePhotoBtn.disabled=true; startPhotoCam.disabled=false; stopPhotoCam.disabled=true; });
+    zoomPhoto.addEventListener("input", async ()=>{ if (!photoTrack) return; try{ await photoTrack.applyConstraints({ advanced:[{ zoom: parseFloat(zoomPhoto.value) }] }); }catch(e){} });
     takePhotoBtn.addEventListener("click", ()=>{
       if (!photoTrack) return;
       const s = photoTrack.getSettings ? photoTrack.getSettings() : {};
@@ -600,8 +707,7 @@
       photoCanvas.toBlob(blob=>{
         if(!blob) return;
         const url = URL.createObjectURL(blob);
-        const target = photoTargetSel.value;
-        PHOTO_CAPTURES.push({blob, url, target});
+        PHOTO_CAPTURES.push({blob, url, target: photoTargetSel.value});
         renderPhotoThumbs();
       }, "image/jpeg", q);
     });
@@ -609,20 +715,19 @@
     function renderPhotoThumbs(){
       photoGallery.innerHTML = "";
       PHOTO_CAPTURES.forEach((c, idx)=>{
-        const wrap = document.createElement("div");
-        wrap.style.display="grid"; wrap.style.gap="4px";
+        const wrap = document.createElement("div"); wrap.style.display="grid"; wrap.style.gap="4px";
         const cell = document.createElement("div"); cell.className="thumb";
         const img = document.createElement("img"); img.src=c.url; cell.appendChild(img);
         const rm = document.createElement("div"); rm.className="rm"; rm.textContent="×";
         rm.onclick=()=>{ URL.revokeObjectURL(c.url); PHOTO_CAPTURES.splice(idx,1); renderPhotoThumbs(); };
         cell.appendChild(rm);
         const note = document.createElement("div"); note.className="cap-note";
-        note.textContent = c.target.startsWith("item:") ? c.target.replace("item:","Item: ") : "Packaging";
+        note.textContent = c.target?.startsWith("item:") ? c.target.replace("item:","Item: ") : "Packaging";
         wrap.appendChild(cell); wrap.appendChild(note); photoGallery.appendChild(wrap);
       });
     }
 
-    /* ------------------ Webcam: Packaging Video Recorder ------------------ */
+    /* Webcam: Video */
     const camVideo = document.getElementById("camVideo");
     const startVideoCam = document.getElementById("startVideoCam");
     const stopVideoCam  = document.getElementById("stopVideoCam");
@@ -630,50 +735,28 @@
     const recStop       = document.getElementById("recStop");
     const videoMsg      = document.getElementById("videoMsg");
     const videoGallery  = document.getElementById("videoGallery");
-
-    let vidStream=null, vidRecorder=null, vidChunks=[];
-    const VIDEO_CAPTURES=[]; // {blob,url,target:"packaging"}
+    let vidStream=null, vidRecorder=null, vidChunks=[]; const VIDEO_CAPTURES=[];
 
     startVideoCam.addEventListener("click", async ()=>{
       try{
         if (vidStream) vidStream.getTracks().forEach(t=>t.stop());
-        vidStream = await navigator.mediaDevices.getUserMedia({
-          video: { width:{ideal:1920}, height:{ideal:1080}, facingMode:{ideal:"environment"} }, audio:false
-        });
+        vidStream = await navigator.mediaDevices.getUserMedia({ video:{width:{ideal:1920},height:{ideal:1080},facingMode:{ideal:"environment"}}, audio:false });
         camVideo.srcObject = vidStream;
         startVideoCam.disabled = true; stopVideoCam.disabled = false; recStart.disabled=false; recStop.disabled=true;
-        videoMsg.textContent = "Video camera ready.";
-        videoMsg.style.color = "#065F46";
-      }catch(e){
-        videoMsg.textContent = "Camera error: "+e.message; videoMsg.style.color = "#B91C1C";
-      }
+        videoMsg.textContent = "Video camera ready."; videoMsg.style.color = "#065F46";
+      }catch(e){ videoMsg.textContent = "Camera error: "+e.message; videoMsg.style.color = "#B91C1C"; }
     });
-    stopVideoCam.addEventListener("click", ()=>{
-      if (vidStream) vidStream.getTracks().forEach(t=>t.stop());
-      camVideo.srcObject = null; vidStream=null;
-      startVideoCam.disabled = false; stopVideoCam.disabled = true; recStart.disabled=true; recStop.disabled=true;
-    });
-
+    stopVideoCam.addEventListener("click", ()=>{ if (vidStream) vidStream.getTracks().forEach(t=>t.stop()); camVideo.srcObject=null; vidStream=null; startVideoCam.disabled=false; stopVideoCam.disabled=true; recStart.disabled=true; recStop.disabled=true; });
     recStart.addEventListener("click", ()=>{
-      if (!vidStream) return;
-      vidChunks=[];
+      if (!vidStream) return; vidChunks=[];
       const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" :
                    (MediaRecorder.isTypeSupported("video/webm;codecs=vp8") ? "video/webm;codecs=vp8" : "video/webm");
       vidRecorder = new MediaRecorder(vidStream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
       vidRecorder.ondataavailable = e => { if (e.data && e.data.size) vidChunks.push(e.data); };
-      vidRecorder.onstop = ()=>{
-        const blob = new Blob(vidChunks, { type: vidRecorder.mimeType || "video/webm" });
-        const url = URL.createObjectURL(blob);
-        VIDEO_CAPTURES.push({ blob, url, target:"packaging" });
-        renderVideoThumbs();
-      };
-      vidRecorder.start();
-      recStart.disabled=true; recStop.disabled=false; videoMsg.textContent="Recording… click Stop Rec";
+      vidRecorder.onstop = ()=>{ const blob = new Blob(vidChunks, { type: vidRecorder.mimeType || "video/webm" }); const url = URL.createObjectURL(blob); VIDEO_CAPTURES.push({ blob, url }); renderVideoThumbs(); };
+      vidRecorder.start(); recStart.disabled=true; recStop.disabled=false; videoMsg.textContent="Recording… click Stop Rec";
     });
-    recStop.addEventListener("click", ()=>{
-      if (vidRecorder && vidRecorder.state!=="inactive") vidRecorder.stop();
-      recStart.disabled=false; recStop.disabled=true;
-    });
+    recStop.addEventListener("click", ()=>{ if (vidRecorder && vidRecorder.state!=="inactive") vidRecorder.stop(); recStart.disabled=false; recStop.disabled=true; });
     function renderVideoThumbs(){
       videoGallery.innerHTML = "";
       VIDEO_CAPTURES.forEach((v, idx)=>{
@@ -689,73 +772,53 @@
       });
     }
 
-    /* ===== Anime Spinner Overlay Logic ===== */
+    /* Spinner overlay + sync */
     const overlay = document.getElementById("syncOverlay");
     const overlayHideBtn = document.getElementById("overlayHide");
     const spinnerText = document.getElementById("spinnerText");
-
     const SPINNER_LINES = [
-      "Connecting to Shopify…",
-      "Fetching orders from the multiverse…",
-      "Polishing kunai knives… just in case.",
-      "Counting Zoros (he got lost again)…",
-      "Breathing forms loading…",
-      "Summoning ramen bowls for stamina…",
-      "Calling courier spirits…",
-      "Bankai prep complete. Parsing payload…"
+      "Connecting to Shopify…","Fetching orders from the multiverse…","Polishing kunai knives… just in case.",
+      "Counting Zoros (he got lost again)…","Breathing forms loading…","Summoning ramen bowls for stamina…",
+      "Calling courier spirits…","Bankai prep complete. Parsing payload…"
     ];
     let spinTimer = null;
-
-    function showOverlay() {
-      overlay.style.display = "flex";
-      overlay.setAttribute("aria-hidden","false");
-      // rotate text every 2.5s
-      let i = 0;
-      spinnerText.textContent = SPINNER_LINES[i % SPINNER_LINES.length];
-      clearInterval(spinTimer);
-      spinTimer = setInterval(()=>{
-        i++;
-        spinnerText.textContent = SPINNER_LINES[i % SPINNER_LINES.length];
-      }, 2500);
-    }
-    function hideOverlay() {
-      overlay.style.display = "none";
-      overlay.setAttribute("aria-hidden","true");
-      clearInterval(spinTimer);
-    }
+    function showOverlay(){ overlay.style.display="flex"; overlay.setAttribute("aria-hidden","false"); let i=0; spinnerText.textContent=SPINNER_LINES[0]; clearInterval(spinTimer); spinTimer=setInterval(()=>{ i++; spinnerText.textContent = SPINNER_LINES[i % SPINNER_LINES.length]; }, 2500); }
+    function hideOverlay(){ overlay.style.display="none"; overlay.setAttribute("aria-hidden","true"); clearInterval(spinTimer); }
     overlayHideBtn.addEventListener("click", hideOverlay);
 
-    /* ------------------ Actions (mock) ------------------ */
     ["actionSave","actionLabel","actionPickup","actionShip"].forEach(id=>{
       document.getElementById(id).addEventListener("click", ()=>{
-        const photos = PHOTO_CAPTURES.map(({target,blob})=>({target, size: blob.size}));
-        const videos = VIDEO_CAPTURES.map(({target,blob})=>({target, size: blob.size}));
-        alert(`${id.replace('action','Action: ')}\nPhotos: ${photos.length}\nVideos: ${videos.length}`);
-        // TODO: upload via multipart/form-data to your backend, grouped by target
+        // Example payload you can POST to backend:
+        const payload = {
+          orderId: detailTitle.textContent.split(' — ')[0],
+          packages: PACKAGES,
+          photosCount: PHOTO_CAPTURES.length,
+          videosCount: VIDEO_CAPTURES.length
+        };
+        alert(`${id.replace('action','Action: ')}\nPackages: ${payload.packages.length}\nPhotos: ${payload.photosCount}\nVideos: ${payload.videosCount}`);
+        // TODO: POST payload + media to your backend
       });
     });
 
     document.getElementById("syncShopifyBtn").addEventListener("click", async () => {
-        showOverlay(); // <-- show spinner immediately
-        try {
-            const response = await fetch("/v1/order/bookshopify/fetchorders", {
-                method: "GET",
-            });
-
-            if (response.ok) {
-                const message = await response.text();
-                hideOverlay();
-                alert(`Success: ${message}`);
-                renderList(); // Refresh the orders list
-            } else {
-                const error = await response.text();
-                hideOverlay();
-                alert(`Error: ${error}`);
-            }
-        } catch (err) {
-            hideOverlay();
-            alert(`Failed to sync orders: ${err.message}`);
+      showOverlay();
+      try {
+        const response = await fetch("/v1/order/bookshopify/fetchorders", { method: "GET" });
+        if (response.ok) {
+          const message = await response.text();
+          hideOverlay();
+          alert(`Success: ${message}`);
+          // If the server refreshes page with fetchedOrders, they will render automatically.
+          renderList();
+        } else {
+          const error = await response.text();
+          hideOverlay();
+          alert(`Error: ${error}`);
         }
+      } catch (err) {
+        hideOverlay();
+        alert(`Failed to sync orders: ${err.message}`);
+      }
     });
 </script>
 </body>

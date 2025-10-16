@@ -14,7 +14,18 @@ public final class ShopifyQueries {
                     processedAt
                     displayFulfillmentStatus
                     displayFinancialStatus
-            
+                    totalPriceSet {
+                                        shopMoney { amount currencyCode }
+                                        presentmentMoney { amount currencyCode }
+                                      }
+                                      currentTotalPriceSet {
+                                        shopMoney { amount currencyCode }
+                                        presentmentMoney { amount currencyCode }
+                                      }
+                                      currentSubtotalPriceSet { shopMoney { amount currencyCode } }
+                                      currentTotalTaxSet     { shopMoney { amount currencyCode } }
+                                      totalDiscountsSet     { shopMoney { amount currencyCode } }
+                      note
                     customer {
                       id
                       displayName

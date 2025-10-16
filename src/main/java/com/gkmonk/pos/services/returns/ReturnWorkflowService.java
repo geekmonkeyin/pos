@@ -2,6 +2,7 @@ package com.gkmonk.pos.services.returns;
 
 import com.gkmonk.pos.model.order.Customer;
 import com.gkmonk.pos.model.pod.PackedOrder;
+import com.gkmonk.pos.model.returns.ApproveRefundRequest;
 import com.gkmonk.pos.model.returns.OrderLine;
 import com.gkmonk.pos.model.returns.OrderLookupResponse;
 import com.gkmonk.pos.model.returns.ReturnVerificationRequest;
@@ -9,7 +10,12 @@ import com.gkmonk.pos.pod.services.PODServiceImpl;
 import com.gkmonk.pos.repo.returns.ReturnVerificationRepo;
 import com.gkmonk.pos.services.ImageDBServiceImpl;
 import com.gkmonk.pos.utils.ReturnStatus;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,6 +27,8 @@ public class ReturnWorkflowService {
 
     @Autowired
     private PODServiceImpl podService;
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @Autowired
     private ImageDBServiceImpl imageDBService;
@@ -70,5 +78,16 @@ public class ReturnWorkflowService {
 
     public List<ReturnVerificationRequest> getAllReturnRequestsByStatus(ReturnStatus returnStatus) {
         return returnVerificationRepo.findByStatus(returnStatus.name());
+    }
+
+
+    public boolean updateReturnRequest(ApproveRefundRequest body, ReturnStatus returnStatus) {
+        Query q = new Query(Criteria.where("_id").is(new ObjectId(body.getReturnId())));
+        Update u = new Update()
+                .set("returnStatus", returnStatus.name())            // or ReturnStatus.APPROVED
+                .set("refundedReference", body.getRefundedReference())
+                .currentDate("updatedAt");
+        var res = mongoTemplate.updateFirst(q, u, ReturnVerificationRequest.class);
+        return res.getModifiedCount() > 0;
     }
 }

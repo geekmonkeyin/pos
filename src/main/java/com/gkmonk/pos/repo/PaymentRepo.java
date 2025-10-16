@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PaymentRepo extends MongoRepository<PaymentReceipts,Long> {
 
@@ -18,4 +19,6 @@ public interface PaymentRepo extends MongoRepository<PaymentReceipts,Long> {
     @Query(value = "{}")
     List<PaymentReceipts> findAll(SortOperation sortByPopDesc);
 
+    @Query(value = "{vendorName : ?0}",sort = "{date:-1,vendor:-1,amount:-1}")
+    Optional<List<PaymentReceipts>> findByVendorName(String vendorName);
 }

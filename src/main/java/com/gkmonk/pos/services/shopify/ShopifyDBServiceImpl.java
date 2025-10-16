@@ -28,4 +28,9 @@ public class ShopifyDBServiceImpl {
         Optional<List<ShopifyOrders>> shopifyOrders = shopifyOrderRepo.findByStatus(orderStatus.name());
         return shopifyOrders.orElse(null);
     }
+
+    public ShopifyOrders getOrderByName(String orderNo) {
+            Optional<ShopifyOrders> shopifyOrders = shopifyOrderRepo.findByName(orderNo);
+            return shopifyOrders.orElse(null);
+    }
 }

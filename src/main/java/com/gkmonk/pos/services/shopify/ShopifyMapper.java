@@ -1,20 +1,30 @@
 package com.gkmonk.pos.services.shopify;
 
 import com.gkmonk.pos.model.Inventory;
+import com.gkmonk.pos.model.legacy.OrderSourceType;
 import com.gkmonk.pos.model.legacy.ShopifyAddress;
 import com.gkmonk.pos.model.legacy.ShopifyCustomer;
 import com.gkmonk.pos.model.legacy.ShopifyFulfillment;
 import com.gkmonk.pos.model.legacy.ShopifyLineItems;
 import com.gkmonk.pos.model.legacy.ShopifyOrders;
+import com.gkmonk.pos.model.order.Customer;
 import com.gkmonk.pos.model.order.OrderStatus;
+import com.gkmonk.pos.model.order.Orders;
 import com.gkmonk.pos.model.order.PickItem;
+import com.gkmonk.pos.model.pod.CustomerInfo;
+import com.gkmonk.pos.model.pod.PackedOrder;
+import com.gkmonk.pos.model.pod.ProductDetails;
+import com.gkmonk.pos.model.returns.OrderLine;
+import com.gkmonk.pos.model.returns.OrderLookupResponse;
 import com.gkmonk.pos.utils.POSConstants;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class ShopifyMapper {
 
@@ -141,7 +151,7 @@ public class ShopifyMapper {
 
         public static ShopifyOrders mapToShopifyOrder(Map<String, Object> orderMap) {
             ShopifyOrders shopifyOrder = new ShopifyOrders();
-
+            mapAmount(orderMap,shopifyOrder);
             mapBasicFields(orderMap, shopifyOrder);
             mapCustomerDetails(orderMap, shopifyOrder);
             mapShippingAddress(orderMap, shopifyOrder);
@@ -150,6 +160,18 @@ public class ShopifyMapper {
 
             return shopifyOrder;
         }
+
+
+
+    private static void mapAmount(Map<String, Object> orderMap, ShopifyOrders shopifyOrder) {
+        String totalAmount =  ShopifyMapper.getTotalPriceFromOrder((Map<String, Object>) orderMap.get("currentTotalPriceSet"));
+        shopifyOrder.setTotal_price(Double.parseDouble(totalAmount));
+    }
+
+    private static String getTotalPriceFromOrder(Map<String, Object> currentTotalPriceSet) {
+        return currentTotalPriceSet.get("shopMoney") != null ?
+                String.valueOf(((Map<String, Object>)currentTotalPriceSet.get("shopMoney")).get("amount")) : POSConstants.EMPTY;
+    }
 
     private static void mapBasicFields(Map<String, Object> orderMap, ShopifyOrders shopifyOrder) {
         shopifyOrder.setId(ShopifyMapper.getIdFromGid(orderMap.get("id")));
@@ -164,12 +186,16 @@ public class ShopifyMapper {
         Map<String, Object> fulfillmentMap = (Map<String, Object>) orderMap.get("fulfillmentOrders");
         if (fulfillmentMap != null) {
             List<Map<String, Object>> fnodes = (List<Map<String, Object>>) fulfillmentMap.get("nodes");
+            if(shopifyOrder.getItems() == null){
+                shopifyOrder.setItems(new ArrayList<>());
+            }
             if (fnodes != null && !fnodes.isEmpty()) {
                 ShopifyFulfillment[] fulfillments = fnodes.stream().map(node -> {
                     ShopifyFulfillment fulfillment = new ShopifyFulfillment();
                     fulfillment.setId(ShopifyMapper.getIdFromGid(node.get("id")));
                     fulfillment.setStatus(String.valueOf(node.get("status")));
                    fulfillment.setLine_items(getLineItems(node));
+                    shopifyOrder.getItems().addAll(getLineItems(node));
                     return fulfillment;
                 }).toArray(ShopifyFulfillment[]::new);
                 shopifyOrder.setFulfillments(fulfillments);
@@ -252,6 +278,7 @@ public class ShopifyMapper {
         if (customerMap != null) {
             ShopifyCustomer customer = new ShopifyCustomer();
             customer.setFirstName(String.valueOf(customerMap.get("displayName")));
+            customer.setLastName(POSConstants.EMPTY);
             customer.setEmail(String.valueOf(customerMap.get("email")));
             customer.setPhone(String.valueOf(customerMap.get("phone")));
             customer.setTotalSpent(getTotalSpent(customerMap.get("amountSpent")));
@@ -322,6 +349,111 @@ public class ShopifyMapper {
                 }
             }
             return pickItems;
+    }
+
+    public static List<Orders> convertToOrders(List<ShopifyOrders> shopifyOrders) {
+        List<Orders> orders = new ArrayList<>();
+        if(shopifyOrders != null){
+            shopifyOrders.stream().forEach(shopifyOrder -> {
+                Orders order = new Orders();
+                order.setOrderSourceType(OrderSourceType.SHOPIFY);
+                order.setOrderNo(shopifyOrder.getId());
+                order.setOrderDate(LocalDate.parse(shopifyOrder.getCreated_at()));
+                order.setStatus(OrderStatus.valueOf(shopifyOrder.getCustomStatus()));
+                orders.add(order);
+            });
+        }
+        return orders;
+    }
+
+    public static ShopifyCustomer convertCustomerInfoToCustomer(CustomerInfo customerInfo) {
+        ShopifyCustomer  customer = new ShopifyCustomer();
+        customer.setFirstName(customerInfo.getCustomerName());
+        customer.setEmail(customerInfo.getEmail());
+        customer.setPhone(customerInfo.getPhoneNo());
+        return customer;
+
+    }
+
+    public static Optional<OrderLookupResponse> convertToOrderLookupResponse(ShopifyOrders shopifyOrders) {
+        return Optional.of(new OrderLookupResponse(
+                shopifyOrders.getName(),
+                getCustomer(shopifyOrders),
+                getOrderLines(shopifyOrders),
+                shopifyOrders.getOrder_status_url()
+        ));
+    }
+
+    private static List<OrderLine> getOrderLines(ShopifyOrders shopifyOrders) {
+        List<OrderLine> orderLines = new ArrayList<>();
+
+        shopifyOrders.getItems().forEach(productDetails -> {
+            OrderLine orderLine = new OrderLine();
+            orderLine.setQty(productDetails.getQuantity());
+            orderLine.setTitle(productDetails.getName());
+            orderLine.setId(productDetails.getProduct_id());
+            orderLine.setVariantId(productDetails.getVariant_id());
+            orderLine.setOrderURL(shopifyOrders.getOrder_status_url());
+            // List<byte[]> images =  imageDBService.fetchInventoryImagesById(productDetails.getProductId());
+            orderLine.setImageURL(productDetails.getImageUrl());
+            orderLines.add(orderLine);
+        });
+        return orderLines;
+    }
+
+    private static Customer getCustomer(ShopifyOrders shopifyOrders) {
+
+            Customer customer =  new Customer();
+            customer.setName(  shopifyOrders.getCustomer().getFirstName() +" "+ shopifyOrders.getCustomer().getLastName());
+            customer.setPhone(  shopifyOrders.getShipping_address().getPhone());
+            return customer;
+    }
+
+    public static ShopifyOrders convertPackedOrderToShopifyOrder(PackedOrder packedOrder) {
+        ShopifyOrders shopifyOrders = new ShopifyOrders();
+        shopifyOrders.setName(packedOrder.getGmId());
+        shopifyOrders.setCod(packedOrder.isCod());
+        shopifyOrders.setId(packedOrder.getOrderId());
+        shopifyOrders.setCustomer(convertCustomerPackedOrderToShopifyOrders(packedOrder.getCustomerInfo()));
+        shopifyOrders.setItems(convertProductDetailsToShopifyItems(packedOrder.getProductDetails()));
+        shopifyOrders.setShipping_address(convertPackOrderToShippingAddress(packedOrder));
+        return shopifyOrders;
+    }
+
+    private static ShopifyAddress convertPackOrderToShippingAddress(PackedOrder packedOrder) {
+        ShopifyAddress shippingAddress = new ShopifyAddress();
+        shippingAddress.setName(packedOrder.getCustomerName());
+        shippingAddress.setAddress1(packedOrder.getCustomerInfo().getAddress());
+        shippingAddress.setZip(packedOrder.getCustomerInfo().getPostalCode());
+        shippingAddress.setPhone(packedOrder.getCustomerInfo().getPhoneNo());
+        shippingAddress.setCity(packedOrder.getCustomerInfo().getCity());
+        shippingAddress.setCountry(packedOrder.getCustomerInfo().getCountry());
+        return shippingAddress;
+    }
+
+    private static ShopifyCustomer convertCustomerPackedOrderToShopifyOrders(CustomerInfo customerInfo) {
+        ShopifyCustomer customer = new ShopifyCustomer();
+        customer.setFirstName(customerInfo.getCustomerName());
+        customer.setLastName(POSConstants.EMPTY);
+        customer.setEmail(customerInfo.getEmail());
+        customer.setPhone(customerInfo.getPhoneNo());
+        return customer;
+    }
+
+    private static List<ShopifyLineItems> convertProductDetailsToShopifyItems(List<ProductDetails> productDetails) {
+        List<ShopifyLineItems> shopifyLineItems = new ArrayList<>();
+        productDetails.forEach(productDetail -> {
+            ShopifyLineItems shopifyLineItem = new ShopifyLineItems();
+            shopifyLineItem.setVariant_id(productDetail.getVariantId());
+            shopifyLineItem.setProduct_id(productDetail.getProductId());
+            shopifyLineItem.setQuantity(productDetail.getQuantity());
+            shopifyLineItem.setName(productDetail.getProductName());
+            shopifyLineItem.setImageUrl(productDetail.getImageURL());
+            shopifyLineItem.setTitle(productDetail.getProductName());
+
+            shopifyLineItems.add(shopifyLineItem);
+        });
+        return shopifyLineItems;
     }
 
     private void addNewInventory(Inventory inventory, JsonObject variantObject, int inventoryQuantity) {

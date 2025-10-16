@@ -2,10 +2,10 @@ package com.gkmonk.pos.services.shopify;
 
 import com.gkmonk.pos.model.Inventory;
 import com.gkmonk.pos.model.legacy.ShopifyOrders;
+import com.gkmonk.pos.model.order.OrderStatus;
 import com.gkmonk.pos.services.externalapi.APIProxyService;
 import com.gkmonk.pos.utils.POSConstants;
 import com.gkmonk.pos.utils.StringUtils;
-import com.google.api.client.json.Json;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -193,7 +193,7 @@ public class ShopifyServiceImpl {
         vars.put("after", after);
         vars.put("query", search);
 
-        Map<String, Object> resp = shopifyClient.post(ShopifyQueries.UNFULFILLED_ORDERS, vars).block();
+        Map resp = shopifyClient.post(ShopifyQueries.UNFULFILLED_ORDERS, vars).block();
         Map<String, Object> data = (Map<String, Object>) resp.get("data");
         Map<String, Object> unfulfilledOrders = (Map<String, Object>) data.get("orders");
         List<ShopifyOrders> shopifyOrders = convertToShopifyOrders(unfulfilledOrders);
@@ -254,5 +254,9 @@ public class ShopifyServiceImpl {
     public boolean updateShopifyInventory(String productId, String variantId) {
         //todo
          return false;
+    }
+
+    public List<ShopifyOrders> fetchOrderByStatus(OrderStatus status) {
+        return shopifyDBService.getOrderByStatus(status);
     }
 }

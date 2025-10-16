@@ -56,6 +56,7 @@
         .t-pay      { background: linear-gradient(135deg, #F59E0B, #EA580C); }
         .t-report   { background: linear-gradient(135deg, #06B6D4, #0E7490); }
         .t-bulk     { background: linear-gradient(135deg, #F43F5E, #BE123C); }
+        .t-ledger   { background: linear-gradient(135deg, #14B8A6, #0F766E); } /* NEW */
 
         /* Card wrapper */
         .gm-card{
@@ -117,6 +118,11 @@
                 <a class="tile t-report" href="/v1/vendor/purchase/reports">
                     <i class="bi bi-clipboard-data"></i> Purchase Reports
                 </a>
+
+                <!-- NEW: Ledger -->
+                <a class="tile t-ledger" href="/v1/vendor/ledger">
+                    <i class="bi bi-journal-richtext"></i> Ledger
+                </a>
             </div>
         </div>
     </div>
@@ -137,7 +143,7 @@
       }
     });
 
-    // Keyboard shortcuts (optional): Alt+Left for back, Alt+H for home
+    // Keyboard shortcuts (optional)
     window.addEventListener('keydown', (e) => {
       if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); document.getElementById('backBtn').click(); }
       if (e.altKey && (e.key.toLowerCase() === 'h')) { e.preventDefault(); document.getElementById('homeBtn').click(); }

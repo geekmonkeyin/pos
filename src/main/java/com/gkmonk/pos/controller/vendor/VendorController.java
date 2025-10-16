@@ -1,4 +1,4 @@
-package com.gkmonk.pos.controller;
+package com.gkmonk.pos.controller.vendor;
 
 import com.gkmonk.pos.model.Vendor;
 import com.gkmonk.pos.services.vendor.VendorServiceImpl;

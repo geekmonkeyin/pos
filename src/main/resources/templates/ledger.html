@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Geekmonkey — Vendor Ledger (Payments + Orders)</title>
+    <title>Geekmonkey — Vendor Ledger</title>
 
     <!-- Bootstrap 5 + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
@@ -17,7 +17,7 @@
         html, body { height:100%; background:var(--bg); color:var(--text); }
         body { line-height:1.6; }
 
-        /* ===== Top bar ===== */
+        /* ===== Top bar (Geekmonkey) ===== */
         .gm-topbar{
           position: sticky; top: 0; z-index: 1030;
           background: linear-gradient(90deg, var(--accent), #FF9A3D);
@@ -36,25 +36,28 @@
           box-shadow:0 8px 24px rgba(17,24,39,.06);
         }
         .page-title{ font-weight:800; font-size:1.25rem; }
-        .form-control, .form-select{ border-color:var(--stroke); border-radius:12px; }
-        .form-control:focus, .form-select:focus{
+        .form-control{ border-color:var(--stroke); border-radius:12px; }
+        .form-control:focus{
           border-color:var(--accent); box-shadow:0 0 0 .25rem rgba(255,122,0,.15);
         }
         .btn-accent{ background:var(--accent); color:#fff; border:none; border-radius:12px; font-weight:600; }
         .btn-accent:hover{ background:#ff8f29; color:#fff; }
         .btn-ghost{ background:#fff; border:1px solid var(--stroke); border-radius:12px; }
 
-        /* Vendor autocomplete */
-        .vendor-wrap{ position:relative; }
-        #vendorList{
-          position:absolute; left:0; right:0; top:100%; z-index:1020;
-          display:none; max-height:260px; overflow:auto; margin-top:6px;
-          border-radius:12px; border:1px solid var(--stroke); background:#fff;
-          box-shadow:0 10px 24px rgba(17,24,39,.08);
-          list-style:none; padding:0;
+        /* Vendor search (like your example) */
+        .vendor-results{ position:relative; }
+        .spinner-sm{
+          width:1rem; height:1rem; border:.18rem solid #e5e7eb; border-top-color:var(--accent);
+          border-radius:50%; animation:spin .8s linear infinite; display:inline-block;
         }
-        #vendorList li{ padding:8px 12px; cursor:pointer; }
-        #vendorList li:hover{ background:#FFF7EF; }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .vendor-panel{
+          position:absolute; left:0; right:0; top:100%; z-index:1050; margin-top:.35rem;
+          background:#fff; border:1px solid var(--stroke); border-radius:12px; box-shadow:0 12px 24px rgba(17,24,39,.08);
+          max-height:260px; overflow:auto; display:none;
+        }
+        .vendor-item{ padding:.6rem .8rem; cursor:pointer; }
+        .vendor-item:hover{ background:#FFF8F1; }
 
         /* Tables */
         table thead th{
@@ -89,31 +92,25 @@
 <main>
     <div class="container" style="max-width:1250px;">
 
-        <!-- Filters -->
+        <!-- Filter (Vendor only; all-time) -->
         <div class="gm-card p-3 p-md-4 mb-3">
-            <h1 class="page-title mb-3">Ledger (Payments + Purchases)</h1>
+            <h1 class="page-title mb-3">Ledger (All-time)</h1>
 
-            <form id="filterForm" class="row g-2 align-items-end">
-                <div class="col-12 col-md-4 vendor-wrap">
+            <form id="filterForm" class="row g-2 align-items-end" onsubmit="event.preventDefault(); fetchLedger();">
+                <div class="col-12 col-md-6 vendor-results">
                     <label class="form-label" for="vendorNameInput">Vendor Name</label>
-                    <input class="form-control" id="vendorNameInput" name="vendorName" type="text"
-                           placeholder="Type at least 3 characters" oninput="debounceSearchVendor()" />
-                    <ul id="vendorList"></ul>
+                    <div class="d-flex align-items-center">
+                        <input class="form-control" id="vendorNameInput" type="text"
+                               placeholder="Type vendor name (min 3 chars)" autocomplete="off"
+                               oninput="onVendorType(this.value)" />
+                        <span id="vendorSpin" class="spinner-sm ms-2" style="display:none"></span>
+                    </div>
+                    <div id="vendorPanel" class="vendor-panel"></div>
+                    <small class="text-muted">Pick from the dropdown to lock the vendor name.</small>
                 </div>
-
-                <div class="col-6 col-md-3">
-                    <label class="form-label" for="startDate">Start Date</label>
-                    <input class="form-control" id="startDate" name="startDate" type="date" />
-                </div>
-
-                <div class="col-6 col-md-3">
-                    <label class="form-label" for="endDate">End Date</label>
-                    <input class="form-control" id="endDate" name="endDate" type="date" />
-                </div>
-
-                <div class="col-12 col-md-2 d-flex gap-2">
-                    <button type="button" class="btn btn-accent w-100" onclick="fetchLedger()">
-                        <i class="bi bi-funnel me-1"></i> Apply
+                <div class="col-12 col-md-auto">
+                    <button type="submit" class="btn btn-accent">
+                        <i class="bi bi-funnel me-1"></i> Load Ledger
                     </button>
                 </div>
             </form>
@@ -251,71 +248,84 @@
     function escapeHtml(str){ return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s])); }
     function toMoney(n){ const v = Number(n||0); return '₹' + v.toFixed(2); }
 
-    // ===== Vendor autocomplete =====
-    let debounceTimer;
-    function debounceSearchVendor(){
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(searchVendor, 500);
-    }
-    function searchVendor(){
-      const q = document.getElementById('vendorNameInput').value.trim();
-      const list = document.getElementById('vendorList');
-      if (q.length < 3){ list.style.display = 'none'; return; }
+    // ===== Vendor search (like your example) =====
+    let vendorDebounce;
+    let lockedVendorName = ''; // we use vendor *name* only
 
-      fetch('/v1/vendor/searchvendor?vendorName=' + encodeURIComponent(q))
-        .then(r => r.json())
-        .then(data => {
-          list.innerHTML = '';
-          if (Array.isArray(data) && data.length){
-            data.forEach(v => {
-              const li = document.createElement('li');
-              li.textContent = `${v.vendorName}${v.whatsappNumber ? ' ('+v.whatsappNumber+')' : ''}`;
-              li.onclick = () => {
-                document.getElementById('vendorNameInput').value = v.vendorName || '';
-                list.style.display = 'none';
-              };
-              list.appendChild(li);
-            });
-            list.style.display = 'block';
-          } else {
-            list.style.display = 'none';
-          }
-        })
-        .catch(() => list.style.display = 'none');
+    function onVendorType(val){
+      lockedVendorName = '';                 // clear lock if the user typed again
+      toggleVendorSpinner(true);
+      clearTimeout(vendorDebounce);
+      vendorDebounce = setTimeout(() => searchVendors(val), 350);
     }
+
+    function toggleVendorSpinner(show){ document.getElementById('vendorSpin').style.display = show ? '' : 'none'; }
+
+    async function searchVendors(q){
+      const panel = document.getElementById('vendorPanel');
+      panel.innerHTML = '';
+      if (!q || q.trim().length < 3){ panel.style.display='none'; toggleVendorSpinner(false); return; }
+
+      try{
+        const res = await fetch('/v1/vendor/search/' + encodeURIComponent(q.trim()));
+        const data = await res.json();
+
+        (data || []).forEach(v => {
+          const div = document.createElement('div');
+          div.className = 'vendor-item';
+          div.innerHTML = `
+            <div class="fw-semibold">${escapeHtml(v.vendorName || '')}</div>
+            <div class="text-muted small">${escapeHtml(v.whatsappNumber || '')}</div>
+          `;
+          div.addEventListener('click', () => selectVendorName(v.vendorName));
+          panel.appendChild(div);
+        });
+        panel.style.display = (data && data.length) ? 'block' : 'none';
+      }catch(e){
+        console.error(e);
+        panel.style.display = 'none';
+      }finally{
+        toggleVendorSpinner(false);
+      }
+    }
+
+    function selectVendorName(name){
+      lockedVendorName = name || '';
+      document.getElementById('vendorNameInput').value = lockedVendorName;
+      document.getElementById('vendorPanel').style.display = 'none';
+    }
+
     document.addEventListener('click', (e) => {
-      const wrap = document.querySelector('.vendor-wrap');
-      if (wrap && !wrap.contains(e.target)) document.getElementById('vendorList').style.display = 'none';
+      const wrap = document.querySelector('.vendor-results');
+      if (wrap && !wrap.contains(e.target)) document.getElementById('vendorPanel').style.display = 'none';
     });
 
-    // ===== Ledger fetcher =====
+    // ===== Ledger fetcher -> separate endpoints =====
     async function fetchLedger(){
-      const form = document.getElementById('filterForm');
-      const formData = new FormData(form);
-      const vendorName = (formData.get('vendorName') || '').trim();
-      const startDate = (formData.get('startDate') || '').trim();
-      const endDate = (formData.get('endDate') || '').trim();
+      const inputVal = (document.getElementById('vendorNameInput').value || '').trim();
+      const vendorName = lockedVendorName || inputVal; // prefer locked name if user picked from list
+      if (!vendorName){ alert('Please enter a vendor name and pick from the list.'); return; }
 
-      // Build shared query string
-      const params = new URLSearchParams();
-      if (vendorName) params.set('vendorName', vendorName);
-      if (startDate) params.set('startDate', startDate);
-      if (endDate) params.set('endDate', endDate);
+      const q = encodeURIComponent(vendorName);
+      const purchaseURL = `/v1/vendor/ledger/purchasereport?vendorName=${q}`;
+      const paymentURL  = `/v1/vendor/ledger/paymentreport?vendorName=${q}`;
 
-      // Parallel fetch
-      const [paymentsRes, ordersRes] = await Promise.all([
-        fetch('/v1/payment/filterReport?' + params.toString()),
-        fetch('/v1/vendor/purchase/filterReport?' + params.toString())
-      ]);
+      let purchases = [], payments = [];
+      try{
+        const [purchRes, payRes] = await Promise.all([ fetch(purchaseURL), fetch(paymentURL) ]);
+        purchases = purchRes.ok ? await purchRes.json() : [];
+        payments  = payRes.ok ? await payRes.json() : [];
+      }catch(err){
+        console.error(err);
+        alert('Failed to load ledger.');
+        return;
+      }
 
-      const payments = paymentsRes.ok ? await paymentsRes.json() : [];
-      const orders = ordersRes.ok ? await ordersRes.json() : [];
-
-      renderOrders(orders);
+      renderOrders(purchases);
       renderPayments(payments);
 
       // Totals & Final Balance
-      const totalPurchases = (orders||[]).reduce((s,o) => s + Number(o.totalAmount || o.amount || 0), 0);
+      const totalPurchases = (purchases||[]).reduce((s,o) => s + Number(o.totalAmount || o.amount || 0), 0);
       const totalPayments  = (payments||[]).reduce((s,p) => s + Number(p.amount || 0), 0);
       const final = totalPurchases - totalPayments;
 
@@ -368,9 +378,9 @@
 
       (data||[]).forEach(p => {
         const tr = document.createElement('tr');
-        const imgBtn = p.imageId ? `<button class="btn btn-sm btn-ghost" onclick="openImage('${escapeHtml(p.imageId)}')"><i class=\"bi bi-image\"></i></button>` : '';
+        const imgBtn = p.imageId ? `<button class="btn btn-sm btn-ghost" onclick="openImage('${escapeHtml(p.imageId)}')"><i class="bi bi-image"></i></button>` : '';
         tr.innerHTML = `
-          <td>${escapeHtml(p.paymentTo)}</td>
+          <td>${escapeHtml(p.paymentTo || '')}</td>
           <td>${escapeHtml(p.vendorName || '')}</td>
           <td>${Number(p.amount||0).toFixed(2)}</td>
           <td>${escapeHtml(p.date || '')}</td>
@@ -432,9 +442,6 @@
     }
 
     function clearImageModal(){ document.getElementById('imageModalImg').src = ''; }
-
-    // Auto-run once
-    fetchLedger();
 </script>
 </body>
 </html>
