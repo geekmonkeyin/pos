@@ -11,6 +11,6 @@ import java.util.Optional;
 @Repository
 public interface ReportDetailsRepo extends MongoRepository<ReportDetails, Long> {
 
-    @Query("{'day': { $gte: ?0, $lte: ?1 }}")
+    @Query(value = "{'day': { $gte: ?0, $lte: ?1 }}",sort = "{'day':1}")
     Optional<List<ReportDetails>> findByDate(String startDate,String endDate);
 }

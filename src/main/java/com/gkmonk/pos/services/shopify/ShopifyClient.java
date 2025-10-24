@@ -29,6 +29,49 @@ public class ShopifyClient {
 
     private WebClient webClient;
 
+    private static final String CUSTOMER_QUERY = """
+            query FindCustomersByPhone($q: String!, $first: Int = 10, $after: String) {
+                  customers(first: $first, after: $after, query: $q) {
+                    pageInfo { hasNextPage endCursor }
+                    edges {
+                      node {
+                        id
+                        legacyResourceId
+                        displayName
+                        email
+                        phone
+                        state
+                        tags
+                        createdAt
+                        updatedAt
+                        defaultAddress {
+                          id
+                          name
+                          phone
+                          address1
+                          address2
+                          city
+                          province
+                          country
+                          zip
+                        }
+                        addresses {
+                          id
+                          name
+                          phone
+                          address1
+                          address2
+                          city
+                          province
+                          country
+                          zip
+                        }
+                      }
+                    }
+                  }
+                }
+        """;
+
     @PostConstruct
     void init() {
         shop = "bad22a-2";
@@ -54,5 +97,53 @@ public class ShopifyClient {
                                 .filter(ex -> ex instanceof WebClientResponseException
                                         && ((WebClientResponseException) ex).getStatusCode().value() == 429)
                 );
+    }
+
+    public Mono<String> findCustomersByPhone(String rawPhone) {
+        // try both with and without +91, plus a wildcard fallback
+        String normalized = rawPhone.replaceAll("[^0-9+]", "");
+        String q = "phone:" + normalized + " OR phone:+91" + normalized + "";
+        Map<String, Object> body = Map.of("query", CUSTOMER_QUERY, "variables", Map.of("q", q, "first", 10));
+
+        return webClient.post()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(String.class);
+    }
+
+    public Mono<Map> findProductById(String productGID) {
+        String graphqlQuery = """
+        {
+          product(id: "%s") {
+            id
+            title
+            description
+            status
+            tags
+            totalInventory
+            variants(first: 5) {
+              edges {
+                node {
+                  id
+                  title
+                  sku
+                  price
+                  inventoryQuantity
+                }
+              }
+            }
+          }
+        }
+        """.formatted(productGID);
+
+        Map<String, String> body = Map.of("query", graphqlQuery);
+
+
+        return webClient.post()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Map.class);
     }
 }

@@ -2,6 +2,7 @@ package com.gkmonk.pos.services.shopify;
 
 import com.gkmonk.pos.model.Inventory;
 import com.gkmonk.pos.model.legacy.ShopifyOrders;
+import com.gkmonk.pos.model.order.Customer;
 import com.gkmonk.pos.model.order.OrderStatus;
 import com.gkmonk.pos.services.externalapi.APIProxyService;
 import com.gkmonk.pos.utils.POSConstants;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDate;
@@ -27,6 +29,7 @@ import java.util.Map;
 @Slf4j
 @Service
 public class ShopifyServiceImpl {
+
 
     @Value("${shopify.product.url:.json}")
     private String productUrl;
@@ -180,77 +183,6 @@ public class ShopifyServiceImpl {
 
     }
 
-    public Map<String, Object> fetchPage(int first, String after) {
-        LocalDate from = LocalDate.now(ZoneOffset.UTC).minusDays(30);
-
-        // exclude refunded + cancelled, keep unfulfilled only
-        String search = String.format(
-                "processed_at:>=%s fulfillment_status:unfulfilled -status:cancelled -financial_status:refunded -financial_status:partially_refunded",
-                from
-        );
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("first", Math.min(Math.max(first, 1), 250)); // 1..250
-        vars.put("after", after);
-        vars.put("query", search);
-
-        Map resp = shopifyClient.post(ShopifyQueries.UNFULFILLED_ORDERS, vars).block();
-        Map<String, Object> data = (Map<String, Object>) resp.get("data");
-        Map<String, Object> unfulfilledOrders = (Map<String, Object>) data.get("orders");
-        List<ShopifyOrders> shopifyOrders = convertToShopifyOrders(unfulfilledOrders);
-        fulfilledOrders(unfulfilledOrders);
-        saveToDb(shopifyOrders);
-        return unfulfilledOrders;
-
-    }
-
-
-    private void saveToDb(List<ShopifyOrders> shopifyOrders) {
-        shopifyDBService.saveToDb(shopifyOrders);
-    }
-
-    private List<ShopifyOrders> convertToShopifyOrders(Map<String, Object> unfulfilledOrders) {
-        log.info("unfulfilledOrders: {}", unfulfilledOrders);
-        if(unfulfilledOrders != null){
-            Object orders = unfulfilledOrders.get("nodes");
-            if(orders instanceof List){
-                List<?> orderList = (List<?>) orders;
-                if(!orderList.isEmpty() ){
-                    return ShopifyMapper.convertToShopifyOrders((List<Map<String, Object>>) orderList);
-                }
-            }
-        }
-        return List.of();
-    }
-
-    private void fulfilledOrders(Map<String, Object> unfulfilledOrders) {
-        //fulfilledOrders(unfulfilledOrders);
-    }
-
-    public List<Map<String, Object>> fetchAll(int pageSize) {
-        pageSize = Math.min(Math.max(pageSize, 1), 250);
-
-        List<Map<String, Object>> all = new ArrayList<>();
-        String cursor = null;
-        boolean hasNext = true;
-
-        while (hasNext) {
-            Map<String, Object> page = fetchPage(pageSize, cursor);
-            List<Map<String, Object>> nodes = (List<Map<String, Object>>) page.get("nodes");
-            if (nodes == null || nodes.isEmpty()) break;
-
-            all.addAll(nodes);
-
-            Map<String, Object> pageInfo = (Map<String, Object>) page.get("pageInfo");
-            hasNext = (Boolean) pageInfo.get("hasNextPage");
-            cursor = (String) pageInfo.get("endCursor");
-
-            // polite throttle: tiny pause between pages
-            try { Thread.sleep(200L); } catch (InterruptedException ignored) {}
-        }
-        return all;
-    }
-
-
     public boolean updateShopifyInventory(String productId, String variantId) {
         //todo
          return false;
@@ -258,5 +190,12 @@ public class ShopifyServiceImpl {
 
     public List<ShopifyOrders> fetchOrderByStatus(OrderStatus status) {
         return shopifyDBService.getOrderByStatus(status);
+    }
+
+    public List<Customer> getCustomerByPhoneNo(String phoneNumber) throws Exception {
+        Mono<String> customer =  shopifyClient.findCustomersByPhone(phoneNumber);
+        log.info(customer.toString());
+        return  ShopifyMapper.parseCustomers(customer.block());
+
     }
 }

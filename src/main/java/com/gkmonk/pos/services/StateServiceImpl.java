@@ -19,8 +19,16 @@ public class StateServiceImpl {
             List<State> states = stateRepo.findAll();
             for (ReportDetails reportDetail : reportDetails) {
                 for (State state : states) {
-                    if (reportDetail.getBillingRegion().equalsIgnoreCase(state.getState())) {
+                    if(reportDetail.getShippingRegion() != null && reportDetail.getShippingRegion().equalsIgnoreCase(state.getState())) {
                         reportDetail.setStateCode(state.getCode());
+                        break;
+                    }
+                    else if (reportDetail.getBillingRegion() != null && reportDetail.getBillingRegion().equalsIgnoreCase(state.getState())) {
+                        reportDetail.setStateCode(state.getCode());
+                        break;
+                    }
+                    else {
+                        reportDetail.setStateCode("UK");
                     }
                 }
             }

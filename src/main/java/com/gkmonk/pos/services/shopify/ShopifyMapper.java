@@ -1,5 +1,7 @@
 package com.gkmonk.pos.services.shopify;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gkmonk.pos.model.Inventory;
 import com.gkmonk.pos.model.legacy.OrderSourceType;
 import com.gkmonk.pos.model.legacy.ShopifyAddress;
@@ -22,12 +24,15 @@ import com.google.gson.JsonObject;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class ShopifyMapper {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static  String getProductIdFromVariantCall(JsonObject response) {
         return response.getAsJsonObject("variant").get("product_id").getAsString();
@@ -280,11 +285,21 @@ public class ShopifyMapper {
             customer.setFirstName(String.valueOf(customerMap.get("displayName")));
             customer.setLastName(POSConstants.EMPTY);
             customer.setEmail(String.valueOf(customerMap.get("email")));
-            customer.setPhone(String.valueOf(customerMap.get("phone")));
+            if(customerMap.get("phone") == null){
+                customer.setPhone(getPhoneNoFromShippingAddress((Map)orderMap.get("shippingAddress")));
+            }else {
+                customer.setPhone(String.valueOf(customerMap.get("phone")));
+
+            }
             customer.setTotalSpent(getTotalSpent(customerMap.get("amountSpent")));
             customer.setNumberOfOrders(getNumberOfOrders(String.valueOf(customerMap.get("numberOfOrders"))));
             shopifyOrder.setCustomer(customer);
+            shopifyOrder.setPhone(customer.getPhone());
         }
+    }
+
+    private static String getPhoneNoFromShippingAddress(Map shippingAddress) {
+        return String.valueOf(shippingAddress.get("phone"));
     }
 
     private static int getNumberOfOrders(String numberOfOrders) {
@@ -456,6 +471,8 @@ public class ShopifyMapper {
         return shopifyLineItems;
     }
 
+
+
     private void addNewInventory(Inventory inventory, JsonObject variantObject, int inventoryQuantity) {
         Inventory newInventory = new Inventory();
         newInventory.setShopifyQuantity(inventoryQuantity);
@@ -492,5 +509,115 @@ public class ShopifyMapper {
 
     private static boolean isTitleMatched(String productTitle, String title) {
         return productTitle != null && productTitle.equalsIgnoreCase(title);
+    }
+
+    public static List<Customer> parseCustomers(String json) throws Exception {
+        JsonNode root = MAPPER.readTree(json);
+        JsonNode edges = root.path("data").path("customers").path("edges");
+        if (!edges.isArray() || edges.isEmpty()) return Collections.emptyList();
+
+        List<Customer> out = new ArrayList<>(edges.size());
+        for (JsonNode edge : edges) {
+            JsonNode node = edge.path("node");
+            if (node.isMissingNode() || node.isNull()) continue;
+            out.add(mapNodeToCustomer(node));
+        }
+        return out;
+    }
+
+    private static Customer mapNodeToCustomer(JsonNode node) {
+        // pick default address, else first in addresses[]
+        JsonNode addr = node.path("defaultAddress");
+        if (addr.isMissingNode() || addr.isNull() || addr.isEmpty()) {
+            JsonNode addrs = node.path("addresses");
+            if (addrs.isArray() && !addrs.isEmpty()) {
+                addr = addrs.get(0);
+            } else {
+                addr = MAPPER.createObjectNode(); // empty fallback
+            }
+        }
+
+        Customer c = new Customer();
+
+        // Basic identity
+        c.setName(str(node, "displayName"));
+        c.setEmail(str(node, "email"));
+
+        // Phone preference: defaultAddress.phone -> customer.phone -> first address phone
+        String phone = str(addr, "phone");
+        if (isBlank(phone)) phone = str(node, "phone");
+        if (isBlank(phone)) {
+            JsonNode addrs = node.path("addresses");
+            if (addrs.isArray()) {
+                for (JsonNode a : addrs) {
+                    String p = str(a, "phone");
+                    if (!isBlank(p)) { phone = p; break; }
+                }
+            }
+        }
+        c.setPhone(clean(phone));
+
+        // Address lines
+        String address1 = str(addr, "address1");
+        String address2 = str(addr, "address2");
+        String city     = str(addr, "city");
+        String province = str(addr, "province");
+        String country  = str(addr, "country");
+        String zip      = str(addr, "zip");
+
+        StringBuilder full = new StringBuilder();
+        if (!isBlank(address1)) full.append(address1);
+        if (!isBlank(address2)) { if (full.length() > 0) full.append(", "); full.append(address2); }
+        if (!isBlank(city))     { if (full.length() > 0) full.append(", "); full.append(city); }
+        if (!isBlank(province)) { if (full.length() > 0) full.append(", "); full.append(province); }
+        if (!isBlank(country))  { if (full.length() > 0) full.append(", "); full.append(country); }
+        if (!isBlank(zip))      { if (full.length() > 0) full.append(" - "); full.append(zip); }
+        c.setAddress(full.toString());
+
+        // City/State/Pincode fields
+        c.setCity(city);
+        c.setState(province);
+        c.setPincode(zip);
+
+        // Loyalty ID (optional): derive from tags (e.g., "loyalty:ABC123")
+        c.setLoyaltyId(extractLoyaltyId(node.path("tags")));
+
+        // Totals not present in payload; default (or fetch via separate orders query)
+        c.setTotalSpent(0.0);
+        c.setOrdersCount(node.has("numberOfOrders") ? node.path("numberOfOrders").asInt(0) : 0);
+
+        return c;
+    }
+
+    // --- Helpers (keep or reuse your existing ones) ---
+
+    private static String extractLoyaltyId(JsonNode tagsNode) {
+        if (!tagsNode.isArray()) return null;
+        Iterator<JsonNode> it = tagsNode.elements();
+        while (it.hasNext()) {
+            String t = it.next().asText("");
+            String lower = t.toLowerCase();
+            if (lower.startsWith("loyalty:"))   return t.substring("loyalty:".length()).trim();
+            if (lower.startsWith("loyaltyid=")) return t.substring("loyaltyId=".length()).trim();
+        }
+        return null;
+    }
+
+    private static String str(JsonNode n, String field) {
+        JsonNode v = n.path(field);
+        return v.isMissingNode() || v.isNull() ? null : v.asText(null);
+    }
+
+    // Optional: normalize Indian phone numbers (remove spaces/dashes/parentheses)
+
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    // optional: normalize Indian phone numbers
+    private static String clean(String phone) {
+        if (phone == null) return null;
+        return phone.replaceAll("[()\\s-]", "");
     }
 }

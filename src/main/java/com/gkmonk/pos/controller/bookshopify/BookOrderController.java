@@ -5,6 +5,7 @@ import com.gkmonk.pos.model.legacy.ShopifyOrders;
 import com.gkmonk.pos.model.order.OrderStatus;
 import com.gkmonk.pos.services.orders.OrderCacheServiceImpl;
 import com.gkmonk.pos.services.shopify.ShopifyServiceImpl;
+import com.gkmonk.pos.services.shopify.v2.ShopifyOrderV2ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -25,6 +26,8 @@ public class BookOrderController {
 
     @Autowired
     private ShopifyServiceImpl shopifyServiceImpl;
+    @Autowired
+    private ShopifyOrderV2ServiceImpl shopifyV2Service;
     @Autowired
     private OrderCacheServiceImpl orderCacheService;
 
@@ -54,7 +57,7 @@ public class BookOrderController {
     @RequestMapping("/fetchorders")
     public ResponseEntity<String> fetchOrders() {
         //fetch shopify orders.
-        Map<String, Object> unfulfilledOrders =  shopifyServiceImpl.fetchPage(5, null);
+        Map<String, Object> unfulfilledOrders =  shopifyV2Service.fetchPage(5, null);
         if(unfulfilledOrders != null && !unfulfilledOrders.isEmpty()) {
             return ResponseEntity.ok("Fetched orders");
         }
@@ -67,7 +70,7 @@ public class BookOrderController {
             @Argument String after
     ) {
         int pageSize = (first == null) ? 50 : first;
-        Map<String, Object> unfulfilledOrders =  shopifyServiceImpl.fetchPage(pageSize, after);
+        Map<String, Object> unfulfilledOrders =  shopifyV2Service.fetchPage(pageSize, after);
         return unfulfilledOrders;
     }
 
@@ -78,7 +81,7 @@ public class BookOrderController {
             @Argument Integer pageSize
     ) {
         int size = (pageSize == null) ? 250 : pageSize;
-        return shopifyServiceImpl.fetchAll(size);
+        return shopifyV2Service.fetchAll(size);
     }
 
 

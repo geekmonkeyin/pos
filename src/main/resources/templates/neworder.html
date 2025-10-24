@@ -1,109 +1,745 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>New Order</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <title>Geekmonkey — New POS Order</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <style>
-        .form-group {
-            margin-bottom: 20px;
+        :root{
+          --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --radius:16px;
         }
-        .barcode-icon {
-            cursor: pointer;
-        }
-        .form-check {
-            margin-bottom: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin-top: 50px;
-        }
-        .btn-primary {
-            width: 100%;
-            padding: 10px;
-            font-size: 18px;
-        }
-        .input-group-text {
-            background-color: #007bff;
-            color: white;
-        }
-        .input-group-text:hover {
-            background-color: #0056b3;
-        }
+        html,body{height:100%}
+        body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
+        .gm-header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke)}
+        .gm-header .inner{display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; max-width:1200px; margin:0 auto}
+        .gm-brand{display:flex; align-items:center; gap:.55rem; font-weight:800; color:var(--text); text-decoration:none}
+        .gm-dot{width:10px; height:10px; border-radius:50%; background:var(--accent)}
+        .gm-actions{margin-left:auto; display:flex; gap:.5rem}
+        .gm-btn{display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--stroke);
+          background:#fff; color:var(--text); padding:.45rem .7rem; border-radius:12px; text-decoration:none}
+        .gm-btn:hover{background:#F3F4F6}
+        .gm-btn-primary{border-color:transparent; background:var(--accent); color:#fff}
+        .gm-btn-primary:hover{background:#ff8f29}
+        .pos-wrap{max-width:1200px; margin:18px auto; display:grid; grid-template-columns: 1.1fr .9fr; gap:16px}
+        @media (max-width: 992px){ .pos-wrap{grid-template-columns: 1fr} }
+        .gm-card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 6px 16px rgba(17,24,39,.06)}
+        .gm-card .head{padding:1rem 1.25rem; border-bottom:1px solid var(--stroke); display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap}
+        .gm-card .body{padding:1rem 1.25rem}
+        .muted{color:var(--muted)}
+        .table thead th{background:#F3F4F6}
+        .qty-btn{width:28px; height:28px; border:1px solid var(--stroke); background:#fff; border-radius:8px; line-height:1}
+        .totals-row{display:flex; justify-content:space-between; align-items:center; margin:.35rem 0}
+        .totals-row .label{color:var(--muted)}
+        .totals-row .value{font-weight:600}
+        .totals-emph{font-size:1.15rem}
+        .pill{font-size:.8rem; padding:.25rem .5rem; border:1px solid var(--stroke); border-radius:999px; background:#fff}
+        .footer-actions{position:sticky; bottom:0; background:#fff; border-top:1px solid var(--stroke);
+          padding:.75rem; display:flex; flex-wrap:wrap; gap:.5rem; justify-content:flex-end;
+          border-bottom-left-radius:var(--radius); border-bottom-right-radius:var(--radius);}
+        #scanInput{ position:absolute; left:-9999px; width:1px; height:1px; opacity:0; }
+        .cust-item{border:1px solid var(--stroke); border-radius:12px; padding:.75rem; background:#fff}
+        .cust-item .name{font-weight:600}
+        .cust-item .addr{color:var(--muted)}
     </style>
 </head>
 <body>
-<div>
-    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
-    <button id="homeButton" onclick="goBack()" style="position: fixed; top: 10px; left: 60px;background-color:#28a745;color:#ffff">Home</button>
-</div>
+<header class="gm-header">
+    <div class="inner">
+        <span class="gm-dot" aria-hidden="true"></span>
+        <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">Geekmonkey</a>
+        <div class="gm-actions">
+            <button type="button" class="gm-btn" id="btnBack">← Back</button>
+            <a class="gm-btn gm-btn-primary" href="/v1/home">🏠 Home</a>
+        </div>
+    </div>
+</header>
 
-<div class="container">
-    <h1 class="text-center my-4">New Order</h1>
-    <form>
-        <div class="form-group">
-            <label for="barcode">Scan Barcode</label>
-            <div class="input-group">
-                <input type="text" class="form-control" id="barcode" placeholder="Scan or enter barcode">
-                <div class="input-group-append">
-                    <span class="input-group-text barcode-icon">&#128424;</span>
+<input id="scanInput" autocomplete="off" />
+
+<main class="pos-wrap">
+    <section class="gm-card">
+        <div class="head">
+            <div>
+                <h5 class="m-0">New Order</h5>
+                <div class="muted small">Scan Product ID to add instantly • Keyboard scanners supported</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span id="orderTag" class="pill">Walk-in</span>
+                <button class="gm-btn" id="holdBtn">⏸ Hold</button>
+                <button class="gm-btn" id="resumeBtn" disabled>▶ Resume</button>
+                <button class="gm-btn" id="clearBtn">🗑 Clear</button>
+            </div>
+        </div>
+
+        <div class="body">
+            <div class="row g-2 align-items-center mb-2">
+                <div class="col-12 col-md-7">
+                    <input id="productSearch" class="form-control" placeholder="Enter Product ID (14 digits) or search by name…" />
+                </div>
+                <div class="col-6 col-md-2 d-grid">
+                    <button class="btn gm-btn-primary" id="searchBtn">Search</button>
+                </div>
+                <div class="col-6 col-md-3 text-md-end">
+                    <span class="muted small">Tip: Press <kbd>/</kbd> to focus search</span>
+                </div>
+            </div>
+
+            <div id="searchResults" class="list-group mb-3" style="display:none;"></div>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle" id="cartTable">
+                    <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-end" style="width:120px;">Price</th>
+                        <th class="text-center" style="width:120px;">Qty</th>
+                        <th class="text-end" style="width:120px;">Total</th>
+                        <th class="text-center" style="width:70px;">Remove</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="row g-2 mt-2">
+                <div class="col-md-8">
+                    <input id="orderNote" class="form-control" placeholder="Order note (optional)" />
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <input id="couponCode" class="form-control" placeholder="Coupon code" />
+                    <button id="applyCoupon" class="btn btn-outline-secondary">Apply</button>
                 </div>
             </div>
         </div>
-        <div class="form-group">
-            <label for="searchProduct">Search for Products</label>
-            <input type="text" class="form-control" id="searchProduct" placeholder="Search for products">
+
+        <div class="body pt-0">
+            <div class="totals-row"><span class="label">Subtotal</span><span class="value" id="tSubtotal">₹0.00</span></div>
+            <div class="totals-row"><span class="label">Discount (<span id="discountLabel">0%</span>)</span><span class="value text-success" id="tDiscount">− ₹0.00</span></div>
+            <div class="row g-2 align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex gap-2 align-items-center">
+                        <label class="form-label m-0">Customer Type</label>
+                        <select id="customerType" class="form-select form-select-sm" style="max-width:220px">
+                            <option value="NONE">Regular (no auto-discount)</option>
+                            <option value="NEW">New (15% off)</option>
+                            <option value="PREMIUM">Premium (30% off)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="form-check d-inline-flex align-items-center gap-2">
+                        <input class="form-check-input" type="checkbox" id="includeTax" />
+                        <label class="form-check-label" for="includeTax">Include GST (18%)</label>
+                    </div>
+                    <div class="form-check d-inline-flex align-items-center gap-2 ms-3">
+                        <input class="form-check-input" type="checkbox" id="roundOff" />
+                        <label class="form-check-label" for="roundOff">Round-off</label>
+                    </div>
+                </div>
+            </div>
+            <div class="totals-row"><span class="label">Tax</span><span class="value" id="tTax">₹0.00</span></div>
+            <hr class="my-2">
+            <div class="totals-row totals-emph">
+                <span class="label">Grand Total</span>
+                <span class="value" id="tGrand">₹0.00</span>
+            </div>
         </div>
-        <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="discount">
-            <label class="form-check-label" for="discount">Discount</label>
+
+        <div class="footer-actions">
+            <div class="dropdown me-auto">
+                <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">More Options</button>
+                <ul class="dropdown-menu">
+                    <li><button class="dropdown-item" id="giftWrap">🎁 Add Gift Wrap</button></li>
+                    <li><button class="dropdown-item" id="togglePickup">🚚 Toggle Delivery / Pickup</button></li>
+                    <li><button class="dropdown-item" id="loyalty">⭐ Apply Loyalty Points</button></li>
+                    <li><button class="dropdown-item" id="printHold">🖨 Print Hold Slip</button></li>
+                    <li><button class="dropdown-item" id="voidOrder">❌ Void Order</button></li>
+                </ul>
+            </div>
+            <button class="btn btn-outline-dark" id="payCash">💵 Cash</button>
+            <button class="btn btn-outline-dark" id="payCard">💳 Card</button>
+            <button class="btn btn-outline-dark" id="payUpi">📱 UPI</button>
+            <button class="btn gm-btn-primary" id="paySplit">➗ Split</button>
+            <button class="btn btn-success" id="completeSale">Complete Sale</button>
         </div>
-        <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="gift">
-            <label class="form-check-label" for="gift">Gift</label>
+    </section>
+
+    <aside class="gm-card">
+        <div class="head">
+            <h6 class="m-0">Customer</h6>
+            <span class="muted small">Phone search & auto-discounts</span>
         </div>
-        <div class="form-group">
-            <label for="shippingCharges">Shipping Charges</label>
-            <input type="number" class="form-control" id="shippingCharges" placeholder="Enter shipping charges">
+        <div class="body">
+            <div class="input-group mb-2">
+                <span class="input-group-text">+91</span>
+                <input id="phoneInput" class="form-control" placeholder="Phone number" inputmode="numeric" />
+                <button class="btn gm-btn-primary" id="findCustomer">Find</button>
+            </div>
+            <div class="small muted mb-2">New: 15% off • Premium: 30% off (auto-applied)</div>
+
+            <div id="customerCard" class="p-3 border rounded-3" style="border-color:var(--stroke); display:none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong id="custName">Customer</strong>
+                    <span id="custTier" class="pill">Regular</span>
+                </div>
+                <div class="small mt-1"><span class="muted">Phone:</span> <span id="custPhone"></span></div>
+                <div class="small"><span class="muted">Email:</span> <span id="custEmail"></span></div>
+                <div class="small"><span class="muted">Address:</span> <span id="custAddress"></span></div>
+                <div class="small"><span class="muted">Pincode:</span> <span id="custPincode"></span></div>
+                <div class="small"><span class="muted">Orders:</span> <span id="custOrders">0</span></div>
+            </div>
+
+            <hr>
+
+            <h6>Scan Settings</h6>
+            <div class="small muted mb-2">USB barcode scanners (keyboard mode) will fill Product ID automatically.</div>
+            <div class="d-grid gap-2">
+                <button class="btn btn-outline-secondary" id="refocusScan">Refocus Scanner</button>
+            </div>
+
+            <hr>
+
+            <h6>Retail Shortcuts</h6>
+            <div class="row g-2">
+                <div class="col-6 d-grid"><button class="btn btn-outline-secondary" id="openDrawer">🗄 Open Drawer</button></div>
+                <div class="col-6 d-grid"><button class="btn btn-outline-secondary" id="noSale">🚫 No Sale</button></div>
+                <div class="col-6 d-grid"><button class="btn btn-outline-secondary" id="priceCheck">🔎 Price Check</button></div>
+                <div class="col-6 d-grid"><button class="btn btn-outline-secondary" id="reprint">🧾 Reprint Last</button></div>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="paymentMethod">Payment Method</label>
-            <select class="form-control" id="paymentMethod">
-                <option>Credit Card</option>
-                <option>Debit Card</option>
-                <option>Cash</option>
-                <option>Online Payment</option>
-            </select>
+    </aside>
+</main>
+
+<!-- Customer Picker Modal -->
+<div class="modal fade" id="customerPickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="customerList" class="vstack gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto small text-muted" id="customerCount"></div>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn gm-btn-primary" id="pickCustomerConfirm">Use Selected</button>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="customerName">Customer Name</label>
-            <input type="text" class="form-control" id="customerName" placeholder="Enter customer name">
-        </div>
-        <div class="form-group">
-            <label for="customerPhone">Customer Phone No</label>
-            <input type="text" class="form-control" id="customerPhone" placeholder="Enter customer phone number">
-        </div>
-        <div class="form-group">
-            <label for="previousOrders">Previous Number of Orders</label>
-            <input type="number" class="form-control" id="previousOrders" placeholder="Enter previous number of orders">
-        </div>
-        <div class="form-group">
-            <label for="totalAmountSpent">Total Amount Spent</label>
-            <input type="number" class="form-control" id="totalAmountSpent"
-                   placeholder="Enter total amount spent by customer">
-        </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
+    </div>
 </div>
+
+<!-- Product Picker Modal -->
+<div class="modal fade" id="productPickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="productList" class="vstack gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto small text-muted" id="productCount"></div>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn gm-btn-primary" id="pickProductConfirm">Add Selected</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Not Found Modal -->
+<div class="modal fade" id="productNotFoundModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Not Found</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">We couldn't find a product with this ID:</p>
+                <div class="p-2 border rounded bg-light">
+                    <code id="missingProductCode"></code>
+                </div>
+                <p class="mt-3 mb-0 small text-muted">You can try a manual search below.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button class="btn gm-btn-primary" id="searchMissing">Search Manually</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.querySelector('.barcode-icon').addEventListener('click', function() {
-        alert('Barcode scanner functionality to be implemented');
+    // ===== Header back
+    document.getElementById('btnBack').addEventListener('click', () => {
+      if (history.length > 1) history.back(); else location.href = '/v1/home';
     });
-    function goBack() {
-        window.history.back(); // Navigate to the previous page
+
+    // ===== Focus hidden scan input
+    const scanInput = document.getElementById('scanInput');
+    const refocus = () => { scanInput.blur(); scanInput.focus({preventScroll:true}); };
+    window.addEventListener('load', refocus);
+    document.getElementById('refocusScan').addEventListener('click', refocus);
+
+    // ===== Cart state
+    let cart = []; // {id,title,price,qty}
+    const GST_RATE = 0.18;
+
+    // ===== Helpers
+    const money = (n) => '₹' + (Number(n)||0).toFixed(2);
+    const byId = (id) => document.getElementById(id);
+
+    function renderCart(){
+      const tbody = byId('cartTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      cart.forEach((it, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div class="fw-semibold">${it.title || 'Item'}</div>
+            <div class="small text-muted">${it.sku || it.id || ''}</div>
+          </td>
+          <td class="text-end">${money(it.price)}</td>
+          <td class="text-center">
+            <div class="d-inline-flex align-items-center gap-1">
+              <button class="qty-btn" onclick="decQty(${idx})">−</button>
+              <input class="form-control form-control-sm text-center" style="width:60px" value="${it.qty}" oninput="setQty(${idx}, this.value)" />
+              <button class="qty-btn" onclick="incQty(${idx})">+</button>
+            </div>
+          </td>
+          <td class="text-end">${money(it.price * it.qty)}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${idx})">✕</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      computeTotals();
     }
 
+    function incQty(i){ cart[i].qty++; renderCart(); }
+    function decQty(i){ cart[i].qty = Math.max(1, cart[i].qty-1); renderCart(); }
+    function setQty(i,val){
+      const n = Number(val);
+      cart[i].qty = Number.isFinite(n) && n>0 ? n : 1;
+      renderCart();
+    }
+    function removeItem(i){ cart.splice(i,1); renderCart(); }
+
+    // ===== Totals & Discounts
+    function currentAutoDiscountPct(){
+      const type = byId('customerType').value;
+      if (type === 'NEW') return 15;
+      if (type === 'PREMIUM') return 30;
+      return 0;
+    }
+
+    function computeTotals(){
+      const subtotal = cart.reduce((s,it)=> s + (it.price*it.qty), 0);
+      const discPct = currentAutoDiscountPct();
+      byId('discountLabel').textContent = discPct + '%';
+
+      const discount = subtotal * (discPct/100);
+      let taxable = Math.max(0, subtotal - discount);
+      let tax = 0;
+      if (byId('includeTax').checked){ tax = taxable * GST_RATE; }
+      let grand = taxable + tax;
+      if (byId('roundOff').checked){ grand = Math.round(grand); }
+
+      byId('tSubtotal').textContent = money(subtotal);
+      byId('tDiscount').textContent = '− ' + money(discount);
+      byId('tTax').textContent = money(tax);
+      byId('tGrand').textContent = money(grand);
+      return { subtotal, discount, tax, grand };
+    }
+
+    ['customerType','includeTax','roundOff'].forEach(id=>{
+      byId(id).addEventListener('change', computeTotals);
+    });
+
+    // ===== Scanner (keyboard) — PRODUCT ID
+    let scanBuffer = '';
+    let scanTimer = null;
+    const SCAN_TIMEOUT = 250; // ms
+    const notFoundModal = new bootstrap.Modal('#productNotFoundModal');
+
+    scanInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter'){
+        const code = scanBuffer.trim();
+        scanBuffer = '';
+        handleScannedProductId(code);
+        e.preventDefault();
+      }
+    });
+    scanInput.addEventListener('input', () => {
+      const val = scanInput.value;
+      if (!val) return;
+      scanBuffer += val;
+      scanInput.value = '';
+      clearTimeout(scanTimer);
+      scanTimer = setTimeout(() => {
+        const code = scanBuffer.trim();
+        scanBuffer = '';
+        if (code) handleScannedProductId(code);
+      }, SCAN_TIMEOUT);
+    });
+
+    async function handleScannedProductId(productId){
+      if (!productId) return;
+      const product = await fetchProductById(productId);
+      if (product) {
+        addToCart(product);
+      } else {
+        showNotFound(productId);
+      }
+      refocus();
+    }
+
+    function showNotFound(id){
+      byId('missingProductCode').textContent = id;
+      notFoundModal.show();
+      byId('searchMissing').onclick = () => {
+        notFoundModal.hide();
+        byId('productSearch').value = id;
+        byId('productSearch').focus();
+        searchProducts();
+      };
+    }
+
+    // ===== Manual search + auto-trigger on 14 digits
+    const productSearchEl = byId('productSearch');
+    let autoFireGuard = false;
+    productSearchEl.addEventListener('input', async () => {
+      const raw = productSearchEl.value || '';
+      const digits = raw.replace(/\D+/g, '');
+      if (digits.length === 14 && !autoFireGuard){
+        autoFireGuard = true;
+        const product = await fetchProductById(digits);
+        if (product){
+          addToCart(product);
+          productSearchEl.value = '';
+        } else {
+          showNotFound(digits);
+        }
+        setTimeout(()=> autoFireGuard = false, 300);
+      }
+    });
+    productSearchEl.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter') searchProducts();
+      if (e.key === '/' ){ e.preventDefault(); productSearchEl.focus(); }
+    });
+    byId('searchBtn').addEventListener('click', searchProducts);
+
+    async function searchProducts(){
+      const q = productSearchEl.value.trim();
+      if (!q) return;
+      const results = await fetchProducts(q);
+      const box = byId('searchResults');
+      box.innerHTML = '';
+      if (results.length){
+        results.forEach(p=>{
+          const btn = document.createElement('button');
+          btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+          btn.innerHTML = `
+            <span>
+              <div class="fw-semibold">${p.productTitle || p.title}</div>
+              <div class="small text-muted">${p.sku || p.productVariantId || ''}</div>
+            </span>
+            <span class="badge bg-light text-dark">${money(p.price ?? p.sellingPrice ?? 0)}</span>
+          `;
+          btn.onclick = async ()=> {
+            const mp = await mapProduct(p);
+            if (mp) addToCart(mp);
+          };
+          box.appendChild(btn);
+        });
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    function addToCart(p){
+      const idx = cart.findIndex(it => (it.id && it.id===p.id) || (it.sku && it.sku===p.sku));
+      if (idx >= 0){ cart[idx].qty++; }
+      else { cart.push({ id:p.id, sku:p.sku, title:p.title, price:p.price||0, qty:1 }); }
+      byId('searchResults').style.display = 'none';
+      productSearchEl.value = '';
+      renderCart();
+    }
+
+    // ===== Customer search (unchanged)
+    let lastCustomerResults = [];
+    const customerModal = new bootstrap.Modal('#customerPickerModal');
+
+    document.getElementById('findCustomer').addEventListener('click', findCustomer);
+    document.getElementById('phoneInput').addEventListener('keydown', (e)=>{ if (e.key==='Enter') findCustomer(); });
+
+    async function findCustomer(){
+      const phone = byId('phoneInput').value.trim();
+      if (!phone) return;
+      const customers = await fetchCustomers(phone);
+      if (!customers || !customers.length){
+        showPickedCustomer({ name: 'New Customer', email: null, phone, address:'', pincode:'', city:'', state:'', ordersCount:0 });
+        byId('customerType').value = 'NEW';
+        computeTotals();
+        return;
+      }
+      if (customers.length === 1){
+        showPickedCustomer(customers[0]);
+        return;
+      }
+      lastCustomerResults = customers;
+      renderCustomerPicker(customers);
+      customerModal.show();
+    }
+
+    function renderCustomerPicker(customers){
+      const list = byId('customerList');
+      list.innerHTML = '';
+      customers.forEach((c, idx) => {
+        const item = document.createElement('label');
+        item.className = 'cust-item d-flex gap-3 align-items-start';
+        item.innerHTML = `
+          <input class="form-check-input mt-1" type="radio" name="customerPick" value="${idx}">
+          <div>
+            <div class="name">${escapeHtml(c.name || 'Customer')}</div>
+            <div class="small"><span class="text-muted">Phone:</span> ${escapeHtml(c.phone || '-')}</div>
+            <div class="small"><span class="text-muted">Email:</span> ${escapeHtml(c.email || '-')}</div>
+            <div class="addr small mt-1">${escapeHtml(formatAddressLine(c))}</div>
+            <div class="small text-muted mt-1">Orders: ${Number(c.ordersCount||0)}</div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+      byId('customerCount').textContent = customers.length + ' matches';
+    }
+
+    function formatAddressLine(c){
+      const parts = [c.address, c.city, c.state, c.pincode].filter(Boolean);
+      return parts.join(', ');
+    }
+    function escapeHtml(s){
+      if (s == null) return '';
+      return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    byId('pickCustomerConfirm').addEventListener('click', () => {
+      const selected = document.querySelector('input[name="customerPick"]:checked');
+      if (!selected){ alert('Please select a customer.'); return; }
+      const idx = Number(selected.value);
+      const picked = lastCustomerResults[idx];
+      customerModal.hide();
+      showPickedCustomer(picked);
+    });
+
+    function showPickedCustomer(c){
+      byId('customerCard').style.display = 'block';
+      byId('custName').textContent = c.name || 'Customer';
+      byId('custPhone').textContent = c.phone || '';
+      byId('custEmail').textContent = c.email || '-';
+      byId('custAddress').textContent = formatAddressLine(c);
+      byId('custPincode').textContent = c.pincode || '';
+      byId('custOrders').textContent = Number(c.ordersCount||0);
+      if ((c.ordersCount||0) === 0) byId('customerType').value = 'NEW';
+      if ((c.loyaltyId||'').toUpperCase() === 'PREMIUM') byId('customerType').value = 'PREMIUM';
+      computeTotals();
+    }
+
+    // ===== Payments / actions (stubs)
+    document.getElementById('holdBtn').addEventListener('click', ()=>{
+      localStorage.setItem('gm_pos_hold', JSON.stringify({cart, meta: captureMeta()}));
+      alert('Order held. You can resume it.');
+      byId('resumeBtn').disabled=false;
+    });
+    document.getElementById('resumeBtn').addEventListener('click', ()=>{
+      const data = JSON.parse(localStorage.getItem('gm_pos_hold')||'null');
+      if (!data){ alert('No held order.'); return; }
+      cart = data.cart||[];
+      renderCart();
+    });
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      if(confirm('Clear current cart?')){ cart=[]; renderCart(); }
+    });
+
+    document.getElementById('payCash').addEventListener('click', ()=> alert('Cash selected'));
+    document.getElementById('payCard').addEventListener('click', ()=> alert('Card selected'));
+    document.getElementById('payUpi').addEventListener('click', ()=> alert('UPI selected'));
+    document.getElementById('paySplit').addEventListener('click', ()=> alert('Split payment'));
+    document.getElementById('applyCoupon').addEventListener('click', ()=> alert('Apply coupon logic here'));
+    document.getElementById('giftWrap').addEventListener('click', ()=> alert('Gift wrap added'));
+    document.getElementById('togglePickup').addEventListener('click', ()=>{ const tag=byId('orderTag'); tag.textContent = tag.textContent==='Walk-in' ? 'Pickup' : 'Walk-in'; });
+    document.getElementById('loyalty').addEventListener('click', ()=> alert('Loyalty applied'));
+    document.getElementById('printHold').addEventListener('click', ()=> alert('Print hold slip'));
+    document.getElementById('voidOrder').addEventListener('click', ()=>{ if(confirm('Void this order?')){ cart=[]; renderCart(); } });
+
+    document.getElementById('completeSale').addEventListener('click', async ()=>{
+      if (!cart.length){ alert('Cart is empty.'); return; }
+      const totals = computeTotals();
+      const payload = {
+        cart,
+        totals,
+        customer: {
+          name: byId('custName').textContent || null,
+          phone: byId('custPhone').textContent || null,
+          email: byId('custEmail').textContent || null,
+          address: byId('custAddress').textContent || null,
+          pincode: byId('custPincode').textContent || null,
+          tier: byId('customerType').value
+        },
+        note: byId('orderNote').value || null,
+        coupon: byId('couponCode').value || null,
+        includeTax: byId('includeTax').checked,
+        roundOff: byId('roundOff').checked,
+        mode: 'PENDING_SELECT'
+      };
+
+      try{
+        const resp = await fetch('/v1/pos/submitOrder', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        if (!resp.ok) throw new Error('Failed to submit order');
+        alert('Sale completed!');
+        cart=[]; renderCart();
+      }catch(err){ console.error(err); alert('Failed to complete sale.'); }
+    });
+
+    function captureMeta(){
+      return { time: new Date().toISOString(), customerType: byId('customerType').value, taxIncluded: byId('includeTax').checked };
+    }
+
+    // ===== Product picker (promise-based)
+    const productPickerModal = new bootstrap.Modal('#productPickerModal');
+    function pickProductFromList(arr){
+      return new Promise(resolve => {
+        const list = byId('productList');
+        list.innerHTML = '';
+        arr.forEach((p, i) => {
+          const price = Number(p.price ?? p.sellingPrice ?? p.mrp ?? 0);
+          const sku = p.sku || p.productVariantId || p.barcode || '';
+          const row = document.createElement('label');
+          row.className = 'd-flex align-items-start gap-3 p-2 border rounded';
+          row.innerHTML = `
+            <input class="form-check-input mt-1" type="radio" name="productPick" value="${i}">
+            <div>
+              <div class="fw-semibold">${escapeHtml(p.productTitle || p.title || 'Product')}</div>
+              <div class="small text-muted">${escapeHtml(sku)}</div>
+              <div class="small">${money(price)}</div>
+            </div>
+          `;
+          list.appendChild(row);
+        });
+        byId('productCount').textContent = arr.length + ' matches';
+        productPickerModal.show();
+
+        const confirm = byId('pickProductConfirm');
+        const handler = () => {
+          const chosen = document.querySelector('input[name="productPick"]:checked');
+          if (!chosen) { alert('Please select a product.'); return; }
+          const idx = Number(chosen.value);
+          productPickerModal.hide();
+          confirm.removeEventListener('click', handler);
+          resolve(arr[idx]);
+        };
+        confirm.addEventListener('click', handler);
+      });
+    }
+
+    // ===== API adapters
+    async function fetchProductById(productId){
+      try{
+        const resp = await fetch(`/v1/order/product-lookup/productid?query=${encodeURIComponent(productId)}`);
+        if (resp.ok){
+          const data = await resp.json(); // could be object OR array
+          const mapped = await mapProduct(data); // async (handles array selection)
+          if (mapped) return mapped;
+        }
+      }catch(_){}
+      try{
+        const arr = await fetchProducts(productId);
+        if (!arr.length) return null;
+        // arr already mapped; but mapProduct can also accept an array of mapped & unmapped; we'll pass through
+        const mapped = await mapProduct(arr);
+        return mapped;
+      }catch(_){ return null; }
+    }
+
+    async function fetchProducts(query){
+      const resp = await fetch(`/v1/order/product-lookup/productid?query=${encodeURIComponent(query)}`);
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      // If backend returns a single object, normalize to array
+      const arr = Array.isArray(data) ? data : (data ? [data] : []);
+      // Map each element to our minimal structure (no picker here)
+      return Promise.all(arr.map(x => mapOne(x)));
+    }
+
+    // ===== UPDATED: async mapProduct
+    // Accepts: product object OR array of products.
+    // - If array length > 1: show picker, return mapped selection
+    // - If array length == 1: return mapped first
+    // - If single object: return mapped
+    async function mapProduct(p){
+      if (Array.isArray(p)){
+        if (p.length === 0) return null;
+        if (p.length === 1) return mapOne(p[0]);
+        const picked = await pickProductFromList(p);
+        return picked ? mapOne(picked) : null;
+      }
+      if (!p) return null;
+      return mapOne(p);
+    }
+
+    // Map a single raw product shape to our cart item fields
+    function mapOne(p){
+      return {
+        id: p.productVariantId || p.id || p.sku || p.barcode || '',
+        sku: p.sku || p.productVariantId || '',
+        title: p.productTitle || p.title || 'Product',
+        price: Number(p.price ?? p.sellingPrice ?? p.mrp ?? 0)
+      };
+    }
+
+    async function fetchCustomers(phone){
+      try{
+        const resp = await fetch(`/v1/customer/search?phone=${encodeURIComponent(phone)}`);
+        if (!resp.ok) return [];
+        const arr = await resp.json();
+        return (arr || []).map(x => ({
+          name: x.name || x.displayName || 'Customer',
+          email: x.email || null,
+          phone: x.phone || null,
+          address: x.address || '',
+          pincode: x.pincode || '',
+          city: x.city || '',
+          state: x.state || '',
+          loyaltyId: x.loyaltyId || null,
+          totalSpent: Number(x.totalSpent || 0),
+          ordersCount: Number(x.ordersCount || 0)
+        }));
+      }catch(e){
+        console.error(e);
+        return [];
+      }
+    }
+
+    // Utils again for picker
+    function escapeHtml(s){
+      if (s == null) return '';
+      return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    // Initial render
+    renderCart();
 </script>
 </body>
 </html>

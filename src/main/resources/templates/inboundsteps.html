@@ -1,123 +1,132 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Inbound Steps</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <title>Geekmonkey — Inbound Steps</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+    <!-- jsPDF & QRCode -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f8f9fa;
+        :root{
+          --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --radius:16px;
         }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-height: 80vh; /* Set a maximum height */
-            overflow-y: auto; /* Enable vertical scrolling */
+        html,body{height:100%}
+        body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
+
+        /* Header */
+        .gm-header{
+          position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke);
+        }
+        .gm-header .inner{
+          display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; max-width:1200px; margin:0 auto;
+        }
+        .gm-brand{
+          display:flex; align-items:center; gap:.55rem; font-weight:800; color:var(--text); text-decoration:none;
+        }
+        .gm-dot{width:10px; height:10px; border-radius:50%; background:var(--accent)}
+        .gm-actions{margin-left:auto; display:flex; gap:.5rem}
+        .gm-btn{
+          display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--stroke);
+          background:#fff; color:var(--text); padding:.45rem .7rem; border-radius:12px; text-decoration:none;
+        }
+        .gm-btn:hover{background:#F3F4F6}
+        .gm-btn-primary{border-color:transparent; background:var(--accent); color:#fff;}
+        .gm-btn-primary:hover{background:#ff8f29}
+
+        /* Card container */
+        .wizard-container{
+          max-width: 1200px; margin: 18px auto; padding: 0; background:var(--card);
+          border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 6px 16px rgba(17,24,39,.06);
+        }
+        .wizard-container .head{
+          padding:1rem 1.25rem; border-bottom:1px solid var(--stroke); display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        }
+        .wizard-container .head h2{margin:0; font-size:1.15rem}
+        .wizard-container .body{padding:1rem 1.25rem}
+        .muted{color:var(--muted)}
+
+        .wizard-step{display:none}
+        .wizard-step.active{display:block}
+
+        .modal-content{
+          background:#fff; border-radius:12px; border:1px solid var(--stroke);
+          max-height:80vh; overflow-y:auto;
         }
 
-        .wizard-container {
-            max-width: 80%;
-            margin: 30px auto;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+        .table thead th{background:#F3F4F6}
+        .list-group-item{cursor:pointer}
 
-        h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .wizard-step {
-            display: none;
-        }
-
-        .wizard-step.active {
-            display: block;
-        }
-
-        label {
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .form-control {
-            font-size: 14px;
-        }
-
-        .btn {
-            font-size: 16px;
-        }
-
-        table {
-            width: 100%;
-            margin-top: 20px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 8px;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
+        .video-wrap video{max-width:100%; border-radius:12px; border:1px solid var(--stroke)}
     </style>
 </head>
 <body>
+<!-- Header -->
+<header class="gm-header">
+    <div class="inner">
+        <span class="gm-dot" aria-hidden="true"></span>
+        <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">Geekmonkey</a>
+        <div class="gm-actions">
+            <button type="button" class="gm-btn" id="btnBack" title="Go Back">← Back</button>
+            <a class="gm-btn gm-btn-primary" href="/v1/home" title="Home">🏠 Home</a>
+        </div>
+    </div>
+</header>
+
+<!-- Inbound Wizard -->
 <div class="wizard-container">
-    <h2>Inbound Wizard</h2>
+    <div class="head">
+        <h2>Inbound Wizard</h2>
+        <span class="muted">Scan, pack, record, and complete inbound cartons.</span>
+    </div>
+    <div class="body">
+        <!-- Existing Cartons (Thymeleaf) -->
+        <section class="mb-3">
+            <h5>Existing Cartons</h5>
+            <div th:if="${cartons != null}">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                        <tr>
+                            <th>Product ID</th>
+                            <th>Product Name</th>
+                            <th class="text-end">Quantity</th>
+                            <th class="text-end">Cost</th>
+                            <th>Image</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="carton, cartonStat : ${cartons}">
+                            <td th:text="${carton.productId}"></td>
+                            <td th:text="${carton.productName}"></td>
+                            <td class="text-end" th:text="${carton.quantity}"></td>
+                            <td class="text-end" th:text="${carton.productCost}"></td>
+                            <td><img th:src="${carton.image}" style="height:60px;width:60px;object-fit:cover;border-radius:8px;border:1px solid var(--stroke);"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-   <!-- Example for Thymeleaf in `inboundsteps.html` -->
-   <div>
-       <h3>Existing Cartons</h3>
-       <div th:if="${cartons != null}">
-               <table class="table">
-                   <thead>
-                       <tr>
-                           <th>Product ID</th>
-                           <th>Product Name</th>
-                           <th>Quantity</th>
-                           <th>Cost</th>
-                           <th>Image</th>
-                       </tr>
-                   </thead>
-                   <tbody>
-                       <tr th:each="carton, cartonStat : ${cartons}">
-                           <td th:text="${carton.productId}"></td>
-                           <td th:text="${carton.productName}"></td>
-                           <td th:text="${carton.quantity}"></td>
-                           <td th:text="${carton.productCost}"></td>
-                           <td><img th:src="${carton.image}" style="height:60px;weight:60px;"></td>
-                       </tr>
-                   </tbody>
-               </table>
-           </div>
-       </div>
+        <!-- Dynamic Steps -->
+        <div id="wizardSteps"></div>
 
-    <div id="wizardSteps">
-        <!-- Steps will be dynamically generated -->
+        <!-- Product Picker Modal -->
         <div class="modal" id="productListModal" role="dialog" tabindex="-1">
-            <div class="modal-dialog" role="document">
+            <div class="modal-dialog modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Select Product</h5>
-                        <button class="close" onclick="closeProductListModal()" type="button">&times;</button>
+                        <button class="btn-close" onclick="closeProductListModal()" type="button" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <ul id="productList" class="list-group">
-                            <!-- Products will be dynamically added here -->
-                        </ul>
+                        <ul id="productList" class="list-group"></ul>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" onclick="closeProductListModal()">Close</button>
@@ -125,781 +134,533 @@
                 </div>
             </div>
         </div>
-    </div>
-    <div>
-        <h2>Webcam Recording</h2>
-        <video autoplay id="cameraFeed"></video>
-        <canvas id="imageCanvas" style="display: none;"></canvas>
-        <div class="text-center" style="margin-top: 20px;">
-            <button class="btn btn-primary" id="startButton" onclick="startCamera()">Start Camera</button>
-            <button class="btn btn-danger" disabled id="stopButton" onclick="stopRecording()">Stop Recording</button>
-            <button class="btn btn-danger" enabled id="saveCarton" onclick="saveCarton()">Save Carton</button>
-            <button class="btn btn-danger" enabled id="completeOrder" onclick="completeOrder()" disabled>Complete Order</button>
 
+        <!-- Webcam Recording -->
+        <section class="mt-3">
+            <h5>Webcam Recording</h5>
+            <div class="video-wrap">
+                <video autoplay id="cameraFeed" playsinline></video>
+            </div>
+            <canvas id="imageCanvas" style="display:none;"></canvas>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button class="btn gm-btn-primary" id="startButton" onclick="startCamera()">Start Camera</button>
+                <button class="btn btn-outline-danger" disabled id="stopButton" onclick="stopRecording()">Stop Recording</button>
+                <button class="btn btn-outline-primary" id="saveCarton" onclick="saveCarton()">Save Carton</button>
+                <button class="btn btn-success" id="completeOrder" onclick="completeOrder()" disabled>Complete Order</button>
+            </div>
+        </section>
+
+        <!-- Pager -->
+        <div class="d-flex justify-content-between mt-4">
+            <button class="btn btn-outline-secondary" id="prevButton" onclick="prevStep()">Previous</button>
+            <button class="btn gm-btn-primary" id="nextButton" onclick="nextStep()">Next</button>
         </div>
     </div>
-    <div class="text-center">
-        <button class="btn btn-secondary" id="prevButton" onclick="prevStep()">Previous</button>
-        <button class="btn btn-primary" id="nextButton" onclick="nextStep()">Next</button>
-    </div>
 </div>
-<!-- Modal for capturing image -->
+
+<!-- Capture Image Modal -->
 <div class="modal" id="captureImageModal" role="dialog" tabindex="-1">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Capture Image</h5>
-                <button class="close" onclick="closeModal()" type="button">&times;</button>
+                <button class="btn-close" onclick="closeModal()" type="button" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <video autoplay id="cameraFeedPopup" style="width: 100%;"></video>
-                <canvas id="imageCanvasPopup" style="display: none;"></canvas>
-                <img id="imgPreview" src="" alt="Captured Image" style="width: 100%; height: auto;">
+                <video autoplay id="cameraFeedPopup" style="width:100%;" playsinline></video>
+                <canvas id="imageCanvasPopup" style="display:none;"></canvas>
+                <img id="imgPreview" src="" alt="Captured Image" style="width:100%; height:auto; border:1px solid var(--stroke); border-radius:12px; margin-top:10px;">
             </div>
-            <div class="modal-footer">
-                <label id="productIdPopup"></label>
-                <label id="rowCountIdPopup" hidden="true"></label>
-                <button class="btn btn-primary" id="clickImage" onclick="clickImage()">Capture</button>
-                <button class="btn btn-success" disabled id="saveButton" onclick="saveImage()">Save</button>
-                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            <div class="modal-footer d-flex justify-content-between align-items-center">
+                <div class="small text-muted">
+                    <label id="productIdPopup" class="me-3"></label>
+                    <label id="rowCountIdPopup" hidden="true"></label>
+                </div>
+                <div>
+                    <button class="btn gm-btn-primary" id="clickImage" onclick="clickImage()">Capture</button>
+                    <button class="btn btn-success" disabled id="saveButton" onclick="saveImage()">Save</button>
+                    <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Packaging Modal -->
 <div class="modal" id="packagingModal" role="dialog" tabindex="-1">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Enter Packaging Dimensions</h5>
-                <button class="close" onclick="closePackagingModal()" type="button">&times;</button>
+                <button class="btn-close" onclick="closePackagingModal()" type="button" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label for="length">Length</label>
-                    <input type="number" class="form-control" id="length" placeholder="Enter length">
-
-                    <input type="text" class="form-control" id="popupProductId" visibility="hidden">
-                </div>
-                <div class="form-group">
-                    <label for="breadth">Breadth</label>
-                    <input type="number" class="form-control" id="breadth" placeholder="Enter breadth">
-                </div>
-                <div class="form-group">
-                    <label for="height">Height</label>
-                    <input type="number" class="form-control" id="height" placeholder="Enter height">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <input type="text" class="form-control" id="popupProductId" hidden>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="length" class="form-label">Length</label>
+                        <input type="number" class="form-control" id="length" placeholder="e.g. 20">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="breadth" class="form-label">Breadth</label>
+                        <input type="number" class="form-control" id="breadth" placeholder="e.g. 15">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="height" class="form-label">Height</label>
+                        <input type="number" class="form-control" id="height" placeholder="e.g. 10">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" onclick="savePackagingDetails()">Save</button>
+                <button class="btn gm-btn-primary" onclick="savePackagingDetails()">Save</button>
                 <button class="btn btn-secondary" onclick="closePackagingModal()">Close</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal for QR Code -->
+<!-- QR Code Modal -->
 <div class="modal" id="qrcodeModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">QR Code</h5>
-                <button type="button" class="close" onclick="closeQRCode()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-
+                <button type="button" class="btn-close" onclick="closeQRCode()" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center">
                 <div id="qrcode"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeQRCode()">Close</button>
-                <button type="button" class="btn btn-secondary" onclick="printQRCode()">Print</button>
-
+                <button type="button" class="btn gm-btn-primary" onclick="printQRCode()">Print</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Spinner -->
+<div id="spinner" style="display:none; text-align:center; margin-top:10px;">
+    <div class="spinner-border" role="status" aria-label="Loading"></div>
+</div>
 
-<div id="spinner" style="display: none; text-align: center; margin-top: 10px;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="sr-only">Loading...</span>
-    </div>
-</div>
-</div>
-</body>
 <script>
-    const totalCartons = getCartonNo();
-    let currentStep = getCurrentStep();
-    updateCurrentSteps();
-    generateWizardSteps();
-
-
-
-
-    function openModal(rowCount) {
-        document.getElementById('captureImageModal').style.display = 'block';
-        var productId = document.getElementById('productID' + rowCount).value;
-        document.getElementById('productIdPopup').innerText = productId;
-        document.getElementById('rowCountIdPopup').innerText = rowCount;
-
-        startCameraForImage();
-    }
-
-    function closeModal() {
-        document.getElementById('captureImageModal').style.display = 'none';
-        stopCameraForImage();
-    }
-
-
-
-async function startCameraForImage() {
-    try {
-        // Access the webcam for image capture
-        imageStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        const videoElement = document.getElementById('cameraFeedPopup');
-        videoElement.srcObject = imageStream;
-    } catch (error) {
-        console.error('Error accessing webcam for image:', error);
-    }
-}
-
-function stopCameraForImage() {
-    if (imageStream) {
-        imageStream.getTracks().forEach(track => track.stop());
-    }
-}
-
-    async function startCamera() {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const videoElement = document.getElementById('cameraFeed');
-            videoElement.srcObject = stream;
-        } catch (error) {
-            console.error('Error accessing webcam:', error);
-        }
-    }
-
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-    }
-
-      let mediaRecorder;
-    let recordedChunks = [];
-    let stream;
-
-    function updateCurrentSteps() {
-
-        document.getElementById('prevButton').disabled = currentStep === 1;
-        document.getElementById('nextButton').disabled = currentStep === totalCartons;
-    }
-
-    function generateWizardSteps() {
-        const wizardSteps = document.getElementById('wizardSteps');
-        for (let i = currentStep; i <= totalCartons; i++) {
-            const stepDiv = document.createElement('div');
-            stepDiv.className = `wizard-step ${i === currentStep ? 'active' : ''}`;
-            stepDiv.id = `step${i}`;
-            stepDiv.innerHTML = `
-                <h3>Carton ${i}</h3>
-                <table id="productTable${i}" border="1">
-                    <thead>
-                        <tr>
-                            <th>Sno</th>
-                            <th>Product ID</th>
-                            <th>Product Name</th>
-                            <th>Qty</th>
-                            <th>Cost</th>
-                            <th>Is Packaging?</th>
-                            <th>Capture Image</th>
-                            <th>Upload Image</th>
-                            <th>Actions</th>
-                            <th>Print QRCode</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Rows will be dynamically added -->
-                    </tbody>
-                </table>
-                <button onclick="addProductRow(${i})">Add Product</button>
-            `;
-            wizardSteps.appendChild(stepDiv);
-        }
-    }
-
-    function addProductRow(cartonNo) {
-        const tableBody = document.querySelector(`#productTable${cartonNo} tbody`);
-        const rowCount = tableBody.rows.length + 1;
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-                        <td><input type="text" class="form-control" name="rowCount[]" readonly value="${rowCount}" ></td>
-            <td><input type="text" class="form-control" name="productId[]" id="productID${rowCount}" value="${rowCount}" readonly></td>
-            <td><input type="text" class="form-control" name="productName[]" id="productName${rowCount}" oninput="fetchAndShowProducts(${rowCount})"></td>
-            <td><input type="number" class="form-control" name="quantity[]" required></td>
-            <td><input type="number" class="form-control" name="cost[]"></td>
-            <td>
-                <input type="checkbox" class="form-control" onchange="showPackagingPopup(${rowCount})" name="isPackaging[]">
-            </td>
-            <td>
-            <div class="container">
-    <div class="text-center">
-        <button id="captureButton" class="btn btn-primary" onclick="captureImage(${rowCount})">Capture Image</button>
-    </div>
-</div>
-            </td>
-             <td>
-                <img id="productImage${rowCount}" src="" alt="Captured Image" style="width: 100px; height: auto; display: none;">
-            </td>
-            <td><input type="file" class="form-control" name="image[]"></td>
-            <td><button type="button" onclick="removeRow(this)">Remove</button></td>
-            <td><button type="button" onclick="generateQRCode(  ${rowCount})">QRCode</button></td>
-        `;
-        tableBody.appendChild(newRow);
-    }
-
-    function removeRow(button) {
-        const row = button.parentElement.parentElement;
-        row.parentElement.removeChild(row);
-    }
-
-
-   let selectedRowId;
-
-function fetchAndShowProducts(rowId) {
-    selectedRowId = rowId; // Store the row ID for later use
-    const query = document.getElementById(`productName${rowId}`).value;
-
-    if (query.length > 4) {
-            document.getElementById('spinner').style.display = 'block';
-
-        fetch(`/v1/inventory/search?query=${query}`)
-            .then(response => response.json())
-            .then(data => {
-                const productList = document.getElementById('productList');
-                productList.innerHTML = ''; // Clear previous results
-
-                data.forEach(product => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'list-group-item';
-                    listItem.textContent = `${product.productTitle} (ID: ${product.productVariantId})`;
-                    listItem.onclick = () => selectProduct(product);
-                    productList.appendChild(listItem);
-                });
-
-                document.getElementById('productListModal').style.display = 'block';
-            })
-            .catch(error => console.error('Error fetching products:', error))
-             .finally(() => {
-                // Hide the spinner
-                document.getElementById('spinner').style.display = 'none';
-            });;
-    }
-}
-
-
-function selectProduct(product) {
-    // Update the product ID in the corresponding row
-    document.getElementById(`productID${selectedRowId}`).value = product.productVariantId;
-    document.getElementById(`productName${selectedRowId}`).value = product.productTitle;
-
-    closeProductListModal();
-}
-
-function closeProductListModal() {
-    document.getElementById('productListModal').style.display = 'none';
-}
-
-    function searchProduct(input) {
-        const query = input.value;
-        if (query.length > 4) {
-            fetch(`/v1/inventory/search?query=${query}`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data); // Handle product search results
-
-                })
-                .catch(error => console.error('Error searching product:', error));
-        }
-    }
-
-    function saveCarton() {
-        const cartonNo = currentStep;
-
-        const productRows = document.querySelectorAll(`#productTable${cartonNo} tbody tr`);
-        const products = Array.from(productRows).map(row => ({
-            productId: row.querySelector('[name="productId[]"]').value,
-            productName: row.querySelector('[name="productName[]"]').value,
-            quantity: row.querySelector('[name="quantity[]"]').value,
-            cost: row.querySelector('[name="cost[]"]').value,
-        }));
-        const formData = new FormData();
-        formData.append('inboundId', getInboundId());
-        formData.append('cartonNo', cartonNo);
-        formData.append('products', JSON.stringify(products));
-
-        fetch('/v1/inbound/saveCarton', {
-            method: 'POST',
-            body: formData,
-        })
-            .then(response => response)
-            .then(data => {
-                alert('Carton saved successfully!');
-            })
-            .catch(error => console.error('Error saving carton:', error));
-    }
-
-    function nextStep() {
-        if(currentStep == totalCartons){
-            //disable next button
-            document.getElementById('nextButton').disabled = true;
-            //enable complete order
-           checkCompleteOrder();
-        }
-        else if (getCurrentStep() < totalCartons) {
-            document.getElementById(`step${currentStep}`).classList.remove('active');
-            currentStep++;
-            document.getElementById(`step${currentStep}`).classList.add('active');
-            document.getElementById('nextButton').disabled = false;
-            document.getElementById('completeOrder').disabled = true;
-        }else{
-         document.getElementById('nextButton').disabled = false;
-        }
-    }
-
-    function prevStep() {
-        if (currentStep > getCurrentStep()) {
-            document.getElementById(`step${currentStep}`).classList.remove('active');
-            currentStep--;
-            document.getElementById(`step${currentStep}`).classList.add('active');
-        }else{
-            //disable previous button
-            document.getElementById('prevButton').disabled = true;
-        }
-        checkCompleteOrder();
-    }
-
-    function checkCompleteOrder(){
-        if(currentStep == totalCartons){
-            document.getElementById('completeOrder').disabled = false;
-        }else{
-            document.getElementById('completeOrder').disabled = true;
-        }
-    }
-
-    function getCurrentStep(){
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentStep = urlParams.get('currentStep') || 'defaultInboundId';
-        return Number(currentStep);
-    }
-
-     function getCartonNo(){
-        const urlParams = new URLSearchParams(window.location.search);
-        const cartonNo = urlParams.get('cartonNo') || 'defaultInboundId';
-        return cartonNo;
-    }
-
-    function getInboundId(){
-        const urlParams = new URLSearchParams(window.location.search);
-        const inboundId = urlParams.get('inboundId') || 'defaultInboundId';
-        return inboundId;
-    }
-    async function startCamera() {
-        try {
-            // Access the webcam
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            const videoElement = document.getElementById('cameraFeed');
-            videoElement.srcObject = stream;
-
-            // Initialize MediaRecorder
-            mediaRecorder = new MediaRecorder(stream);
-            recordedChunks = [];
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    recordedChunks.push(event.data);
-                }
-            };
-
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-
-                const playbackVideo = document.createElement('video');
-                playbackVideo.controls = true;
-                playbackVideo.src = url;
-                playbackVideo.style.marginTop = '20px';
-
-
-                // Append the video element to the container
-                const container = document.querySelector('.wizard-container');
-                container.appendChild(playbackVideo);
-
-
-                // Create a download link for the recorded video
-                const a = document.createElement('a');
-                a.href = url;
-                const inboundId = getInboundId();
-                const cartonNo = currentStep;
-                a.download = 'InboundId_'+inboundId+'Carton_'+cartonNo+'+recorded-video.webm';
-                a.textContent = 'Download Video';
-                document.body.appendChild(a);
-
-                 a.click();
-
-                 // Clean up
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-            };
-
-            mediaRecorder.start();
-            document.getElementById('startButton').disabled = true;
-            document.getElementById('stopButton').disabled = false;
-        } catch (error) {
-            console.error('Error accessing webcam:', error);
-        }
-    }
-
-    function stopRecording() {
-        mediaRecorder.stop();
-        stream.getTracks().forEach(track => track.stop()); // Stop webcam
-        document.getElementById('startButton').disabled = false;
-        document.getElementById('stopButton').disabled = true;
-    }
-
-
-   function captureImage(rowCount) {
-       openModal(rowCount);
-        const videoElement = document.getElementById('cameraFeedPopup');
-        const canvas = document.getElementById('imageCanvasPopup');
-        const context = canvas.getContext('2d');
-
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-
-        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-
-        stopCamera();
-        document.getElementById('saveButton').disabled = false;
-    }
-
-    function saveImage() {
-        const canvas = document.getElementById('imageCanvasPopup');
-
-        const imageData = canvas.toDataURL('image/png'); // Convert canvas to Base64 string
-        const rowCount = document.getElementById('rowCountIdPopup').innerText; // Get the row count from the popup
-        const productImage = document.getElementById(`productImage`+rowCount);
-        productImage.src = imageData;
-        productImage.style.display = 'block'; // Show the image in the table
-
-
-        const carton = currentStep; // Get the current carton number
-        const inboundId = getInboundId(); // Get the inbound ID
-        const productId = document.getElementById("productIdPopup").innerText;
-
-        // Save the image data (e.g., send to server or log it)
-        console.log('Captured Image Data:', imageData);
-
-
-fetch('/v1/inbound/saveImage', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-        image: imageData,
-        carton: carton,
-        inboundId: inboundId,
-        productId: productId
-    }),
-})
-.then(response => {
-    if (!response.ok) {
-        throw new Error('Failed to save image');
-    }
-    return response;
-})
-.then(data => {
-    alert('Image saved successfully!');
-    closeModal();
-
-})
-.catch(error => {
-    console.error('Error saving image:', error);
-});
-
-    }
-
-      function submitImage() {
-        const canvas = document.getElementById('imageCanvas');
-        const imageData = canvas.toDataURL('image/png'); // Convert canvas to Base64 string
-
-        // Send the image data to the server
-       /** fetch('/v1/inbound/saveImage', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ image: imageData }),
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to save image');
-            }
-            return response.json();
-        })
-        .then(data => {
-            alert('Image saved successfully!');
-        })
-        .catch(error => {
-            console.error('Error saving image:', error);
-        });**/
-    }
-
-    // Start the camera when the page loads
-
-    function clickImage() {
-    const videoElement = document.getElementById('cameraFeedPopup');
-    const canvas = document.getElementById('imageCanvasPopup');
-    const context = canvas.getContext('2d');
-
-    // Set canvas dimensions to match the video feed
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
-
-    // Draw the video frame onto the canvas
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-    // Convert the canvas content to a Base64 image
-    const imageData = canvas.toDataURL('image/png');
-
-    // Display the preview in the modal
-    const previewImage = document.getElementById('imgPreview');
-    previewImage.src = imageData;
-    previewImage.style.width = '100%';
-    previewImage.style.marginTop = '10px';
-
-    // Append the preview image to the modal body
-    //const modalBody = document.querySelector('#captureImageModal .modal-body');
-   // modalBody.appendChild(previewImage);
-
-    // Enable the save button
-    document.getElementById('saveButton').disabled = false;
-}
-
-    function completeOrder() {
-
-     saveCarton();
-    // Step 1: Show confirmation popup
-    const confirmation = confirm("Are you sure you want to complete the order?");
-    if (!confirmation) return;
-
-    // Step 2: Show total cartons opened
-    const totalCartons = getCartonNo();
-    alert(`Total number of cartons opened: ${totalCartons}`);
-
-    // Step 3: Prompt for employee name
-    const employeeName = prompt("Please enter your name to confirm completion:");
-    if (!employeeName) {
-        alert("Employee name is required to complete the order.");
-        return;
-    }
-
-    // Step 4: Call InboundController with status closed and InboundId
-    const inboundId = getInboundId();
-    fetch('/v1/inbound/completeOrder', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            id: inboundId,
-            closedBy: employeeName,
-        }),
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to complete the order');
-        }
-        return response.json();
-    })
-    .then(data => {
-        alert('Order completed successfully!');
-        window.location.href = '/v1/inbound/completedOrders'; // Redirect to completed orders page
-    })
-    .catch(error => {
-        console.error('Error completing order:', error);
-        alert('Failed to complete the order. Please try again.');
+    // ===== Header Back handling =====
+    document.getElementById('btnBack').addEventListener('click', function(){
+      if (window.history.length > 1) window.history.back();
+      else window.location.href = '/v1/home';
     });
-}
 
-    function showPackagingPopup(rowCount) {
-    //if (checkbox.checked) {
-        // Show the modal
-        document.getElementById('packagingModal').style.display = 'block';
-        document.getElementById('popupProductId').value = ''+rowCount;
-    //}
-}
+    // ===== Helpers =====
+    const $ = (id) => document.getElementById(id);
+    const urlParams = new URLSearchParams(window.location.search);
+    const getParamNum = (k, def=0) => {
+      const v = urlParams.get(k);
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : def;
+    };
+    const getParamStr = (k, def='') => (urlParams.get(k) ?? def);
 
-function closePackagingModal() {
-    // Hide the modal
-    document.getElementById('packagingModal').style.display = 'none';
-    document.getElementById('popupProductId') = '';
-}
+    const totalCartons = getParamNum('cartonNo', 1);
+    let currentStep = getParamNum('currentStep', 1);
+    const inboundId = getParamStr('inboundId', '');
 
-function savePackagingDetails() {
-    const length = document.getElementById('length').value;
-    const breadth = document.getElementById('breadth').value;
-    const height = document.getElementById('height').value;
-    const productid = document.getElementById('popupProductId').value;
-    if (!length || !breadth || !height) {
-        alert('Please fill all dimensions.');
+    let stream = null;
+    let imageStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    function updatePagerButtons(){
+      $('prevButton').disabled = (currentStep <= 1);
+      $('nextButton').disabled = (currentStep >= totalCartons);
+      $('completeOrder').disabled = !(currentStep === totalCartons);
+    }
+
+    function generateWizardSteps(){
+      const wizardSteps = $('wizardSteps');
+      wizardSteps.innerHTML = '';
+      for (let i = 1; i <= totalCartons; i++) {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = `wizard-step ${i === currentStep ? 'active' : ''}`;
+        stepDiv.id = `step${i}`;
+        stepDiv.innerHTML = `
+          <div class="border rounded-3 p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="mb-0">Carton ${i}</h6>
+              <div class="small text-muted">Inbound: ${inboundId || '-'}</div>
+            </div>
+            <div class="table-responsive mt-3">
+              <table id="productTable${i}" class="table table-bordered table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th style="width:60px;">Sno</th>
+                    <th style="min-width:140px;">Product ID</th>
+                    <th style="min-width:240px;">Product Name</th>
+                    <th class="text-end" style="width:90px;">Qty</th>
+                    <th class="text-end" style="width:110px;">Cost</th>
+                    <th style="width:120px;">Is Packaging?</th>
+                    <th style="width:130px;">Capture Image</th>
+                    <th style="width:120px;">Preview</th>
+                    <th style="width:130px;">Upload Image</th>
+                    <th style="width:90px;">Actions</th>
+                    <th style="width:120px;">Print QR</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="addProductRow(${i})">+ Add Product</button>
+          </div>
+        `;
+        wizardSteps.appendChild(stepDiv);
+      }
+      updatePagerButtons();
+    }
+
+    function addProductRow(cartonNo){
+      const tbody = document.querySelector(`#productTable${cartonNo} tbody`);
+      const rowCount = tbody.rows.length + 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="rowCount[]" readonly value="${rowCount}"></td>
+        <td><input type="text" class="form-control form-control-sm" name="productId[]" id="productID${rowCount}" value="${rowCount}" readonly></td>
+        <td><input type="text" class="form-control form-control-sm" name="productName[]" id="productName${rowCount}" oninput="fetchAndShowProducts(${rowCount})"></td>
+        <td><input type="number" class="form-control form-control-sm text-end" name="quantity[]" min="1" value="1" required></td>
+        <td><input type="number" class="form-control form-control-sm text-end" name="cost[]" step="0.01"></td>
+        <td class="text-center">
+          <input type="checkbox" class="form-check-input" onchange="showPackagingPopup(${rowCount})" name="isPackaging[]">
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm gm-btn-primary" onclick="captureImage(${rowCount})">Capture</button>
+        </td>
+        <td class="text-center">
+          <img id="productImage${rowCount}" src="" alt="Captured Image" style="width:100px; height:auto; display:none; border:1px solid var(--stroke); border-radius:8px;">
+        </td>
+        <td><input type="file" class="form-control form-control-sm" name="image[]"></td>
+        <td class="text-center"><button class="btn btn-sm btn-outline-danger" type="button" onclick="removeRow(this)">Remove</button></td>
+        <td class="text-center"><button class="btn btn-sm btn-outline-secondary" type="button" onclick="generateQRCode(${rowCount})">QRCode</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function removeRow(button){
+      const row = button.closest('tr');
+      row.parentElement.removeChild(row);
+    }
+
+    // ==== Product search modal ====
+    let selectedRowId = null;
+
+    function fetchAndShowProducts(rowId){
+      selectedRowId = rowId;
+      const query = $(`productName${rowId}`).value.trim();
+      if (query.length <= 4) return;
+
+      $('spinner').style.display = 'block';
+      fetch(`/v1/inventory/search?query=${encodeURIComponent(query)}`)
+        .then(r => r.json())
+        .then(data => {
+          const ul = $('productList');
+          ul.innerHTML = '';
+          (data || []).forEach(product => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item';
+            li.textContent = `${product.productTitle} (ID: ${product.productVariantId})`;
+            li.onclick = () => selectProduct(product);
+            ul.appendChild(li);
+          });
+          $('productListModal').style.display = 'block';
+        })
+        .catch(err => console.error('Error fetching products:', err))
+        .finally(() => $('spinner').style.display = 'none');
+    }
+
+    function selectProduct(product){
+      $(`productID${selectedRowId}`).value = product.productVariantId;
+      $(`productName${selectedRowId}`).value = product.productTitle;
+      closeProductListModal();
+    }
+
+    function closeProductListModal(){
+      $('productListModal').style.display = 'none';
+    }
+
+    // ==== Camera (recording) ====
+    async function startCamera(){
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+        $('cameraFeed').srcObject = stream;
+
+        mediaRecorder = new MediaRecorder(stream);
+        recordedChunks = [];
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type:'video/webm' });
+          const url = URL.createObjectURL(blob);
+
+          const playbackVideo = document.createElement('video');
+          playbackVideo.controls = true;
+          playbackVideo.src = url;
+          playbackVideo.style.marginTop = '10px';
+          $('cameraFeed').parentElement.appendChild(playbackVideo);
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `InboundId_${inboundId || 'NA'}_Carton_${currentStep}_recorded.webm`;
+          a.textContent = 'Download Video';
+          a.className = 'btn btn-sm btn-outline-secondary ms-2';
+          $('cameraFeed').parentElement.appendChild(a);
+
+          // Auto-click download
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+
+        mediaRecorder.start();
+        $('startButton').disabled = true;
+        $('stopButton').disabled = false;
+      } catch(err){
+        console.error('Error accessing webcam:', err);
+      }
+    }
+
+    function stopRecording(){
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      $('startButton').disabled = false;
+      $('stopButton').disabled = true;
+    }
+
+    // ==== Camera (image capture modal) ====
+    async function startCameraForImage(){
+      try{
+        imageStream = await navigator.mediaDevices.getUserMedia({ video:true });
+        $('cameraFeedPopup').srcObject = imageStream;
+      } catch(err){
+        console.error('Error accessing webcam for image:', err);
+      }
+    }
+
+    function stopCameraForImage(){
+      if (imageStream) imageStream.getTracks().forEach(t => t.stop());
+      imageStream = null;
+    }
+
+    function openModal(rowCount){
+      $('captureImageModal').style.display = 'block';
+      const productId = $(`productID${rowCount}`).value;
+      $('productIdPopup').innerText = productId || '';
+      $('rowCountIdPopup').innerText = String(rowCount);
+      startCameraForImage();
+    }
+
+    function closeModal(){
+      $('captureImageModal').style.display = 'none';
+      stopCameraForImage();
+      $('saveButton').disabled = true;
+    }
+
+    function captureImage(rowCount){
+      openModal(rowCount);
+      // Save button gets enabled after actual click (handled in clickImage)
+    }
+
+    function clickImage(){
+      const vid = $('cameraFeedPopup');
+      const canvas = $('imageCanvasPopup');
+      const ctx = canvas.getContext('2d');
+      canvas.width = vid.videoWidth;
+      canvas.height = vid.videoHeight;
+      ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL('image/png');
+      const preview = $('imgPreview');
+      preview.src = imageData;
+      $('saveButton').disabled = false;
+    }
+
+    function saveImage(){
+      const canvas = $('imageCanvasPopup');
+      const imageData = canvas.toDataURL('image/png');
+      const rowCount = $('rowCountIdPopup').innerText;
+      const productImage = $(`productImage${rowCount}`);
+      productImage.src = imageData;
+      productImage.style.display = 'block';
+
+      const productId = $('productIdPopup').innerText || '';
+      fetch('/v1/inbound/saveImage', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          image: imageData,
+          carton: currentStep,
+          inboundId: inboundId || '',
+          productId: productId
+        }),
+      })
+      .then(r => { if(!r.ok) throw new Error('Failed to save image'); return r; })
+      .then(() => {
+        alert('Image saved successfully!');
+        closeModal();
+      })
+      .catch(err => console.error('Error saving image:', err));
+    }
+
+    // ==== Packaging ====
+    function showPackagingPopup(rowCount){
+      $('packagingModal').style.display = 'block';
+      $('popupProductId').value = String(rowCount);
+    }
+
+    function closePackagingModal(){
+      $('packagingModal').style.display = 'none';
+      $('popupProductId').value = '';
+    }
+
+    function savePackagingDetails(){
+      const L = Number($('length').value);
+      const B = Number($('breadth').value);
+      const H = Number($('height').value);
+      const pidRow = $('popupProductId').value;
+
+      if (!L || !B || !H){ alert('Please fill all dimensions.'); return; }
+      const productName = `pkg-${L}-${B}-${H}`;
+      $(`productID${pidRow}`).value = productName;
+      closePackagingModal();
+    }
+
+    // ==== QR Code ====
+    function generateQRCode(rowId){
+      const productId = $(`productID${rowId}`).value;
+      let productName = $(`productName${rowId}`).value || '';
+      if (!productId && !productName){
+        alert('Product ID is required to generate QR code.');
         return;
-    }
-    var productName = "pkg-"+length+"-"+breadth+"-"+height;
-    //set productid as productname
-       document.getElementById('productID'+productid).value = productName;
+      }
 
-    console.log('Packaging Dimensions:', { length, breadth, height });
+      const box = $('qrcode');
+      box.innerHTML = '';
+      new QRCode(box, { text: productId || productName, width:128, height:128 });
 
-    // Hide the modal
-    closePackagingModal();
-}
+      const textDiv = document.createElement('div');
+      textDiv.style.textAlign = 'center';
+      textDiv.style.marginTop = '10px';
+      if (productName.length > 60) productName = productName.substring(0,60) + '…';
+      textDiv.textContent = productName;
+      box.appendChild(textDiv);
 
-
-    function generateQRCode(productIdFieldId) {
-        const productId = document.getElementById("productID" + productIdFieldId).value;
-        var productName = document.getElementById("productName" + productIdFieldId).value;
-        if (!productId && !productName) {
-            alert('Product ID is required to generate QR code.');
-            return;
-        }
-
-        // Clear any existing QR code
-        const qrCodeContainer = document.getElementById('qrcode');
-        qrCodeContainer.innerHTML = '';
-
-        // Generate the QR code
-       new QRCode(qrCodeContainer, {
-            text: productId,
-            width: 128,
-            height: 128,
-        });
-
-
-    const textElement = document.createElement('div');
-    textElement.style.textAlign = 'center'; // Center the text
-    textElement.style.marginTop = '10px'; // Add some spacing
-        if (productName.length > 60) {
-            productName = productName.substring(0, 60) + '...'; // Truncate if too long
-        }
-    textElement.textContent = productName; // Set the text content
-        qrCodeContainer.appendChild(textElement);
-
-        // Show the QR code modal
-        document.getElementById('qrcodeModal').style.display = 'block';
+      $('qrcodeModal').style.display = 'block';
     }
 
-    // Function to close the QR code modal
-    function closeQRCode() {
-        document.getElementById('qrcodeModal').style.display = 'none';
+    function closeQRCode(){ $('qrcodeModal').style.display = 'none'; }
+
+    async function printQRCode(){
+      const qrBox = $('qrcode');
+      const img = qrBox.querySelector('img');
+      const textEl = qrBox.querySelector('div');
+      if (!img || !textEl){ alert('No QR code or text found to print.'); return; }
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation:'landscape', unit:'in', format:[4,1] });
+
+      const qr = img.src;
+      const label = textEl.textContent || '';
+      const size = .5;
+
+      const slots = [
+        {x:.2, y:.1},
+        {x:1.3, y:.1},
+        {x:2.3, y:.1},
+        {x:3.2, y:.1},
+      ];
+
+      pdf.setFontSize(5);
+      const maxWidth = .7;
+
+      slots.forEach(({x,y}) => {
+        pdf.addImage(qr, 'PNG', x, y, size, size);
+        const wrapped = pdf.splitTextToSize(label, maxWidth);
+        pdf.text(wrapped, x, y + size + .1);
+      });
+
+      const blob = pdf.output('blob');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
     }
 
+    // ==== Save Carton ====
+    function saveCarton(){
+      const cartonNo = currentStep;
+      const rows = document.querySelectorAll(`#productTable${cartonNo} tbody tr`);
+      const products = Array.from(rows).map(row => ({
+        productId: row.querySelector('[name="productId[]"]').value,
+        productName: row.querySelector('[name="productName[]"]').value,
+        quantity: row.querySelector('[name="quantity[]"]').value,
+        cost: row.querySelector('[name="cost[]"]').value,
+      }));
 
-    async function printQRCode()
-    {
+      const formData = new FormData();
+      formData.append('inboundId', inboundId || '');
+      formData.append('cartonNo', cartonNo);
+      formData.append('products', JSON.stringify(products));
 
-                const qrCodeContainer = document.getElementById('qrcode');
-                const qrCodeImage = qrCodeContainer.querySelector('img');
-                const textElement = qrCodeContainer.querySelector('div');
-                if (!qrCodeImage || !textElement) {
-                    alert('No QR code or text found to print.');
-                    return;
-                }
-
-                // Get the QR code image as Base64
-                const qrCodeBase64 = qrCodeImage.src;
-                const productText = textElement.textContent;
-
-                // Create a new jsPDF instance
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'in',
-                    format: [4,1],
-                });
-
-                // Add QR code image
-                const qrCode1X = 0.2; // X position
-                const qrCode1Y = .1; // Y position
-
-                 const qrCode2X = 1.3; // X position
-                const qrCode2Y = .1; // Y position
-
-
-                const qrCodeSize = .5; // Size of the QR code
-                pdf.addImage(qrCodeBase64, 'PNG', qrCode1X, qrCode1Y, qrCodeSize, qrCodeSize);
-
-                // Add product name and ID as text below the QR code
-                const textX = qrCode1X;
-                const textY = qrCode1Y + qrCodeSize + .1; // Position below the QR code
-                pdf.setFontSize(5);
-                const maxWidth = .7; // Adjust as needed
-
-                const wrappedText = pdf.splitTextToSize(productText, maxWidth);
-                pdf.text(wrappedText, textX, textY);
-
-
-
-
-
-                //add 2nd image
-
-
-
-                pdf.addImage(qrCodeBase64, 'PNG', qrCode2X, qrCode2Y, qrCodeSize, qrCodeSize);
-
-                 const text2X = qrCode2X;
-                const text2Y = qrCode2Y + qrCodeSize + .1; // Position below the QR code
-                pdf.setFontSize(5);
-                pdf.text(wrappedText, text2X, text2Y);
-
-
-                 //add 3rd image
-
-                 const qrCode3X = 2.3; // X position
-                const qrCode3Y = .1; // Y position
-
-                pdf.addImage(qrCodeBase64, 'PNG', qrCode3X, qrCode3Y, qrCodeSize, qrCodeSize);
-
-                 const text3X = qrCode3X;
-                const text3Y = qrCode3Y + qrCodeSize + .1; // Position below the QR code
-                pdf.setFontSize(5);
-                pdf.text(wrappedText, text3X, text3Y);
-
-                //4th image
-
-                 const qrCode4X = 3.2; // X position
-                const qrCode4Y = .1; // Y position
-
-                pdf.addImage(qrCodeBase64, 'PNG', qrCode4X, qrCode4Y, qrCodeSize, qrCodeSize);
-
-                 const text4X = qrCode4X;
-                const text4Y = qrCode4Y + qrCodeSize + .1; // Position below the QR code
-                pdf.setFontSize(5);
-                pdf.text(wrappedText, text4X, text4Y);
-
-
-
-                // Open the PDF in a new tab
-                const pdfBlob = pdf.output('blob');
-                const pdfUrl = URL.createObjectURL(pdfBlob);
-                window.open(pdfUrl, '_blank');
+      fetch('/v1/inbound/saveCarton', { method:'POST', body: formData })
+        .then(resp => resp)
+        .then(() => alert('Carton saved successfully!'))
+        .catch(err => console.error('Error saving carton:', err));
     }
 
+    // ==== Navigation ====
+    function nextStep(){
+      if (currentStep < totalCartons){
+        $(`step${currentStep}`).classList.remove('active');
+        currentStep++;
+        $(`step${currentStep}`).classList.add('active');
+      }
+      updatePagerButtons();
+    }
+
+    function prevStep(){
+      if (currentStep > 1){
+        $(`step${currentStep}`).classList.remove('active');
+        currentStep--;
+        $(`step${currentStep}`).classList.add('active');
+      }
+      updatePagerButtons();
+    }
+
+    function completeOrder(){
+      saveCarton();
+
+      if (!confirm('Are you sure you want to complete the order?')) return;
+
+      alert(`Total number of cartons opened: ${totalCartons}`);
+
+      const employeeName = prompt('Please enter your name to confirm completion:');
+      if (!employeeName){
+        alert('Employee name is required to complete the order.');
+        return;
+      }
+
+      fetch('/v1/inbound/completeOrder', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: inboundId || '', closedBy: employeeName }),
+      })
+      .then(r => { if(!r.ok) throw new Error('Failed to complete the order'); return r.json(); })
+      .then(() => {
+        alert('Order completed successfully!');
+        window.location.href = '/v1/inbound/completedOrders';
+      })
+      .catch(err => {
+        console.error('Error completing order:', err);
+        alert('Failed to complete the order. Please try again.');
+      });
+    }
+
+    // ==== Init ====
+    generateWizardSteps();
+    updatePagerButtons();
 </script>
+</body>
 </html>

@@ -1,213 +1,432 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Shopify Report</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css" rel="stylesheet">
-    <style>
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(0,0,0,.05);
-        }
+    <meta charset="UTF-8" />
+    <title>Geekmonkey — Shopify Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <!-- Date range picker deps -->
+    <link href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" rel="stylesheet"/>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-        body {
-        }
-        .table-responsive {
-            width: 100%;
-            margin-top: 20px;
-        }
-        #downloadCsv {
-            margin-top: 20px;
-        }
-        .pagination {
-            margin-top: 20px;
-        }
-        /* Custom styles for the table */
-        .table thead th {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .table tbody tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        .table tbody tr:hover {
-            background-color: #ddd;
-        }
-    </style>
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+    <style>
+        :root{
+          --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --radius:16px;
+        }
+        html,body{height:100%}
+        body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
+
+        /* Header (Geekmonkey theme) */
+        .gm-header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke)}
+        .gm-header .inner{display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; max-width:1200px; margin:0 auto}
+        .gm-brand{display:flex; align-items:center; gap:.55rem; font-weight:800; color:var(--text); text-decoration:none}
+        .gm-dot{width:10px; height:10px; border-radius:50%; background:var(--accent)}
+        .gm-actions{margin-left:auto; display:flex; gap:.5rem}
+        .gm-btn{display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--stroke);
+          background:#fff; color:var(--text); padding:.45rem .7rem; border-radius:12px; text-decoration:none}
+        .gm-btn:hover{background:#F3F4F6}
+        .gm-btn-primary{border-color:transparent; background:var(--accent); color:#fff}
+
+        /* Layout */
+        .gm-wrap{max-width:1200px; margin:18px auto; padding:0 12px}
+        .gm-card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 6px 16px rgba(17,24,39,.06)}
+
+        /* Table */
+        .table thead th{
+          background:#111827; color:#fff; border-color:#111827; user-select:none; cursor:pointer; position:relative;
+        }
+        .table thead th .sort-ind{
+          position:absolute; right:.5rem; top:50%; transform:translateY(-50%); opacity:.8; font-size:.85rem;
+        }
+        .table-striped tbody tr:nth-of-type(odd){background-color:rgba(17,24,39,.03)}
+        .table-hover tbody tr:hover{background-color:rgba(17,24,39,.06)}
+        .table-danger td{ background-color:#ffe5e5 !important; } /* vivid red rows for missing data */
+
+        .chart-wrap{min-height:300px}
+    </style>
 </head>
 <body>
-<div>
-    <button id="backButton" onclick="goBack()" style="position: fixed; top: 10px; left: 10px;">Back</button>
-    <button id="homeButton" onclick="goBack()" style="position: fixed; top: 10px; left: 60px;background-color:#28a745;color:#ffff">Home</button>
-</div>
+<!-- Header -->
+<header class="gm-header">
+    <div class="inner">
+        <span class="gm-dot" aria-hidden="true"></span>
+        <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">Geekmonkey</a>
+        <div class="gm-actions">
+            <button type="button" class="gm-btn" id="btnBack">← Back</button>
+            <a class="gm-btn gm-btn-primary" href="/v1/home">🏠 Home</a>
+        </div>
+    </div>
+</header>
 
-<div class="container">
-    <div class="form-group">
-        <label for="startDate">Start Date:</label>
-        <input type="text" id="startDate" class="form-control">
-    </div>
-    <div class="form-group">
-        <input type="text" id="endDate" class="form-control">
-    </div>
-    <!--<div class="form-group">
-        <label for="search">Search:</label>
-        <input type="text" id="search" class="form-control" placeholder="Search...">
-    </div>-->
-    <div class="form-group">
-        <button id="generateReport" class="btn btn-primary" >Generate Report</button>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped" id="reportTable">
-            <thead>
+<main class="gm-wrap">
+    <!-- Filters -->
+    <section class="gm-card p-3 p-md-4 mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h5 class="m-0">Shopify Report</h5>
+            <div class="small text-muted">
+                Live filter by date, HSN Code, and Product Type • Click headers to sort •
+                <span class="badge text-bg-danger">Red rows = missing HSN/Product Type/State Code</span>
+            </div>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1">Start Date</label>
+                <input type="text" id="startDate" class="form-control" placeholder="Select start date">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1">End Date</label>
+                <input type="text" id="endDate" class="form-control" placeholder="Select end date">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1">HSN Code</label>
+                <select id="filterHsn" class="form-select">
+                    <option value="">All HSN Codes</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1">Product Type</label>
+                <select id="filterType" class="form-select">
+                    <option value="">All Product Types</option>
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2 mt-2">
+                <button id="resetFilters" class="btn btn-outline-secondary">Reset</button>
+                <button id="downloadCsv" class="btn btn-outline-dark ms-auto">Download CSV</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chart -->
+    <section class="gm-card p-3 p-md-4 mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <h6 class="m-0">Sales by State</h6>
+            <div class="small text-muted">Aggregated from visible rows (Total Sales by State Code)</div>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="stateSalesChart" height="120"></canvas>
+        </div>
+    </section>
+
+    <!-- Table -->
+    <section class="gm-card p-3 p-md-4">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover" id="reportTable">
+                <thead>
                 <tr>
-                    <th>Invoice no</th>
-                    <th>Product Title</th>
-                    <th>Product Type</th>
-                    <th>Order or Return</th>
-                    <th>Day</th>
-                    <th>State</th>
-                    <th>State Code</th>
-                    <th>Quantity</th>
-                    <th>HSN Code</th>
-                    <th>IGST_PCT</th>
-                    <th>IGST_Amount</th>
-                    <th>SGST_PCT</th>
-                    <th>SGST_Amount</th>
-                    <th>CGST_PCT</th>
-                    <th>CGST_Amount</th>
-                    <th>Net Sales</th>
-                    <th>Taxes</th>
-                    <th>Total Sales</th>
-                    <th>Tax Amount</th>
-                    <!-- Add other columns as needed -->
+                    <th data-col="0">Order ID <span class="sort-ind"></span></th>
+                    <th data-col="1">Order Name <span class="sort-ind"></span></th>
+                    <th data-col="2">Product Title <span class="sort-ind"></span></th>
+                    <th data-col="3">Variant SKU <span class="sort-ind"></span></th>
+                    <th data-col="4">Variant Title <span class="sort-ind"></span></th>
+                    <th data-col="5">Product Type <span class="sort-ind"></span></th>
+                    <th data-col="6">Order / Return <span class="sort-ind"></span></th>
+                    <th data-col="7" data-type="date">Day <span class="sort-ind"></span></th>
+                    <th data-col="8">Billing Region <span class="sort-ind"></span></th>
+                    <th data-col="9">State Code <span class="sort-ind"></span></th>
+                    <th data-col="10" data-type="num">Net Items Sold <span class="sort-ind"></span></th>
+                    <th data-col="11">HSN Code <span class="sort-ind"></span></th>
+                    <th data-col="12" data-type="num">GST Rate <span class="sort-ind"></span></th>
+                    <th data-col="13" data-type="num">IGST % <span class="sort-ind"></span></th>
+                    <th data-col="14" data-type="num">IGST Amount <span class="sort-ind"></span></th>
+                    <th data-col="15" data-type="num">SGST % <span class="sort-ind"></span></th>
+                    <th data-col="16" data-type="num">SGST Amount <span class="sort-ind"></span></th>
+                    <th data-col="17" data-type="num">CGST % <span class="sort-ind"></span></th>
+                    <th data-col="18" data-type="num">CGST Amount <span class="sort-ind"></span></th>
+                    <th data-col="19" data-type="num">Gross Sales <span class="sort-ind"></span></th>
+                    <th data-col="20" data-type="num">Discounts <span class="sort-ind"></span></th>
+                    <th data-col="21" data-type="num">Returns <span class="sort-ind"></span></th>
+                    <th data-col="22" data-type="num">Net Sales <span class="sort-ind"></span></th>
+                    <th data-col="23" data-type="num">Taxes <span class="sort-ind"></span></th>
+                    <th data-col="24" data-type="num">Total Sales <span class="sort-ind"></span></th>
                 </tr>
-            </thead>
-            <tbody>
-                <tr th:each="report : ${reportDetailsList}">
-                    <td th:text="${report.orderId}"></td>
-                    <td th:text="${report.productTitle}"></td>
-                    <td th:text="${report.productType}"></td>
-                    <td th:text="${report.orderOrReturn}"></td>
-                    <td th:text="${report.day}"></td>
-                    <td th:text="${report.billingRegion}"></td>
-                    <td th:text="${report.stateCode}"></td>
-                    <td th:text="${report.netItemsSold}"></td>
-                    <td th:text="${report.hsnCode}"></td>
-                    <td th:text="${report.igstPerc}"></td>
-                    <td th:text="${report.igstAmount}"></td>
-                    <td th:text="${report.sgstPerc}"></td>
-                    <td th:text="${report.sgstAmount}"></td>
-                    <td th:text="${report.cgstPerc}"></td>
-                    <td th:text="${report.cgstAmount}"></td>
-                    <td th:text="${report.netSales}"></td>
-                    <td th:text="${report.taxes}"></td>
-                    <td th:text="${report.totalSales}"></td>
-                    <!-- Add other columns as needed -->
+                </thead>
+                <tbody>
+                <tr th:each="r : ${reportDetailsList}">
+                    <td th:text="${r.orderId}"></td>
+                    <td th:text="${r.orderName}"></td>
+                    <td th:text="${r.productTitle}"></td>
+                    <td th:text="${r.productVariantSku}"></td>
+                    <td th:text="${r.productVariantTitle}"></td>
+                    <td th:text="${r.productType}"></td>
+                    <td th:text="${r.orderOrReturn}"></td>
+                    <td th:text="${r.day}"></td>
+                    <td th:text="${r.billingRegion}"></td>
+                    <td th:text="${r.stateCode}"></td>
+                    <td th:text="${r.netItemsSold}"></td>
+                    <td th:text="${r.hsnCode}"></td>
+                    <td th:text="${r.gstRate}"></td>
+                    <td th:text="${r.igstPerc}"></td>
+                    <td th:text="${r.igstAmount}"></td>
+                    <td th:text="${r.sgstPerc}"></td>
+                    <td th:text="${r.sgstAmount}"></td>
+                    <td th:text="${r.cgstPerc}"></td>
+                    <td th:text="${r.cgstAmount}"></td>
+                    <td th:text="${r.grossSales}"></td>
+                    <td th:text="${r.discounts}"></td>
+                    <td th:text="${r.returns}"></td>
+                    <td th:text="${r.netSales}"></td>
+                    <td th:text="${r.taxes}"></td>
+                    <td th:text="${r.totalSales}"></td>
                 </tr>
-            </tbody>
-        </table>
-    </div>
-    <nav>
-        <ul class="pagination">
-            <li class="page-item"><a class="page-link" href="#" id="prevPage">Previous</a></li>
-            <li class="page-item"><a class="page-link" href="#" id="nextPage">Next</a></li>
-        </ul>
-    </nav>
-    <button class="btn btn-primary" id="downloadCsv">Download as CSV</button>
-</div>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-$(document).ready(function() {
-    // Initialize date pickers
-    $('#startDate').daterangepicker({
-        singleDatePicker: true,
-        showDropdowns: true
+    // Header
+    document.getElementById('btnBack').addEventListener('click', () => {
+      if (history.length > 1) history.back(); else location.href = '/v1/home';
     });
+
+    // Date pickers — NO DEFAULT DATE (inputs start empty)
+    $('#startDate').daterangepicker({
+      singleDatePicker:true, showDropdowns:true, autoUpdateInput:false, autoApply:true,
+      locale:{ cancelLabel:'Clear' }
+    })
+    .on('apply.daterangepicker', function(ev,picker){ $(this).val(picker.startDate.format('YYYY-MM-DD')).trigger('change'); })
+    .on('cancel.daterangepicker', function(){ $(this).val('').trigger('change'); });
 
     $('#endDate').daterangepicker({
-        singleDatePicker: true,
-        showDropdowns: true
-    });
+      singleDatePicker:true, showDropdowns:true, autoUpdateInput:false, autoApply:true,
+      locale:{ cancelLabel:'Clear' }
+    })
+    .on('apply.daterangepicker', function(ev,picker){ $(this).val(picker.startDate.format('YYYY-MM-DD')).trigger('change'); })
+    .on('cancel.daterangepicker', function(){ $(this).val('').trigger('change'); });
 
-    // Pagination variables
-    var currentPage = 1;
-    var rowsPerPage = 10000;
-
-    // Function to display a specific page
-    function displayPage(page) {
-        var rows = $('#reportTable tbody tr');
-        var totalRows = rows.length;
-        var totalPages = Math.ceil(totalRows / rowsPerPage);
-
-        rows.hide();
-        rows.slice((page - 1) * rowsPerPage, page * rowsPerPage).show();
-
-        $('#prevPage').parent().toggleClass('disabled', page === 1);
-        $('#nextPage').parent().toggleClass('disabled', page === totalPages);
+    // Build filter options from table content
+    function populateFilters(){
+      const hsnSet = new Set();
+      const typeSet = new Set();
+      $('#reportTable tbody tr').each(function(){
+        const $td = $(this).children('td');
+        const type = ($td.eq(5).text() || '').trim();
+        const hsn  = ($td.eq(11).text() || '').trim();
+        if (type) typeSet.add(type);
+        if (hsn) hsnSet.add(hsn);
+      });
+      const $hsn = $('#filterHsn'), $type = $('#filterType');
+      $hsn.find('option:not(:first)').remove();
+      $type.find('option:not(:first)').remove();
+      Array.from(hsnSet).sort().forEach(v=>$hsn.append(new Option(v,v)));
+      Array.from(typeSet).sort().forEach(v=>$type.append(new Option(v,v)));
     }
 
-    // Event listeners for pagination
-    $('#prevPage').click(function(e) {
-        e.preventDefault();
-        if (currentPage > 1) {
-            currentPage--;
-            displayPage(currentPage);
-        }
-    });
-
-    $('#nextPage').click(function(e) {
-        e.preventDefault();
-        var rows = $('#reportTable tbody tr');
-        var totalRows = rows.length;
-        var totalPages = Math.ceil(totalRows / rowsPerPage);
-        if (currentPage < totalPages) {
-            currentPage++;
-            displayPage(currentPage);
-        }
-    });
-
-    // Initial display
-    displayPage(currentPage);
-
-    // Search functionality
-    $('#search').on('keyup', function() {
-        var value = $(this).val().toLowerCase();
-        $('#reportTable tbody tr').filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
-        currentPage = 1;
-        displayPage(currentPage);
-    });
-
-    // Download table data as CSV
-    $('#downloadCsv').click(function() {
-        var csv = [];
-        $('#reportTable tr').each(function() {
-            var row = [];
-            $(this).find('td, th').each(function() {
-                row.push($(this).text());
-            });
-            csv.push(row.join(','));
-        });
-        var csvString = csv.join('\n');
-        var blob = new Blob([csvString], { type: 'text/csv' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'report.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    });
-});
-        function goBack() {
-        window.history.back(); // Navigate to the previous page
+    // Highlight rows missing HSN, Product Type, or State Code
+    function markMissingRows(){
+      $('#reportTable tbody tr').each(function(){
+        const $td = $(this).children('td');
+        const typeTxt  = ($td.eq(5).text()||'').trim().toLowerCase();
+        const hsnTxt   = ($td.eq(11).text()||'').trim().toLowerCase();
+        const stateTxt = ($td.eq(9).text()||'').trim().toLowerCase();
+        const isEmpty = (v)=> v === '' || v === 'null' || v === 'nil' || v === 'undefined' || v === 'na' || v === 'n/a';
+        const missing = isEmpty(typeTxt) || isEmpty(hsnTxt) || isEmpty(stateTxt);
+        $(this).toggleClass('table-danger', missing);
+      });
     }
+
+    // Apply filters (no pagination)
+    function applyFilters(){
+      const sd = $('#startDate').val(), ed = $('#endDate').val();
+      const start = sd ? moment(sd, 'YYYY-MM-DD', true) : null;
+      const end   = ed ? moment(ed, 'YYYY-MM-DD', true) : null;
+      const typeVal = ($('#filterType').val()||'').toLowerCase();
+      const hsnVal  = ($('#filterHsn').val()||'').toLowerCase();
+
+      $('#reportTable tbody tr').each(function(){
+        const $td = $(this).children('td');
+        const dayTxt  = ($td.eq(7).text()||'').trim();
+        const typeTxt = ($td.eq(5).text()||'').trim().toLowerCase();
+        const hsnTxt  = ($td.eq(11).text()||'').trim().toLowerCase();
+
+        let dateOk = true;
+        if (start || end){
+          const d = moment(dayTxt, ['YYYY-MM-DD','DD/MM/YYYY','MM/DD/YYYY'], true);
+          if (d.isValid()){
+            if (start && !end)  dateOk = d.isSameOrAfter(start,'day');
+            else if (!start && end) dateOk = d.isSameOrBefore(end,'day');
+            else if (start && end)  dateOk = d.isSameOrAfter(start,'day') && d.isSameOrBefore(end,'day');
+          }
+        }
+        const typeOk = typeVal ? (typeTxt === typeVal) : true;
+        const hsnOk  = hsnVal ? (hsnTxt === hsnVal) : true;
+
+        $(this).toggle(dateOk && typeOk && hsnOk);
+      });
+
+      markMissingRows();
+      updateChart(); // keep chart in sync with current filters
+    }
+
+    function resetFilters(){
+      $('#filterHsn').val('');
+      $('#filterType').val('');
+      $('#startDate').val('');
+      $('#endDate').val('');
+      $('#reportTable tbody tr').show();
+      clearSortIndicators();
+      markMissingRows();
+      updateChart();
+    }
+
+    // CSV of currently visible rows
+    function downloadVisibleCsv(){
+      const rows = [];
+      const header = [];
+      $('#reportTable thead th').each(function(){
+        const textOnly = $(this).clone().children().remove().end().text().trim();
+        header.push(textOnly);
+      });
+      rows.push(header.join(','));
+      $('#reportTable tbody tr:visible').each(function(){
+        const cols = [];
+        $(this).find('td').each(function(){
+          let t = $(this).text().trim();
+          if (/[",\n]/.test(t)) t = '"' + t.replace(/"/g,'""') + '"';
+          cols.push(t);
+        });
+        rows.push(cols.join(','));
+      });
+      const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'shopify_report.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Sorting on header click (sorts currently visible rows)
+    let sortState = { col: null, dir: 1 }; // 1 asc, -1 desc
+    function clearSortIndicators(){
+      $('#reportTable thead th .sort-ind').text('');
+      sortState = { col:null, dir:1 };
+    }
+    function getCellVal(tr, colIdx){ return $(tr).children('td').eq(colIdx).text().trim(); }
+    function parseVal(val, type){
+      if (type === 'num'){
+        const n = Number(String(val).replace(/[^0-9.-]+/g,'')); return isNaN(n) ? 0 : n;
+      }
+      if (type === 'date'){
+        const d = moment(val, ['YYYY-MM-DD','DD/MM/YYYY','MM/DD/YYYY'], true);
+        return d.isValid() ? d.valueOf() : -Infinity;
+      }
+      return (val || '').toLowerCase();
+    }
+    function sortBy(colIdx, type){
+      const $tbody = $('#reportTable tbody');
+      const $rows = $tbody.find('tr:visible').get();
+
+      if (sortState.col === colIdx){ sortState.dir *= -1; }
+      else { sortState.col = colIdx; sortState.dir = 1; }
+
+      $rows.sort((a,b)=>{
+        const av = parseVal(getCellVal(a,colIdx), type);
+        const bv = parseVal(getCellVal(b,colIdx), type);
+        if (av < bv) return -1 * sortState.dir;
+        if (av > bv) return  1 * sortState.dir;
+        return 0;
+      });
+
+      $.each($rows, (_, row)=> $tbody.append(row));
+
+      $('#reportTable thead th .sort-ind').text('');
+      const indicator = sortState.dir === 1 ? '▲' : '▼';
+      $(`#reportTable thead th[data-col="${colIdx}"] .sort-ind`).text(indicator);
+
+      markMissingRows();
+      updateChart(); // keep chart updated after sorting too (order doesn't matter, but safe)
+    }
+
+    // --- Chart (Sales by State) ---
+    let stateChart = null;
+
+    function collectStateSalesFromVisible(){
+      // State Code = col 9, Total Sales = col 24
+      const totalsByState = {};
+      $('#reportTable tbody tr:visible').each(function(){
+        const $td = $(this).children('td');
+        const state = ($td.eq(9).text()||'').trim() || 'Unknown';
+        const raw   = ($td.eq(24).text()||'').trim();
+        const val   = Number(String(raw).replace(/[^0-9.-]+/g,'')) || 0;
+        totalsByState[state] = (totalsByState[state] || 0) + val;
+      });
+      // Sort states by total desc
+      const entries = Object.entries(totalsByState).sort((a,b)=> b[1]-a[1]);
+      return {
+        labels: entries.map(e=>e[0]),
+        data: entries.map(e=>Number(e[1].toFixed(2)))
+      };
+    }
+
+    function renderChart(){
+      const ctx = document.getElementById('stateSalesChart').getContext('2d');
+      const ds = collectStateSalesFromVisible();
+      if (stateChart){ stateChart.destroy(); }
+      stateChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ds.labels,
+          datasets: [{
+            label: 'Total Sales',
+            data: ds.data
+            // No explicit colors to keep it clean; Chart.js uses defaults
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins:{
+            legend:{ display:false },
+            tooltip:{ mode:'index', intersect:false }
+          },
+          scales:{
+            x:{ ticks:{ autoSkip:false, maxRotation:45, minRotation:0 } },
+            y:{ beginAtZero:true }
+          }
+        }
+      });
+    }
+
+    function updateChart(){
+      // Rebuild data from visible rows
+      const ds = collectStateSalesFromVisible();
+      if (!stateChart){ renderChart(); return; }
+      stateChart.data.labels = ds.labels;
+      stateChart.data.datasets[0].data = ds.data;
+      stateChart.update();
+    }
+
+    // Bind events (LIVE filtering)
+    $('#filterHsn, #filterType').on('change', applyFilters);
+    $('#startDate, #endDate').on('change', applyFilters);
+    $('#resetFilters').on('click', resetFilters);
+    $('#downloadCsv').on('click', downloadVisibleCsv);
+
+    // Sort headers
+    $('#reportTable thead').on('click', 'th', function(){
+      const colIdx = Number($(this).data('col'));
+      if (Number.isNaN(colIdx)) return;
+      const type = $(this).data('type') || 'text';
+      sortBy(colIdx, type);
+    });
+
+    // Init
+    $(function(){
+      populateFilters();
+      markMissingRows();
+      applyFilters();  // respects empty date inputs (no default)
+      renderChart();   // initial render
+    });
 </script>
 </body>
 </html>

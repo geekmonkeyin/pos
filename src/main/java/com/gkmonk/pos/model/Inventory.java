@@ -17,6 +17,8 @@ public class Inventory {
     @Id
     private String upcId;
 
+    private String description;
+    private String productGID;
     private LocalDate inboundDate;
 
     private LocalDate updatedDate;
@@ -66,6 +68,7 @@ public class Inventory {
 
     private List<byte[]> resources;
 
+    private double price;
 
     private List<String> images;
 
