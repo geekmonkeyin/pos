@@ -12,8 +12,11 @@ public class CourierOption {
     private String name;     // "BlueDart"
     private String service;  // "Priority"
     private String eta;      // "1-3 days"
-    private int cost;        // Rs
+    private double cost;        // Rs
     private boolean cod;
+    private String aggregator; // "Shiprocket"
+    private String imageURL;
+
 
     // getters/setters
 }

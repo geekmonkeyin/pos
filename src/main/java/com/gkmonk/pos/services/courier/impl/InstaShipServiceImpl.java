@@ -3,6 +3,8 @@ package com.gkmonk.pos.services.courier.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gkmonk.pos.model.courier.CourierQuotationRequest;
+import com.gkmonk.pos.model.order.CourierOption;
 import com.gkmonk.pos.model.pod.PackedOrder;
 import com.gkmonk.pos.utils.POSConstants;
 import com.google.gson.JsonObject;
@@ -155,6 +157,16 @@ public class InstaShipServiceImpl  extends AbstractServiceImpl {
     @Override
     public String createReturnOrder(PackedOrder returnOrder) {
         return "";
+    }
+
+    @Override
+    public List<CourierOption> getQuote(CourierQuotationRequest courierQuotationRequest) throws Exception {
+        return List.of();
+    }
+
+    @Override
+    public boolean isActive() {
+        return false;
     }
 
 

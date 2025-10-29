@@ -1,5 +1,7 @@
 package com.gkmonk.pos.services.courier.impl;
 
+import com.gkmonk.pos.model.courier.CourierQuotationRequest;
+import com.gkmonk.pos.model.order.CourierOption;
 import com.gkmonk.pos.model.pod.PackedOrder;
 import com.gkmonk.pos.utils.POSConstants;
 import com.google.gson.JsonObject;
@@ -66,6 +68,16 @@ public class ShipcluesServiceImpl  extends AbstractServiceImpl {
     @Override
     public String createReturnOrder(PackedOrder returnOrder) {
         return "";
+    }
+
+    @Override
+    public List<CourierOption> getQuote(CourierQuotationRequest courierQuotationRequest) throws Exception {
+        return List.of();
+    }
+
+    @Override
+    public boolean isActive() {
+        return false;
     }
 
     public Map<String,String> parseResponse(String responseBody) throws JSONException {

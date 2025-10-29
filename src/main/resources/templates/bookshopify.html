@@ -9,6 +9,10 @@
         :root{
           --bg:#F9FAFB; --card:#fff; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
           --accent:#FF7A00; --ok:#065F46; --warn:#B45309; --err:#B91C1C; --radius:12px;
+          --tier-new-bg:#ECEFF1; --tier-new-fg:#111827;
+          --tier-good-bg:#E0F2FE; --tier-good-fg:#075985;
+          --tier-premium-bg:#ECFDF5; --tier-premium-fg:#065F46;
+          --tier-extreme-bg:#FEF3C7; --tier-extreme-fg:#92400E;
         }
         *{box-sizing:border-box}
         body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
@@ -28,7 +32,7 @@
         .btn{height:36px;padding:0 12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
         .btn.secondary{background:#fff;color:var(--text);border:1px solid var(--stroke)}
         .btn.small{height:30px;border-radius:8px}
-        .btn.linklike{background:#fff;border:1px solid var(--stroke);color:var(--text)}
+        .btn.linklike{background:#fff;border:1px solid var(--stroke);color:#var(--text)}
         .btn.linklike:hover{background:#fff8f2}
         .field{display:grid;gap:6px}
         .field input,.field select,.field textarea{height:36px;padding:0 10px;border:1px solid var(--stroke);border-radius:10px;background:#fff}
@@ -47,6 +51,12 @@
         .grid.cols3{grid-template-columns:repeat(3,1fr)}
         .grid.cols4{grid-template-columns:repeat(4,1fr)}
 
+        /* Customer tier colors */
+        .pill.tier-new{background:var(--tier-new-bg); color:var(--tier-new-fg); border-color:rgba(0,0,0,.06)}
+        .pill.tier-good{background:var(--tier-good-bg); color:var(--tier-good-fg); border-color:#BAE6FD}
+        .pill.tier-premium{background:var(--tier-premium-bg); color:var(--tier-premium-fg); border-color:#A7F3D0}
+        .pill.tier-extreme{background:var(--tier-extreme-bg); color:var(--tier-extreme-fg); border-color:#F59E0B}
+
         /* Line items with images */
         .item{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;border:1px solid #E5E7EB;border-radius:10px;padding:8px}
         .item-thumb{width:56px;height:56px;border-radius:8px;border:1px solid #E5E7EB;background:#F3F4F6;overflow:hidden}
@@ -59,7 +69,7 @@
         .pkg{border:1px dashed var(--stroke);border-radius:10px;padding:10px}
         .pkg-head{display:flex;align-items:center;justify-content:space-between}
         .pkg-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:8px}
-        .pkg .field input{height:34px}
+        .pkg .field input,.pkg .field select{height:34px}
         .pkg-actions{display:flex;gap:8px}
         .pkg-badge{font-size:12px;border:1px solid var(--stroke);border-radius:999px;padding:2px 8px;background:#fff}
 
@@ -75,7 +85,7 @@
 
         /* Spinner */
         .loading-overlay{position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; background:rgba(17,24,39,.55); backdrop-filter:blur(2px)}
-        .loader-card{width:min(420px,90vw); background:#111827; color:#E5E7EB; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,.35); display:grid; place-items:center; gap:10px; text-align:center}
+        .loader-card{width:min(420px,90vw); background:#111827; color:#E5E7EB; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:18px; box-shadow:0 0 20px rgba(0,0,0,.35); display:grid; place-items:center; gap:10px; text-align:center}
         .spinner{width:96px;height:96px;border-radius:50%; border:8px solid rgba(255,255,255,.15); border-top:8px solid var(--accent); animation:spin 1.1s linear infinite; box-shadow:0 0 28px rgba(255,122,0,.45), 0 0 60px rgba(255,122,0,.25)}
         @keyframes spin{to{transform:rotate(360deg)}}
         .spin-text{font-size:14px;color:#e5e7eb}
@@ -124,6 +134,7 @@
             <table id="ordersTable">
                 <thead>
                 <tr>
+                    <th style="width:60px">S. No.</th>
                     <th style="width:120px">Order #</th>
                     <th>Customer</th>
                     <th style="width:160px">Date</th>
@@ -208,6 +219,7 @@
                 </thead>
                 <tbody></tbody>
             </table>
+            <div id="courierHint" class="hint" style="margin-top:6px"></div>
         </div>
 
         <!-- Line items (with images) + assignment -->
@@ -288,25 +300,26 @@
             <div class="card" style="padding:12px">
                 <div style="font-weight:600;margin-bottom:6px">Packaging Dimensions</div>
                 <div class="grid cols4">
-                    <div class="field"><label class="hint">Length (cm)</label><input id="lenCm" type="number" min="0" value="20"></div>
-                    <div class="field"><label class="hint">Width (cm)</label><input id="widCm" type="number" min="0" value="15"></div>
-                    <div class="field"><label class="hint">Height (cm)</label><input id="heiCm" type="number" min="0" value="10"></div>
-                    <div class="field"><label class="hint">Dead wt (kg)</label><input id="deadWt" type="number" step="0.01" min="0" value="0.80"></div>
+                    <!-- start with EMPTY values; placeholders guide the user -->
+                    <div class="field"><label class="hint">Length (cm)</label><input id="lenCm" type="number" min="0" placeholder="e.g., 20"></div>
+                    <div class="field"><label class="hint">Width (cm)</label><input id="widCm" type="number" min="0" placeholder="e.g., 15"></div>
+                    <div class="field"><label class="hint">Height (cm)</label><input id="heiCm" type="number" min="0" placeholder="e.g., 10"></div>
+                    <div class="field"><label class="hint">Dead wt (kg)</label><input id="deadWt" type="number" step="0.01" min="0" placeholder="e.g., 0.80"></div>
                 </div>
                 <div class="row" style="margin-top:8px">
-                    <div>Volumetric weight: <b id="volWt">0.60</b> kg</div>
+                    <div>Volumetric weight: <b id="volWt">—</b> kg</div>
                     <div class="hint">Vol wt = (L×W×H)/5000</div>
                 </div>
             </div>
         </div>
 
-        <!-- Contact -->
+        <!-- Contact (mapped from order details automatically) -->
         <div class="card" style="padding:12px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:6px">Contact & Address</div>
             <div class="grid cols3">
-                <div class="field"><label class="hint">Phone (India)</label><input id="phoneInput" placeholder="10 digits starting 6-9"></div>
-                <div class="field"><label class="hint">Address</label><input id="addressInput" placeholder="Min 9 characters"></div>
-                <div class="field"><label class="hint">Pincode</label><input id="pincodeInput" placeholder="6-digit"></div>
+                <div class="field"><label class="hint" for="phoneInput">Phone (India)</label><input id="phoneInput" placeholder="10 digits starting 6-9"></div>
+                <div class="field"><label class="hint" for="addressInput">Address</label><input id="addressInput" placeholder="Min 9 characters"></div>
+                <div class="field"><label class="hint" for="pincodeInput">Pincode</label><input id="pincodeInput" placeholder="6-digit"></div>
             </div>
             <div class="row" style="margin-top:8px">
                 <span id="phoneMsg" class="hint"></span>
@@ -355,7 +368,8 @@
       pastOrders: 2
     }];
 
-    const COURIERS = [
+    // Fallback static options
+    const COURIERS_FALLBACK = [
       {name:"BlueDart", service:"Priority", eta:"1-3 days", cost:160, cod:true},
       {name:"Delhivery", service:"Express", eta:"2-4 days", cost:135, cod:true},
       {name:"Xpressbees", service:"Surface", eta:"4-7 days", cost:99, cod:false},
@@ -363,9 +377,11 @@
     ];
     const PINCODE_HISTORY = { "400050":[2,3,3,2], "411001":[4,5], "560001":[3] };
 
-    /* Normalize API orders to UI */
+    const COURIER_CHOICES = [
+      "Delhivery","Xpressbees","Bluedart","FedEx","PostOffice","Self Delivery","Skyking","Trackon"
+    ];
+
     function imageFromLineItem(li){
-      // Try variant.image.url → product.featuredImage.url → product.images[0].url → imageListMap[sku]
       try {
         return li?.variant?.image?.url
             || li?.variant?.product?.featuredImage?.url
@@ -384,8 +400,6 @@
         const last  = (cust.lastName || '').trim();
         const fullName = (first || (cust.email||'').split('@')[0] || '—') + (last ? (' ' + last) : '');
 
-        // Try to pull line items from possible GraphQL-like structure if present
-        // Expect o.items (flat) OR o.fulfillmentOrders[].lineItems[].lineItem with variant/product/images
         let items = [];
         if (Array.isArray(o.items)) {
           items = o.items.map(it => ({
@@ -435,7 +449,6 @@
       ? normalizeFromApi(window.FETCHED_ORDERS) : [];
     let ORDERS = (FROM_API.length ? FROM_API : DUMMY);
 
-    /* UI refs */
     const listView = document.getElementById("listView");
     const detailView = document.getElementById("detailView");
     const tbody = document.querySelector("#ordersTable tbody");
@@ -443,17 +456,39 @@
     const statusFilter = document.getElementById("statusFilter");
     document.getElementById("refreshBtn").addEventListener("click", renderList);
 
-    function classifyCustomer(n){ if(n<=1) return "New"; if(n===2) return "Good (delivered order)"; if(n<=5) return "Premium"; return "Extremely Premium"; }
+    function classifyCustomerTier(n){
+      if(n<=1) return {label:"New", cls:"tier-new"};
+      if(n===2) return {label:"Good (delivered order)", cls:"tier-good"};
+      if(n<=5) return {label:"Premium", cls:"tier-premium"};
+      return {label:"Extremely Premium", cls:"tier-extreme"};
+    }
     function avgDaysForPincode(pin){ const arr = PINCODE_HISTORY[pin]||[]; if(arr.length<2) return null; const sum = arr.reduce((a,b)=>a+b,0); return (sum/arr.length).toFixed(1)+" days"; }
+
+    function tsFromAny(d){
+      if(!d) return 0;
+      if (d instanceof Date) return d.getTime() || 0;
+      const t = Date.parse(d);
+      if (!isNaN(t)) return t;
+      const alt = Date.parse(String(d).replace(' ', 'T'));
+      return isNaN(alt) ? 0 : alt;
+    }
 
     function renderList(){
       const q=(search.value||"").toLowerCase(), f=statusFilter.value;
       const rows = ORDERS
         .filter(o => ["DISPATCHED","Picked","Packed"].includes(o.status||''))
         .filter(o => !f || o.status===f)
-        .filter(o => !q || ((o.id||'')+(o.customer?.name||'')).toLowerCase().includes(q));
-      tbody.innerHTML = rows.map(o => `
+        .filter(o => !q || ((o.id||'')+(o.customer?.name||'')).toLowerCase().includes(q))
+        .sort((a,b)=>{
+          const tb = tsFromAny(b.date);
+          const ta = tsFromAny(a.date);
+          if (tb!==ta) return tb - ta;
+          return String(b.id).localeCompare(String(a.id));
+        });
+
+      tbody.innerHTML = rows.map((o, i) => `
         <tr data-id="${o.id}">
+          <td>${i + 1}</td>
           <td>${o.id}</td>
           <td>${o.customer?.name || '—'}</td>
           <td>${o.date || ''}</td>
@@ -473,7 +508,6 @@
       if (order) openDetail(order);
     });
 
-    /* Detail refs */
     const detailTitle = document.getElementById("detailTitle");
     const customerName = document.getElementById("customerName");
     const customerEmail = document.getElementById("customerEmail");
@@ -487,17 +521,32 @@
     const orderTotal = document.getElementById("orderTotal");
     const avgDelivery = document.getElementById("avgDelivery");
     const courierTbody = document.querySelector("#courierTable tbody");
+    const courierHint = document.getElementById("courierHint");
     const lineItemsDiv = document.getElementById("lineItems");
     const packagesWrap = document.getElementById("packagesWrap");
     const sameTrackingAll = document.getElementById("sameTrackingAll");
+
+    const phoneInput = document.getElementById("phoneInput");
+    const addressInput = document.getElementById("addressInput");
+    const pincodeInput = document.getElementById("pincodeInput");
+    const phoneMsg = document.getElementById("phoneMsg");
+    const addrMsg = document.getElementById("addrMsg");
+    const pinMsg = document.getElementById("pinMsg");
+
+    const lenInput = document.getElementById("lenCm");
+    const widInput = document.getElementById("widCm");
+    const heiInput = document.getElementById("heiCm");
+    const deadWtInput = document.getElementById("deadWt");
+    const volWtEl = document.getElementById("volWt");
+    const warehouseSel = document.getElementById("warehouse");
 
     document.getElementById("backBtn").addEventListener("click", ()=>{
       detailView.classList.remove("active");
       listView.classList.add("active");
     });
 
-    // Packages state for current order
     let PACKAGES = [];
+    let CURRENT_ORDER = null;
 
     function newPackage(idx){
       return {
@@ -507,6 +556,11 @@
         trackingId: '',
         length: '', width: '', height: '', weight: ''
       };
+    }
+
+    function optionHtml(val, current){
+      const sel = (String(val).toLowerCase() === String(current||'').toLowerCase()) ? ' selected' : '';
+      return `<option value="${val}"${sel}>${val}</option>`;
     }
 
     function renderPackages(){
@@ -520,7 +574,13 @@
             </div>
           </div>
           <div class="pkg-grid">
-            <div class="field"><label class="hint">Courier</label><input data-field="courier" value="${p.courier||''}" placeholder="Delhivery / Xpressbees"></div>
+            <div class="field">
+              <label class="hint">Courier</label>
+              <select data-field="courier">
+                <option value="">Select courier</option>
+                ${COURIER_CHOICES.map(c => optionHtml(c, p.courier)).join('')}
+              </select>
+            </div>
             <div class="field"><label class="hint">Tracking ID</label><input data-field="trackingId" value="${p.trackingId||''}" placeholder="AWB / Tracking"></div>
             <div class="field"><label class="hint">Length (cm)</label><input type="number" min="0" data-field="length" value="${p.length||''}"></div>
             <div class="field"><label class="hint">Width (cm)</label><input type="number" min="0" data-field="width" value="${p.width||''}"></div>
@@ -530,37 +590,22 @@
         </div>
       `).join("");
 
-      // Wire inputs
-      packagesWrap.querySelectorAll('.pkg input').forEach(inp=>{
+      packagesWrap.querySelectorAll('.pkg input, .pkg select').forEach(inp=>{
         inp.addEventListener('input', (e)=>{
           const wrap = e.target.closest('.pkg');
           const id = wrap.dataset.id;
           const f = e.target.dataset.field;
           const pkg = PACKAGES.find(x=>x.id===id);
           if (pkg){ pkg[f] = e.target.value; }
-          // Apply "same tracking to all"
           if (sameTrackingAll.checked && f==='trackingId'){
             PACKAGES.forEach(x=>x.trackingId = pkg.trackingId);
             renderPackages();
           }
         });
-      });
-
-      // Buttons
-      packagesWrap.querySelectorAll('button[data-act]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const act = btn.dataset.act;
-          const id = btn.dataset.id;
-          const idx = PACKAGES.findIndex(x=>x.id===id);
-          if (act==='remove'){
-            PACKAGES.splice(idx,1);
-            PACKAGES.forEach((p,i)=>p.name=`Package ${i+1}`);
-            renderPackages();
-          }
-          if (act==='copyTrack' && idx>0){
-            PACKAGES[idx].trackingId = PACKAGES[idx-1].trackingId;
-            renderPackages();
-          }
+        inp.addEventListener('change', (e)=>{
+          const wrap = e.target.closest('.pkg');
+          const pkg = PACKAGES.find(x=>x.id===wrap.dataset.id);
+          if (pkg && e.target.dataset.field==='courier'){ pkg.courier = e.target.value; }
         });
       });
     }
@@ -579,6 +624,7 @@
     });
 
     function openDetail(o){
+      CURRENT_ORDER = o;
       listView.classList.remove("active");
       detailView.classList.add("active");
 
@@ -587,7 +633,11 @@
       customerEmail.textContent = o.customer?.email || '';
       customerPhone.textContent = o.customer?.phone || '';
       customerAddress.textContent = `${o.customer?.address || ''}${o.customer?.pincode ? ' (Pin: '+o.customer.pincode+')' : ''}`;
-      customerTier.textContent = classifyCustomer(o.pastOrders||1);
+
+      const tier = classifyCustomerTier(o.pastOrders||1);
+      customerTier.textContent = tier.label;
+      customerTier.className = `pill ${tier.cls}`;
+
       orderStatus.textContent = o.status || '';
       orderGift.textContent = o.gift ? "Gift wrap: Yes" : "Gift wrap: No";
       orderNote.textContent = o.note ? "Note present" : "No note";
@@ -595,18 +645,15 @@
       orderTotal.textContent = `Rs ${Number(o.total||0).toLocaleString('en-IN')}`;
       avgDelivery.textContent = avgDaysForPincode(o.customer?.pincode||'') || "N/A";
 
-      // Courier options
-      courierTbody.innerHTML = COURIERS.map(c=>`
-        <tr>
-          <td>${c.name}</td><td>${c.service}</td><td>${c.eta}</td>
-          <td>Rs ${c.cost}</td><td>${c.cod ? "Yes" : "No"}</td>
-          <td><button class="btn small" onclick="selectCourier('${c.name}','${c.service}',${c.cost})">Select</button></td>
-        </tr>
-      `).join("");
+      phoneInput.value   = o.customer?.phone   || '';
+      addressInput.value = o.customer?.address || '';
+      pincodeInput.value = o.customer?.pincode || '';
+      phoneMsg.textContent = '';
+      addrMsg.textContent  = '';
+      pinMsg.textContent   = '';
 
-      // Line items with images + assignment select (to packages, by index)
       const items = (o.items && o.items.length) ? o.items : [];
-      lineItemsDiv.innerHTML = items.map((it,idx)=>`
+      lineItemsDiv.innerHTML = items.map((it)=>`
         <div class="item" data-sku="${it.sku||''}">
           <div class="item-thumb">${(it.imageUrl)?`<img src="${it.imageUrl}" alt="${(it.name||'Item')}" loading="lazy">`:'</div>'}
           </div>
@@ -622,34 +669,31 @@
         </div>
       `).join("") || '<div class="hint">No items present for this order.</div>';
 
-      // Reset packages (start with one)
       PACKAGES = [newPackage(0)];
       renderPackages();
 
-      // Populate photo target dropdown
       const photoTarget = document.getElementById("photoTarget");
       photoTarget.innerHTML = items.map(it=>`<option value="item:${it.sku||'NA'}">Item: ${it.name||it.sku||'NA'}</option>`).join("")
         + `<option value="item:OTHER">Item: Other</option>`;
+
+      renderCourierRows([], 'Add package dimensions (L, W, H) and Dead weight to see courier quotes.');
     }
 
-    // Simple placeholder hook
     function selectCourier(name, svc, cost){ alert(`Selected: ${name} – ${svc} (Rs ${cost})`); }
 
-    // Volumetric calc
     ["lenCm","widCm","heiCm"].forEach(id=>document.getElementById(id)?.addEventListener("input", ()=>{
-      const L=+document.getElementById("lenCm").value||0;
-      const W=+document.getElementById("widCm").value||0;
-      const H=+document.getElementById("heiCm").value||0;
-      document.getElementById("volWt").textContent = ((L*W*H)/5000).toFixed(2);
+      const L=+lenInput.value||0, W=+widInput.value||0, H=+heiInput.value||0;
+      if (L>0 && W>0 && H>0){
+        volWtEl.textContent = ((L*W*H)/5000).toFixed(2);
+      } else {
+        volWtEl.textContent = '—';
+      }
+      debouncedFetchCourierOptions();
     }));
+    deadWtInput.addEventListener("input", debouncedFetchCourierOptions);
+    pincodeInput.addEventListener("input", debouncedFetchCourierOptions);
+    warehouseSel.addEventListener("change", debouncedFetchCourierOptions);
 
-    // Validations
-    const phoneInput = document.getElementById("phoneInput");
-    const addressInput = document.getElementById("addressInput");
-    const pincodeInput = document.getElementById("pincodeInput");
-    const phoneMsg = document.getElementById("phoneMsg");
-    const addrMsg = document.getElementById("addrMsg");
-    const pinMsg = document.getElementById("pinMsg");
     document.getElementById("validateBtn").addEventListener("click", ()=>{
       const ph = (phoneInput.value||'').trim(), ad = (addressInput.value||'').trim(), pc = (pincodeInput.value||'').trim();
       const validPhone = /^[6-9]\d{9}$/.test(ph);
@@ -715,7 +759,7 @@
     function renderPhotoThumbs(){
       photoGallery.innerHTML = "";
       PHOTO_CAPTURES.forEach((c, idx)=>{
-        const wrap = document.createElement("div"); wrap.style.display="grid"; wrap.style.gap="4px";
+        const wrap = document.createElement("div"); wrap.style.display="grid"; gap="4px";
         const cell = document.createElement("div"); cell.className="thumb";
         const img = document.createElement("img"); img.src=c.url; cell.appendChild(img);
         const rm = document.createElement("div"); rm.className="rm"; rm.textContent="×";
@@ -760,7 +804,7 @@
     function renderVideoThumbs(){
       videoGallery.innerHTML = "";
       VIDEO_CAPTURES.forEach((v, idx)=>{
-        const wrap = document.createElement("div"); wrap.style.display="grid"; wrap.style.gap="4px";
+        const wrap = document.createElement("div"); wrap.style.display="grid"; gap="4px";
         const cell = document.createElement("div"); cell.className="thumb";
         const vid = document.createElement("video"); vid.src=v.url; vid.controls=true; vid.muted=true;
         cell.appendChild(vid);
@@ -772,7 +816,6 @@
       });
     }
 
-    /* Spinner overlay + sync */
     const overlay = document.getElementById("syncOverlay");
     const overlayHideBtn = document.getElementById("overlayHide");
     const spinnerText = document.getElementById("spinnerText");
@@ -788,7 +831,6 @@
 
     ["actionSave","actionLabel","actionPickup","actionShip"].forEach(id=>{
       document.getElementById(id).addEventListener("click", ()=>{
-        // Example payload you can POST to backend:
         const payload = {
           orderId: detailTitle.textContent.split(' — ')[0],
           packages: PACKAGES,
@@ -796,7 +838,6 @@
           videosCount: VIDEO_CAPTURES.length
         };
         alert(`${id.replace('action','Action: ')}\nPackages: ${payload.packages.length}\nPhotos: ${payload.photosCount}\nVideos: ${payload.videosCount}`);
-        // TODO: POST payload + media to your backend
       });
     });
 
@@ -808,7 +849,6 @@
           const message = await response.text();
           hideOverlay();
           alert(`Success: ${message}`);
-          // If the server refreshes page with fetchedOrders, they will render automatically.
           renderList();
         } else {
           const error = await response.text();
@@ -820,6 +860,119 @@
         alert(`Failed to sync orders: ${err.message}`);
       }
     });
+
+    /* ------------------------
+       Courier options (AJAX)
+       ------------------------ */
+
+    // UPDATED: Build payload with required fields nested under payload.dimension
+    function currentShipmentPayload(){
+      const L = +lenInput.value || 0;
+      const W = +widInput.value || 0;
+      const H = +heiInput.value || 0;
+      const dead = +deadWtInput.value || 0;
+      const vol = (L>0 && W>0 && H>0) ? +((L*W*H)/5000).toFixed(2) : 0;
+      const chargeable = Math.max(dead, vol);
+      volWtEl.textContent = (vol>0) ? vol.toFixed(2) : '—';
+
+      return {
+        // keep non-dimension fields at root
+        delivery_pincode: (pincodeInput.value || CURRENT_ORDER?.customer?.pincode || '').trim(),
+        origin: warehouseSel.value || 'Primary',
+        order_id: CURRENT_ORDER?.id || '',
+        order_amount: Number(CURRENT_ORDER?.total || 0),
+        items_count: (CURRENT_ORDER?.items||[]).reduce((n,i)=>n+(i.quantity||0),0),
+
+        // nest all required fields under 'dimension'
+        dimension: {
+          length_cm: L,
+          width_cm: W,
+          height_cm: H,
+          dead_weight_kg: +(dead||0).toFixed(3),
+          volumetric_weight_kg: +(vol||0).toFixed(3),
+          chargeable_weight_kg: +(chargeable||0).toFixed(3),
+        }
+      };
+    }
+
+    function renderCourierRows(list, hintText=''){
+      const rows = (list||[]).map(c=>`
+        <tr>
+          <td>${c.name||'-'}</td>
+          <td>${c.service||'-'}</td>
+          <td>${c.etaText || c.eta || (c.etaDays? (c.etaDays+' days') : '-')}</td>
+          <td>Rs ${Number(c.cost || 0)}</td>
+          <td>${(c.codAvailable ?? c.cod) ? 'Yes' : 'No'}</td>
+          <td><button class="btn small" onclick="selectCourier('${(c.name||'').replace(/'/g,"\\'")}','${(c.service||'').replace(/'/g,"\\'")}',${Number(c.cost||0)})">Select</button></td>
+        </tr>
+      `).join("");
+
+      courierTbody.innerHTML = rows || `<tr><td colspan="6" class="hint">No options returned.</td></tr>`;
+      courierHint.textContent = hintText || '';
+    }
+
+    function showCourierLoading(){
+      courierTbody.innerHTML = `<tr><td colspan="6">Fetching courier options…</td></tr>`;
+      courierHint.textContent = '';
+    }
+
+    // UPDATED: Use payload.dimension.* where applicable
+    async function fetchCourierOptions(){
+      const payload = currentShipmentPayload();
+
+      const dimsReady = payload.dimension.length_cm>0 && payload.dimension.width_cm>0 &&
+                        payload.dimension.height_cm>0 && payload.dimension.dead_weight_kg>0;
+      const pinReady  = payload.delivery_pincode && /^\d{6}$/.test(payload.delivery_pincode);
+
+      if (!dimsReady){
+        renderCourierRows([], 'Add package dimensions and dead weight to fetch live quotes.');
+        return;
+      }
+      if (!pinReady){
+        renderCourierRows([], 'Enter a valid 6-digit pincode to fetch live quotes.');
+        return;
+      }
+
+      showCourierLoading();
+      try{
+        const res = await fetch('/v1/courier/quotes', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok){
+          const errTxt = await res.text().catch(()=>res.statusText);
+          renderCourierRows(COURIERS_FALLBACK, `Live quotes failed (${res.status}). Showing fallback. ${errTxt||''}`);
+          return;
+        }
+
+        const data = await res.json();
+        const list = Array.isArray(data) ? data
+                  : Array.isArray(data?.quotes) ? data.quotes
+                  : [];
+
+        if (!list.length){
+          renderCourierRows(COURIERS_FALLBACK, 'No live quotes available. Showing fallback.');
+          return;
+        }
+
+        list.sort((a,b)=> (Number(a.cost||Infinity) - Number(b.cost||Infinity)));
+        renderCourierRows(
+          list,
+          `Quotes for ${payload.dimension.chargeable_weight_kg} kg (chargeable), ${payload.dimension.length_cm}×${payload.dimension.width_cm}×${payload.dimension.height_cm} cm.`
+        );
+      }catch(err){
+        renderCourierRows(COURIERS_FALLBACK, `Error fetching quotes. Showing fallback. ${err.message||err}`);
+      }
+    }
+
+    // Debounce
+    let fetchTimer=null;
+    function debouncedFetchCourierOptions(){
+      clearTimeout(fetchTimer);
+      fetchTimer = setTimeout(fetchCourierOptions, 450);
+    }
 </script>
 </body>
 </html>

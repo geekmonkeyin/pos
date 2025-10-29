@@ -1,5 +1,7 @@
 package com.gkmonk.pos.services.courier.impl;
 
+import com.gkmonk.pos.model.courier.CourierQuotationRequest;
+import com.gkmonk.pos.model.order.CourierOption;
 import com.gkmonk.pos.model.pod.CustomerInfo;
 import com.gkmonk.pos.model.pod.PackedOrder;
 import com.gkmonk.pos.model.pod.ProductDetails;
@@ -82,6 +84,16 @@ public class InstaShipReturnServiceImpl extends AbstractServiceImpl {
     @Override
     public String createReturnOrder(PackedOrder returnOrder) {
         return bookShipment(returnOrder);
+    }
+
+    @Override
+    public List<CourierOption> getQuote(CourierQuotationRequest courierQuotationRequest) throws Exception {
+        return List.of();
+    }
+
+    @Override
+    public boolean isActive() {
+        return false;
     }
 
     public JsonObject createReturnRequestBody(PackedOrder packedOrder) {

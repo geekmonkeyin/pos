@@ -530,6 +530,7 @@
         if (!navigator.mediaDevices?.getUserMedia){
           cam.fallback.classList.remove('d-none');
           alert('Camera not supported by this browser. You can choose a photo instead.');
+          Android.openCamera();
           return;
         }
         const constraints = { video: { facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } }, audio:false };

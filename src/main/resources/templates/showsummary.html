@@ -42,6 +42,9 @@
 
         /* Mobile container size */
         .maxw-sm{max-width:560px}
+
+        /* No-results */
+        .no-results{display:none}
     </style>
 </head>
 <body>
@@ -58,33 +61,30 @@
         </div>
     </div>
 
-    <!-- Page title + quick action -->
+    <!-- Title + search + scan -->
     <div class="container maxw-sm py-2 pt-0">
         <div class="d-flex align-items-center justify-content-between">
             <div>
                 <h1 class="h5 fw-bold mb-0">Picklist</h1>
                 <div class="small text-muted">Mobile</div>
             </div>
-            <button type="button" class="btn btn-accent btn-sm">Scan</button>
+            <button type="button" class="btn btn-accent btn-sm" onclick="scanProduct()">Scan</button>
         </div>
 
-        <!-- Search -->
-        <form th:action="@{/picklist}" method="get" class="mt-2">
-            <div class="position-relative">
-                <input name="q" th:value="${q}" class="form-control" placeholder="Search by product name or variation ID…"/>
-                <span class="position-absolute top-50 end-0 translate-middle-y me-3 text-muted small">⌘K</span>
-            </div>
-        </form>
+        <!-- Client-side filter (type or scanned) -->
+        <div class="mt-2 position-relative">
+            <input class="form-control" placeholder="Search by Product Name or Product/Variation ID…" id="searchquery" autocomplete="off"/>
+            <button id="clearSearch" type="button" class="btn btn-link small position-absolute end-0 top-50 translate-middle-y me-2 text-decoration-none">Clear</button>
+        </div>
+        <div class="small text-muted mt-1">Tip: Typing or scanning filters the list below in real time.</div>
     </div>
 </nav>
 
 <!-- Content -->
-<main class="container maxw-sm pb-5 pt-3">
+<main class="container maxw-sm pb-5 pt-3" id="itemsContainer">
 
-    <!-- Empty -->
-    <div th:if="${#lists.isEmpty(items)}" class="text-center muted py-5">
-        No items found.
-    </div>
+    <!-- No-results -->
+    <div class="text-center muted py-4 no-results" id="noResults">No items match your search.</div>
 
     <!-- Hidden Mark All form -->
     <form th:action="@{/picklist/markAll}" method="post" th:if="${!#lists.isEmpty(items)}" class="d-none" id="markAllForm">
@@ -94,8 +94,10 @@
         </div>
     </form>
 
-    <!-- Items -->
-    <div th:each="it : ${items}" class="gm-card p-3 mb-3">
+    <!-- Items (add data attributes used for filtering) -->
+    <div th:each="it : ${items}"
+         class="gm-card p-3 mb-3 pick-item"
+         th:attr="data-name=${it.name},data-id=${it.id},data-vid=${it.variationId}">
         <div class="d-flex gap-3">
             <div style="width:84px; height:84px;" class="flex-shrink-0">
                 <img th:src="${it.imageUrl}" th:alt="${it.name}" class="thumb border"/>
@@ -105,7 +107,10 @@
                 <div class="d-flex align-items-start justify-content-between">
                     <div class="pe-2">
                         <div class="fw-semibold" th:text="${it.name}">Product Name</div>
-                        <div class="small text-muted">Variation ID: <span th:text="${it.variationId}">VAR123</span></div>
+                        <div class="small text-muted">
+                            Product ID: <span th:text="${it.id}">PID-1</span> •
+                            Variation ID: <span th:text="${it.variationId}">VAR-1</span>
+                        </div>
                     </div>
 
                     <!-- Priority pill -->
@@ -126,9 +131,7 @@
                     <form th:action="@{/v1/order/picklist/toggle}" method="post" class="ms-2">
                         <input type="hidden" name="id" th:value="${it.id}"/>
                         <input type="hidden" name="q" th:value="${q}"/>
-                        <button
-                                th:classappend="${it.picked} ? ' btn-accent' : ' btn-ghost'"
-                                class="btn btn-sm fw-semibold">
+                        <button th:classappend="${it.picked} ? ' btn-accent' : ' btn-ghost'" class="btn btn-sm fw-semibold">
                             <span th:text="${it.picked} ? 'Picked' : 'Mark Picked'">Mark Picked</span>
                         </button>
                     </form>
@@ -161,14 +164,15 @@
 
         <div class="d-flex gap-2 pt-2">
             <button form="markAllForm" class="btn btn-accent flex-grow-1">Mark All Picked</button>
-            <a th:href="@{/v1/order/picklist}" class="btn btn-ghost">Reset Filters</a>
+            <a th:href="@{/v1/order/picklist}" class="btn btn-ghost">Reset</a>
         </div>
     </div>
 </footer>
 
-<!-- Back/Home JS + Bootstrap -->
+<!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Back/Home
     (function(){
       const backBtn = document.getElementById('gmBackBtn');
       if(backBtn){
@@ -178,6 +182,75 @@
         });
       }
     })();
+
+    // Trigger Android (optional)
+    function scanProduct() {
+      if (typeof Android !== "undefined" && Android.performAction) {
+        Android.performAction();
+      }
+    }
+
+    // WebView hook: call this from Android after scanning
+    function onBarcodeScanned(productId, deviceName){
+      // Optional: alert("Scanned: " + productId);
+      if(productId){
+        const box = document.getElementById('searchquery');
+        box.value = productId;
+        applyFilter();
+        box.focus();
+      }
+    }
+
+    // Filtering (by product name OR product/variation id) from rendered items
+    const searchBox = document.getElementById('searchquery');
+    const clearBtn  = document.getElementById('clearSearch');
+    const items     = Array.from(document.querySelectorAll('.pick-item'));
+    const noResults = document.getElementById('noResults');
+
+    function norm(s){ return (s||'').toString().toLowerCase().trim(); }
+
+    function matches(item, query){
+      if (!query) return true;
+      const q = norm(query);
+      // dataset: data-name, data-id, data-vid
+      const name = norm(item.dataset.name);
+      const pid  = norm(item.dataset.id);
+      const vid  = norm(item.dataset.vid);
+      // match if query is anywhere in name OR equals/contained in ids
+      return name.includes(q) || pid.includes(q) || vid.includes(q);
+    }
+
+    function applyFilter(){
+      const q = searchBox.value;
+      let visible = 0;
+      items.forEach(it => {
+        const ok = matches(it, q);
+        it.style.display = ok ? '' : 'none';
+        if (ok) visible++;
+      });
+      noResults.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    // Input: live filter
+    searchBox.addEventListener('input', applyFilter);
+
+    // Clear
+    clearBtn.addEventListener('click', function(){
+      searchBox.value = '';
+      applyFilter();
+      searchBox.focus();
+    });
+
+    // Prevent form submissions (we’re client-side only now)
+    document.addEventListener('submit', function(e){
+      const el = e.target;
+      if (el && el.matches('form[method="get"]')) {
+        e.preventDefault();
+      }
+    });
+
+    // Initial state
+    applyFilter();
 </script>
 </body>
 </html>

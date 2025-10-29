@@ -73,7 +73,7 @@ public class ShopifyClient {
         """;
 
     @PostConstruct
-    void init() {
+    public void init() {
         shop = "bad22a-2";
         apiVersion = "2025-07";
         //token = System.getenv().get("shopify.token");

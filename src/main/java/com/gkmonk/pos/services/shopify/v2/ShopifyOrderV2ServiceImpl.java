@@ -68,7 +68,17 @@ public class ShopifyOrderV2ServiceImpl {
         vars.put("first", Math.min(Math.max(first, 1), 250)); // 1..250
         vars.put("after", getShopifyCursor());
         vars.put("query", search);
+        try {
+            log.info("Fetching unfulfilled orders with vars: first={}, after={}", vars.get("first"), vars.get("after"));
+            return fetchUnfulfilledOrders(vars);
+       } catch (Exception e) {
+            shopifyClient.init();
+            log.error("Error logging fetch parameters", e);
+            return fetchUnfulfilledOrders(vars);
+        }
+    }
 
+    private Map<String, Object> fetchUnfulfilledOrders(Map<String, Object> vars) {
         Map resp = shopifyClient.post(ShopifyQueries.UNFULFILLED_ORDERS, vars).block();
         Map<String, Object> data = (Map<String, Object>) resp.get("data");
         Map<String, Object> unfulfilledOrders = (Map<String, Object>) data.get("orders");

@@ -1,5 +1,7 @@
 package com.gkmonk.pos.services.courier;
 
+import com.gkmonk.pos.model.courier.CourierQuotationRequest;
+import com.gkmonk.pos.model.order.CourierOption;
 import com.gkmonk.pos.model.pod.PackedOrder;
 import com.google.gson.JsonObject;
 
@@ -24,4 +26,8 @@ public interface IOrdersSyncService {
     boolean isReplacementSupported();
 
     String createReturnOrder(PackedOrder returnOrder);
+
+    List<CourierOption> getQuote(CourierQuotationRequest courierQuotationRequest)throws Exception;
+
+    boolean isActive();
 }
