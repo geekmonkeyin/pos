@@ -1,6 +1,7 @@
 package com.gkmonk.pos.model.emp;
 
 import lombok.Data;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
@@ -8,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class EmployeeDetails {
 
     private String empName;
+    @Id
     private String empId;
     private String doj;
     private double salary;
