@@ -2,8 +2,6 @@ package com.gkmonk.pos.controller.courier;
 
 import com.gkmonk.pos.model.courier.CourierQuotationRequest;
 import com.gkmonk.pos.model.order.CourierOption;
-import com.gkmonk.pos.model.pod.PackedOrder;
-import com.gkmonk.pos.rules.service.impl.CourierEngine;
 import com.gkmonk.pos.services.courier.IOrdersSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +24,10 @@ public class CourierController {
         // Dummy data for demonstration purposes
         for(IOrdersSyncService courier : courierServices){
             try {
-                List<CourierOption> courierOptions =  courier.getQuote(courierQuotationRequest);
-                return ResponseEntity.ok(courierOptions);
+                if(courier.isActive()) {
+                    List<CourierOption> courierOptions = courier.getQuote(courierQuotationRequest);
+                    return ResponseEntity.ok(courierOptions);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }

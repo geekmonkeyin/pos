@@ -1,5 +1,6 @@
 package com.gkmonk.pos.model.courier;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,9 +28,9 @@ public class CourierQuotationRequest {
     @Data
     static class Dimension{
 
-        private double length_cm;
-        private double width_cm;
-        private double height_cm;
+        private double length;
+        private double width;
+        private double height;
         private double dead_weight_kg;
     }
 

@@ -17,6 +17,9 @@ public class AttendanceSession {
         private String employeeName;
         private Instant checkinAt;   // stored as UTC instant
         private Instant checkoutAt;  // null until checkout
-        private ObjectId photoGridFsId; // optional
+        private ObjectId checkinPhotoGridFsId; // optional
+        private ObjectId checkoutPhotoGridFsId;
+        private long durationMs;
+        private String notes;
 
     }

@@ -1,6 +1,7 @@
 package com.gkmonk.pos.configuration;
 
 // boot/SeedData.java
+
 import com.gkmonk.pos.model.ai.ChatOption;
 import com.gkmonk.pos.repo.ai.ChatOptionRepo;
 import org.springframework.boot.CommandLineRunner;
@@ -11,6 +12,8 @@ import java.util.List;
 
 @Configuration
 public class SeedData {
+
+
     @Bean CommandLineRunner seed(ChatOptionRepo repo){
         return args -> {
             if (repo.count()>0) return;

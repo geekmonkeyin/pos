@@ -31,15 +31,13 @@
         .gm-btn--accent:hover{background:var(--accent-600)}
 
         .wrap{max-width:1300px;margin:18px auto;padding:0 16px}
-        .grid{display:grid;grid-template-columns:1fr;gap:16px}
-
         .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius);box-shadow:var(--shadow)}
         .card h3{margin:0 0 8px 0;font-size:16px}
         .card-body{padding:14px}
         .divider{height:1px;background:var(--stroke);margin:12px 0}
 
         .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-        .search{flex:1;min-width:280px;position:relative}
+        .search{flex:1;min-width:260px;position:relative}
         .search input{width:100%;border:1px solid var(--stroke);border-radius:10px;padding:10px 12px 10px 34px}
         .search i{position:absolute;left:10px;top:10px;color:var(--muted)}
 
@@ -52,31 +50,54 @@
         .selected-emp{font-weight:700;color:#111827;display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px dashed var(--stroke);border-radius:10px;background:#fff}
         .selected-emp .tag{background:var(--accent-100);padding:2px 8px;border-radius:999px;font-size:12px;font-weight:800;color:#7a3c00}
 
-        .table{border:1px solid var(--stroke);border-radius:12px;overflow:hidden}
-        table{width:100%;border-collapse:separate;border-spacing:0}
+        .table{border:1px solid var(--stroke);border-radius:12px;overflow:auto}
+        table{width:100%;border-collapse:separate;border-spacing:0;min-width:1160px}
         thead th{background:#F9FAFB;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-        th,td{padding:10px 12px;border-bottom:1px solid var(--stroke)}
+        th,td{padding:10px 12px;border-bottom:1px solid var(--stroke);vertical-align:middle}
         .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
         .tag.ok{background:#DCFCE7;color:#166534}
         .tag.warn{background:#FEF3C7;color:#92400E}
         .tag.err{background:#FEE2E2;color:#991B1B}
         .tag.info{background:#DBEAFE;color:#1E40AF}
+        .photo{width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid var(--stroke);background:#fff}
+        .btn-mini{border:1px solid var(--stroke);border-radius:8px;padding:6px 10px;background:#fff;font-weight:700;cursor:pointer}
+        .btn-mini[disabled]{opacity:.6;cursor:not-allowed}
+        .btn-mini--accent{background:var(--accent);border-color:var(--accent);color:#fff}
 
-        .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.5);display:none;align-items:center;justify-content:center;z-index:2000}
-        .modal{width:min(920px,96vw);background:#fff;border:1px solid var(--stroke);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
-        .modal-hd{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--stroke);background:#FAFAFA}
-        .modal-bd{padding:16px}
-        .modal-ft{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--stroke);background:#FAFAFA}
+        .kpi{background:#fff;border:1px solid var(--stroke);border-radius:12px;padding:12px}
+        .kpi .v{font-size:20px;font-weight:800}
+        .totals-note{color:var(--muted);font-size:12px;margin-top:6px}
 
-        .camera{display:grid;grid-template-columns:1fr 320px;gap:16px}
-        video,canvas{width:100%;border:1px solid var(--stroke);border-radius:12px}
-        .preview-col{display:flex;flex-direction:column;gap:10px}
-        .img-box{border:1px dashed var(--stroke);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:180px;background:#fff}
-        .img-box img{max-width:100%;height:auto;display:block}
+        /* Admin */
+        .admin-panel{background:#fff;border:1px dashed var(--stroke);border-radius:12px;padding:12px;margin-top:14px}
+        .admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+        .admin-grid .field{display:flex;flex-direction:column;gap:6px}
+        .admin-grid input,.admin-grid select{border:1px solid var(--stroke);border-radius:10px;padding:10px}
+        @media (max-width:1024px){ .admin-grid{grid-template-columns:1fr} }
 
-        @media (max-width: 1024px){
-          .camera{grid-template-columns:1fr}
+        /* ===== Modal styles (added/fixed) ===== */
+        .modal-backdrop{
+          position:fixed; inset:0; display:none;
+          align-items:center; justify-content:center;
+          background:rgba(17,24,39,.55);
+          z-index:2000;
+          padding:20px;
         }
+        .modal{
+          width:min(1100px,100%); max-height:92vh; overflow:auto;
+          background:#fff; border-radius:16px; border:1px solid var(--stroke);
+          box-shadow:0 20px 40px rgba(0,0,0,.16);
+        }
+        .modal-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--stroke);position:sticky;top:0;background:#fff;z-index:1}
+        .modal-bd{padding:14px}
+        .modal-ft{padding:12px 14px;border-top:1px solid var(--stroke);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:#fff}
+
+        .camera{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+        .camera video{width:100%;border:1px solid var(--stroke);border-radius:12px;background:#000;aspect-ratio:4/3}
+        .preview-col{display:grid;gap:12px}
+        .img-box{border:1px dashed var(--stroke);border-radius:12px;min-height:120px;display:grid;place-items:center;background:#fafafa;overflow:hidden}
+        .img-box img{max-width:100%;max-height:220px;display:block}
+        .inline-note{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:10px;padding:8px 10px;font-size:13px;display:flex;gap:8px;align-items:flex-start}
     </style>
 </head>
 <body>
@@ -86,14 +107,11 @@
             <span class="gm-logo" aria-hidden="true"></span>
             <span class="gm-title">Geekmonkey · Attendance</span>
         </a>
-
-        <!-- Selected employee shown in header -->
         <div id="headerSelectedEmp" class="selected-emp" style="display:none;margin-left:8px">
             <i class="fa-solid fa-user-circle"></i>
             <span id="headerEmpName"></span>
             <span class="tag" id="headerEmpId"></span>
         </div>
-
         <div class="gm-actions" style="margin-left:auto">
             <a class="gm-btn" href="#" onclick="return goBack()"><i class="fa-solid fa-arrow-left"></i><span>Back</span></a>
             <a class="gm-btn gm-btn--accent" href="/v1/home"><i class="fa-solid fa-house"></i><span>Home</span></a>
@@ -102,12 +120,12 @@
 </header>
 
 <main class="wrap">
-    <!-- SINGLE toolbar with ONE employee search -->
+    <!-- Sessions table -->
     <section class="card card-body">
         <div class="toolbar">
             <div class="search" id="empSearchBox">
                 <i class="fa-solid fa-id-card"></i>
-                <input id="empSearchInput" placeholder="Search employee by ID (shows names)…" autocomplete="off"/>
+                <input id="empSearchInput" placeholder="Search employee by ID (shows names)..." autocomplete="off"/>
                 <div class="dropdown" id="empSearchDropdown"><ul id="empSearchResults"></ul></div>
             </div>
 
@@ -121,7 +139,7 @@
                 <i class="fa-solid fa-bolt"></i> Auto Check-In
             </button>
 
-            <button class="gm-btn" type="button" id="btnAutoCheckout">
+            <button class="gm-btn" type="button" id="btnAutoCheckout" disabled>
                 <i class="fa-solid fa-person-walking-arrow-right"></i> Auto Check-Out
             </button>
         </div>
@@ -131,16 +149,84 @@
         <div class="table">
             <table>
                 <thead>
-                <tr><th style="width:36%">Name</th><th>Employee ID</th><th>Check-In (IST)</th><th>Check-Out (IST)</th><th>Status</th></tr>
+                <tr>
+                    <th>Photo</th>
+                    <th>Name</th>
+                    <th>Employee ID</th>
+                    <th>Session ID</th>
+                    <th>Check-In (IST)</th>
+                    <th>Check-Out (IST)</th>
+                    <th>Status</th>
+                    <th>Hours (Exp vs Captured)</th>
+                    <th>Action</th>
+                </tr>
                 </thead>
                 <tbody id="tblBody"></tbody>
             </table>
         </div>
     </section>
+
+    <!-- Total Duration (today) -->
+    <section class="card card-body" style="margin-top:14px">
+        <h3>Today's Total Duration (per Employee)</h3>
+        <div class="table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Employee ID</th>
+                    <th>Total Duration (HH:mm)</th>
+                </tr>
+                </thead>
+                <tbody id="totalsBody"></tbody>
+            </table>
+        </div>
+        <div class="totals-note">Includes all sessions today. Open sessions count time up to now.</div>
+    </section>
+
+    <!-- Manual Entry (Admin) -->
+    <section class="admin-panel">
+        <h3 style="margin:0 0 8px 0"><i class="fa-solid fa-pen-to-square"></i> Manual Entry (Admin)</h3>
+        <div class="admin-grid">
+            <div class="field">
+                <label>Employee ID</label>
+                <input id="admEmpId" placeholder="EMP001">
+            </div>
+            <div class="field">
+                <label>Employee Name (optional)</label>
+                <input id="admEmpName" placeholder="Jane Doe">
+            </div>
+            <div class="field">
+                <label>Action</label>
+                <select id="admAction">
+                    <option value="checkin">Manual Check-In</option>
+                    <option value="checkout">Manual Check-Out</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Date</label>
+                <input id="admDate" type="date">
+            </div>
+            <div class="field">
+                <label>Time</label>
+                <input id="admTime" type="time" step="1">
+            </div>
+            <div class="field">
+                <label>Session ID (for checkout, optional if backend resolves open session)</label>
+                <input id="admSessionId" placeholder="attn_sess_...">
+            </div>
+            <div class="field" style="grid-column:1/-1;display:flex;gap:8px;align-items:flex-end">
+                <button class="gm-btn gm-btn--accent" id="btnAdminSubmit" type="button">
+                    <i class="fa-solid fa-circle-check"></i> Submit Manual Entry
+                </button>
+                <small style="color:var(--muted)">Manual entries call the same endpoints and include the selected IST timestamp. For manual checkout you can provide Session ID (recommended).</small>
+            </div>
+        </div>
+    </section>
 </main>
 
-<!-- Auto Check-In / Check-Out Modal -->
-<div class="modal-backdrop" id="autoModal">
+<!-- Camera modal (now has full CSS + opens even if no employee is selected) -->
+<div class="modal-backdrop" id="autoModal" style="display:none">
     <div class="modal" role="dialog" aria-modal="true">
         <div class="modal-hd">
             <div style="display:flex;align-items:center;gap:10px">
@@ -155,31 +241,29 @@
         </div>
 
         <div class="modal-bd">
-            <div class="camera">
+            <div id="noEmpNotice" class="inline-note" style="display:none">
+                <i class="fa-solid fa-circle-info" style="margin-top:2px"></i>
                 <div>
-                    <video id="cam" autoplay playsinline></video>
+                    Select an employee from the top search bar. The popup is open—once you pick someone, their name & ID will appear here and the Save button will unlock.
                 </div>
+            </div>
 
+            <div class="camera" style="margin-top:12px">
+                <div><video id="cam" autoplay playsinline></video></div>
                 <div class="preview-col">
-                    <!-- DB-stored last image -->
                     <div>
                         <label style="font-weight:700;display:block;margin-bottom:6px">Last saved image (from DB)</label>
                         <div class="img-box"><img id="dbPhoto" alt="No previous image"/></div>
                     </div>
-
-                    <!-- New capture -->
                     <div>
                         <label style="font-weight:700;display:block;margin-bottom:6px">New capture</label>
-                        <canvas id="snap" width="480" height="360" style="background:#fafafa"></canvas>
+                        <canvas id="snap" width="480" height="360" style="background:#fafafa;border:1px solid var(--stroke);border-radius:12px"></canvas>
                     </div>
-
                     <div class="divider"></div>
-
                     <div class="field">
                         <label style="font-weight:700;display:block;margin-bottom:6px">Timestamp (IST)</label>
                         <input id="istNow" class="input" readonly style="width:100%;border:1px solid var(--stroke);border-radius:10px;padding:10px" />
                     </div>
-
                     <div style="display:flex;gap:8px;flex-wrap:wrap">
                         <button class="gm-btn" id="btnCapture" type="button"><i class="fa-solid fa-camera"></i> Capture</button>
                         <button class="gm-btn" id="btnRetake" type="button"><i class="fa-solid fa-rotate"></i> Retake</button>
@@ -189,7 +273,6 @@
         </div>
 
         <div class="modal-ft">
-            <!-- Enabled ONLY after capture -->
             <button class="gm-btn gm-btn--accent" id="btnSave" type="button" disabled>
                 <i class="fa-solid fa-circle-check"></i> Save
             </button>
@@ -198,310 +281,443 @@
 </div>
 
 <script>
-    // ---------- Helpers ----------
-    function goBack(){
-      if (window.history.length > 1) { window.history.back(); }
-      else { window.location.href = '/v1/home'; }
-      return false;
-    }
-    const IST = 'Asia/Kolkata';
+    // ===== Helpers =====
+    function goBack(){ if(history.length>1) history.back(); else location.href='/v1/home'; return false; }
+    const IST='Asia/Kolkata', EXPECTED_HOURS_PER_DAY=9, LATE_H=10, LATE_M=5;
+    const byId = (id)=>document.getElementById(id);
+
     function formatIST(d){
       return new Intl.DateTimeFormat('en-IN',{
         timeZone: IST, year:'numeric', month:'2-digit', day:'2-digit',
         hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true
       }).format(d);
     }
-    function todayAtIST(hours, minutes, seconds=0){
+    function todayAtIST(h,m,s=0){
       const now = new Date();
-      const ist = new Date(now.toLocaleString('en-US', { timeZone: IST }));
-      ist.setHours(hours, minutes, seconds, 0);
-      // Convert back to local Date maintaining the same wall time as IST
-      const tzDiffMs = new Date().getTime() - new Date(new Date().toLocaleString('en-US', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })).getTime();
-      return new Date(ist.getTime() - tzDiffMs);
+      const istNow = new Date(now.toLocaleString('en-US',{timeZone:IST}));
+      istNow.setHours(h,m,s,0);
+      const offsetNow = now.getTimezoneOffset(), offsetIST = -330;
+      return new Date(istNow.getTime() - (offsetIST - offsetNow)*60000);
     }
-    function byId(id){ return document.getElementById(id); }
-    function setBtnEnabled(btn, enabled){ btn.disabled = !enabled; btn.style.opacity = enabled ? 1 : .6; btn.style.cursor = enabled ? 'pointer' : 'not-allowed'; }
+    function parseISTStringToDate(str){
+      if(!str) return null;
+      const m=str.trim().match(/^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{1,2}):(\d{2}):(\d{2})\s*([APap][Mm])$/);
+      if(!m) return null;
+      let [_,dd,MM,yyyy,hh,mm,ss,ap]=m; dd=+dd; MM=+MM; yyyy=+yyyy; hh=+hh; mm=+mm; ss=+ss;
+      ap=ap.toLowerCase(); if(ap==='pm'&&hh!==12) hh+=12; if(ap==='am'&&hh===12) hh=0;
+      return new Date(Date.UTC(yyyy,MM-1,dd,hh,mm,ss) - (5*60+30)*60000);
+    }
+    function calcCapturedMs(cinStr, coutStr){
+      const cin=parseISTStringToDate(cinStr); if(!cin) return 0;
+      const cout=coutStr?parseISTStringToDate(coutStr):new Date();
+      return Math.max(0, cout-cin);
+    }
+    function calcCapturedHours(cinStr, coutStr){ return +(calcCapturedMs(cinStr, coutStr)/3600000); }
+    function humanHoursMinutes(ms){
+      if(ms<=0||!isFinite(ms)) return '00:00';
+      const tMin=Math.floor(ms/60000), h=Math.floor(tMin/60), m=tMin%60;
+      return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    }
+    function lateOrOnTimeTag(checkinISTStr){
+      const d=parseISTStringToDate(checkinISTStr); if(!d) return `<span class="tag warn">Unknown</span>`;
+      return d>todayAtIST(LATE_H,LATE_M) ? `<span class="tag err">Late</span>` : `<span class="tag ok">On-time</span>`;
+    }
+    async function postJSON(url, payload){
+      const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!res.ok){ const t=await res.text().catch(()=> ''); throw new Error(`${res.status} ${res.statusText} ${t}`); }
+      return res.json().catch(()=> ({}));
+    }
 
-    // ---------- State ----------
-    let selectedEmployee = null;    // { id, name }
-    let hasOpenSession = false;     // whether this employee has an open (no checkout) record
-    let mode = 'checkin';           // 'checkin' | 'checkout'
-    let stream=null, lastPhotoDataUrl=null, istTimer=null;
+    // ===== State =====
+    let selectedEmployee=null, hasOpenSession=false, mode='checkin', stream=null, lastPhotoDataUrl=null, istTimer=null;
+    const tblBody = byId('tblBody'), totalsBody=byId('totalsBody');
 
-    const tblBody = byId('tblBody');
-
-    // ---------- Search (ONE input) ----------
+    // ===== Search =====
     async function searchEmployeesById(partialId){
-      if(!partialId || !partialId.trim()) return [];
+      if(!partialId || !partialId.trim()) return null;
       try{
         const res = await fetch(`/v1/employees/search/${encodeURIComponent(partialId.trim())}`);
         if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        // expected: [{ id:"EMP001", empName:"Jane Smith" }, ...]
-        return data;
-      }catch(e){
-        console.error('Search failed:', e);
-        return [];
-      }
+        return await res.json();
+      }catch(e){ console.error('Search failed:',e); return null; }
     }
-
     (function wireSingleSearch(){
-      const box = byId('empSearchBox');
-      const input = byId('empSearchInput');
-      const dropdown = byId('empSearchDropdown');
-      const list = byId('empSearchResults');
-
+      const box=byId('empSearchBox'), input=byId('empSearchInput'),
+            dropdown=byId('empSearchDropdown'), list=byId('empSearchResults');
       let timer=null;
       function openDD(){ dropdown.style.display='block'; }
       function closeDD(){ dropdown.style.display='none'; list.innerHTML=''; }
-
       input.addEventListener('input', ()=>{
         clearTimeout(timer);
-        const q = input.value;
-        timer = setTimeout(async ()=>{
-          const emp = await searchEmployeesById(q);
-          list.innerHTML = '';
-          if(!emp){ closeDD(); return; }
-
-            const li = document.createElement('li');
-            li.innerHTML = `<div><div>${emp.empName||'Unnamed'}</div><div class="sub">${emp.id||''}</div></div>`;
-            li.addEventListener('click', ()=>{ pickEmployee({ id: emp.id, name: emp.empName }); closeDD(); });
-            list.appendChild(li);
-
-          openDD();
-        }, 160);
+        const q=input.value;
+        timer=setTimeout(async ()=>{
+          const data=await searchEmployeesById(q); list.innerHTML='';
+          if(!data){ closeDD(); return; }
+          const emp=Array.isArray(data)?data[0]:data; if(!emp){ closeDD(); return; }
+          const li=document.createElement('li');
+          li.innerHTML = `<div><div>${emp.empName||'Unnamed'}</div><div class="sub">${emp.empId||''}</div></div>`;
+          li.addEventListener('click', async ()=>{
+            await pickEmployee({id:emp.empId, name:emp.empName}); closeDD();
+          });
+          list.appendChild(li); openDD();
+        },160);
       });
-
       document.addEventListener('click', (e)=>{ if(!box.contains(e.target)) closeDD(); });
       input.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDD(); });
     })();
 
     function reflectSelectionUI(){
-      const show = !!selectedEmployee;
-      // header badge
-      byId('headerSelectedEmp').style.display = show ? 'inline-flex':'none';
-      byId('headerEmpName').textContent = selectedEmployee?.name || '';
-      byId('headerEmpId').textContent   = selectedEmployee?.id || '';
-      // page badge
-      byId('pageSelectedEmp').style.display = show ? 'inline-flex':'none';
-      byId('pageEmpName').textContent = selectedEmployee?.name || '';
-      byId('pageEmpId').textContent   = selectedEmployee?.id || '';
-      // also swap search text to NAME (as requested)
-      if (show) byId('empSearchInput').value = selectedEmployee.name;
-    }
+      const show=!!selectedEmployee;
+      byId('headerSelectedEmp').style.display = show?'inline-flex':'none';
+      byId('headerEmpName').textContent = selectedEmployee?.name||'';
+      byId('headerEmpId').textContent   = selectedEmployee?.id||'';
+      byId('pageSelectedEmp').style.display = show?'inline-flex':'none';
+      byId('pageEmpName').textContent = selectedEmployee?.name||'';
+      byId('pageEmpId').textContent   = selectedEmployee?.id||'';
+      if(show) byId('empSearchInput').value = selectedEmployee.name;
 
+      // reflect inside modal badge + enable Save once selected (and photo captured)
+      byId('autoEmpName').textContent = selectedEmployee?.name || 'No employee selected';
+      byId('autoEmpId').textContent   = selectedEmployee?.id   || '—';
+      const noEmp = byId('noEmpNotice');
+      if(noEmp) noEmp.style.display = show ? 'none' : 'flex';
+      maybeToggleSave();
+    }
     async function checkOpenSession(employeeId){
       try{
-        const r = await fetch(`/v1/attendance/open-session?employeeId=${encodeURIComponent(employeeId)}`);
+        const r=await fetch(`/v1/attendance/open-session?employeeId=${encodeURIComponent(employeeId)}`);
         if(!r.ok) throw new Error('status '+r.status);
-        const j = await r.json(); // { open: boolean }
-        return !!j.open;
-      }catch(e){
-        console.warn('open-session check failed, assuming no open session:', e);
-        return false;
-      }
+        const j=await r.json(); return !!j.open;
+      }catch(e){ console.warn('open-session check failed:',e); return false; }
     }
-
     async function pickEmployee(emp){
-      selectedEmployee = { id: String(emp.id), name: emp.name };
+      selectedEmployee={id:String(emp.id), name:emp.name};
       reflectSelectionUI();
       hasOpenSession = await checkOpenSession(selectedEmployee.id);
+      byId('btnAutoCheckout').disabled = !hasOpenSession;
     }
 
-    // ---------- Table helpers ----------
-    function addRowCheckin(emp, checkinIst, photoUrl){
-      const tr = document.createElement('tr');
-      tr.dataset.empId = emp.id;
-      tr.dataset.sessionOpen = 'true';
-      tr.innerHTML = `
-        <td>${emp.name}</td>
-        <td>${emp.id}</td>
-        <td>${checkinIst}</td>
-        <td class="checkout-cell">—</td>
-        <td><span class="tag ok">Checked in</span></td>
+    // ===== Photos =====
+    async function resolvePhotoUrl(empId){
+      try{
+        const r=await fetch(`/v1/attendance/photo/latest?employeeId=${encodeURIComponent(empId)}`);
+        if(r.ok){ const j=await r.json().catch(()=>null); if(j&&j.url) return j.url; }
+      }catch(_){}
+      try{
+        const r2=await fetch(`/v1/employees/details/${encodeURIComponent(empId)}`);
+        if(r2.ok){ const j2=await r2.json().catch(()=>null); if(j2&&(j2.photoUrl||j2.imageUrl)) return j2.photoUrl||j2.imageUrl; }
+      }catch(_){}
+      return '';
+    }
+
+    // ===== Table rows =====
+    function actionCellHTML(open, sessionId){
+      return open
+        ? `<button class="btn-mini btn-mini--accent btnRowCheckout" data-session-id="${sessionId||''}">
+             <i class="fa-solid fa-person-walking-arrow-right"></i> Checkout
+           </button>`
+        : '—';
+    }
+    function rowHTML(o){
+      const photo = o.photoUrl ? `<img class="photo" src="${o.photoUrl}" alt="${o.employeeName}">`
+                               : `<div class="photo" style="display:grid;place-items:center;font-size:10px;color:var(--muted)">NA</div>`;
+      const open = !!(o.checkinIst && !o.checkoutIst);
+      const statusTag = o.checkinIst ? lateOrOnTimeTag(o.checkinIst) : `<span class="tag warn">No check-in</span>`;
+      const captured = calcCapturedHours(o.checkinIst, o.checkoutIst);
+      const hoursCell = `${EXPECTED_HOURS_PER_DAY.toFixed(2)} h <span class="tag ${captured>=EXPECTED_HOURS_PER_DAY?'ok':'warn'}" style="margin-left:6px">${captured.toFixed(2)} h</span>`;
+      const checkedStatus = o.checkoutIst ? `<span class="tag info">Checked out</span>` : (o.checkinIst ? `<span class="tag ok">Checked in</span>` : `<span class="tag warn">Pending</span>`);
+      return `
+        <tr data-emp-id="${o.employeeId}" data-emp-name="${o.employeeName||''}" data-session-open="${open?'true':'false'}" data-session-id="${o.sessionId||''}">
+          <td>${photo}</td>
+          <td>${o.employeeName||''}</td>
+          <td>${o.employeeId||''}</td>
+          <td class="session-id-cell">${o.sessionId||'—'}</td>
+          <td>${o.checkinIst||'—'}</td>
+          <td class="checkout-cell">${o.checkoutIst||'—'}</td>
+          <td>${o.checkinIst ? statusTag : checkedStatus}</td>
+          <td>${hoursCell}</td>
+          <td class="action-cell">${actionCellHTML(open, o.sessionId)}</td>
+        </tr>
       `;
-      tblBody.prepend(tr);
     }
-    function closeRowCheckout(empId, checkoutIst){
-      const row = [...tblBody.querySelectorAll('tr')].find(r=>r.dataset.empId===empId && r.dataset.sessionOpen==='true');
+    function addRowCheckin(emp, checkinIstStr, photoUrl, sessionId){
+      const o = {
+        employeeId: emp.id, employeeName: emp.name,
+        checkinIst: checkinIstStr, checkoutIst: null, photoUrl: photoUrl||'', sessionId: sessionId||''
+      };
+      const temp=document.createElement('tbody'); temp.innerHTML=rowHTML(o);
+      const tr=temp.firstElementChild; tblBody.prepend(tr);
+      rebuildTotalsTable();
+    }
+    function closeRowCheckout(empId, checkoutIstStr){
+      const row=[...tblBody.querySelectorAll('tr')].find(r=>r.dataset.empId===empId && r.dataset.sessionOpen==='true');
       if(row){
-        row.querySelector('.checkout-cell').textContent = checkoutIst;
-        row.querySelector('.tag').className = 'tag info';
-        row.querySelector('.tag').textContent = 'Checked out';
-        row.dataset.sessionOpen = 'false';
+        row.querySelector('.checkout-cell').textContent = checkoutIstStr;
+        row.dataset.sessionOpen='false';
+        const act=row.querySelector('.action-cell'); if(act) act.innerHTML='—';
+        const tds=row.children, cin=tds[4-1].textContent.trim(); // index careful due to Session ID column
+        const captured=calcCapturedHours(cin, checkoutIstStr);
+        tds[8-1].innerHTML = `${EXPECTED_HOURS_PER_DAY.toFixed(2)} h <span class="tag ${captured>=EXPECTED_HOURS_PER_DAY?'ok':'warn'}" style="margin-left:6px">${captured.toFixed(2)} h</span>`;
       } else {
-        // no open row found -> add a complete row
-        const tr = document.createElement('tr');
-        tr.dataset.empId = empId;
-        tr.dataset.sessionOpen = 'false';
-        tr.innerHTML = `
-          <td>${selectedEmployee?.name || ''}</td>
-          <td>${empId}</td>
-          <td>—</td>
-          <td>${checkoutIst}</td>
-          <td><span class="tag info">Checked out</span></td>
-        `;
-        tblBody.prepend(tr);
+        const o={employeeId:empId, employeeName:selectedEmployee?.name||'', checkinIst:null, checkoutIst:checkoutIstStr, photoUrl:'', sessionId:''};
+        const temp=document.createElement('tbody'); temp.innerHTML=rowHTML(o);
+        tblBody.prepend(temp.firstElementChild);
       }
+      rebuildTotalsTable();
     }
 
-    // ---------- Modal (shared for check-in & check-out) ----------
-    const autoModal = byId('autoModal');
-    const autoTitle = byId('autoTitle');
-    const autoEmpName = byId('autoEmpName');
-    const autoEmpId = byId('autoEmpId');
-    const closeAuto = byId('closeAuto');
-    const cam = byId('cam');
-    const snap = byId('snap');
-    const dbPhoto = byId('dbPhoto');
-    const btnCapture = byId('btnCapture');
-    const btnRetake = byId('btnRetake');
-    const btnSave = byId('btnSave');
-    const istNow = byId('istNow');
+    // Inline checkout: includes sessionId
+    tblBody.addEventListener('click', async (e)=>{
+      const btn=e.target.closest('.btnRowCheckout'); if(!btn) return;
+      const tr=btn.closest('tr'); if(!tr||tr.dataset.sessionOpen!=='true') return;
+      const empId=tr.dataset.empId;
+      const empName=tr.dataset.empName || tr.children[1]?.textContent?.trim() || empId;
+      const sessionId = tr.dataset.sessionId || btn.getAttribute('data-session-id') || '';
+
+      const checkoutTs = formatIST(new Date());
+      const payload = {
+        sessionId,
+        employeeId: empId,
+        employeeName: empName,
+        checkoutIst: checkoutTs,
+        imageBase64: null
+      };
+      btn.disabled=true;
+      try{
+        await postJSON('/v1/attendance/checkout', payload);
+        closeRowCheckout(empId, checkoutTs);
+      }catch(err){
+        alert('Checkout failed: '+err.message);
+        btn.disabled=false;
+      }
+    });
+
+    // ===== Modal (always opens; Save enabled only with employee + photo) =====
+    const autoModal=byId('autoModal'), autoTitle=byId('autoTitle'), autoEmpName=byId('autoEmpName'), autoEmpId=byId('autoEmpId');
+    const closeAuto=byId('closeAuto'), cam=byId('cam'), snap=byId('snap'), dbPhoto=byId('dbPhoto'),
+          btnCapture=byId('btnCapture'), btnRetake=byId('btnRetake'), btnSave=byId('btnSave'), istNow=byId('istNow');
 
     function tickIST(){ istNow.value = formatIST(new Date()); }
+    function maybeToggleSave(){
+      // Enable only when an employee is chosen and a new photo is captured (for check-in)
+      const okEmp = !!selectedEmployee;
+      const okPhoto = !!lastPhotoDataUrl || (mode==='checkout'); // allow save on checkout even without photo
+      btnSave.disabled = !(okEmp && okPhoto);
+    }
 
     async function loadDbPhoto(empId){
-      dbPhoto.src = '';
-      dbPhoto.alt = 'No previous image';
+      dbPhoto.src=''; dbPhoto.alt='No previous image';
       try{
-        const r = await fetch(`/v1/attendance/photo/latest?employeeId=${encodeURIComponent(empId)}`);
+        const r=await fetch(`/v1/attendance/photo/latest?employeeId=${encodeURIComponent(empId)}`);
         if(!r.ok) throw new Error('status '+r.status);
-        const j = await r.json(); // { url: "https://..." }
-        if(j && j.url){ dbPhoto.src = j.url; dbPhoto.alt = 'Last saved image'; }
-      }catch(e){
-        console.log('No DB photo:', e.message);
-      }
+        const j=await r.json(); if(j&&j.url){ dbPhoto.src=j.url; dbPhoto.alt='Last saved image'; }
+      }catch(e){ /* ignore */ }
     }
 
     async function openModal(kind){
-      if(!selectedEmployee){ alert('Please select an employee first.'); byId('empSearchInput').focus(); return; }
-      // Gate: new check-in only if previous session is closed; new check-out only if there is an open session
-      hasOpenSession = await checkOpenSession(selectedEmployee.id);
-      if(kind==='checkin' && hasOpenSession){
-        alert('A session is already open for this employee. Please do Auto Check-Out first.');
-        return;
-      }
-      if(kind==='checkout' && !hasOpenSession){
-        // still allow checkout, but we’ll default to 6:30 PM if no time captured
-        // continue
-      }
-
-      mode = kind;
+      mode=kind;
       autoTitle.innerHTML = (mode==='checkin'
         ? `<i class="fa-solid fa-bolt"></i> Auto Check-In`
         : `<i class="fa-solid fa-person-walking-arrow-right"></i> Auto Check-Out`);
-      autoEmpName.textContent = selectedEmployee.name;
-      autoEmpId.textContent   = selectedEmployee.id;
 
-      lastPhotoDataUrl = null;
-      const ctx = snap.getContext('2d'); ctx.clearRect(0,0,snap.width,snap.height);
-      setBtnEnabled(btnSave, false);
+      // If no employee yet, show inline helper notice (but DO NOT block opening)
+      const noEmp = byId('noEmpNotice');
+      noEmp.style.display = selectedEmployee ? 'none' : 'flex';
+      autoEmpName.textContent = selectedEmployee?.name || 'No employee selected';
+      autoEmpId.textContent   = selectedEmployee?.id   || '—';
 
-      await loadDbPhoto(selectedEmployee.id);
+      // If employee preselected, block duplicate check-in
+      if(mode==='checkin' && selectedEmployee){
+        hasOpenSession = await checkOpenSession(selectedEmployee.id);
+        if(hasOpenSession){
+          alert('A session is already open for this employee. Please use Auto Check-Out first.');
+          // Still open modal so user can switch to checkout if they want
+        }
+        await loadDbPhoto(selectedEmployee.id);
+      }
+
+      lastPhotoDataUrl=null; snap.getContext('2d').clearRect(0,0,snap.width,snap.height);
+      btnSave.disabled=true;
 
       autoModal.style.display='flex';
-      tickIST(); istTimer = setInterval(tickIST, 1000);
-
+      tickIST(); istTimer=setInterval(tickIST,1000);
       try{
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' } });
-        cam.srcObject = stream;
-      }catch(e){
-        alert('Camera access failed: '+ e.message);
-      }
+        stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+        cam.srcObject=stream;
+      }catch(e){ alert('Camera access failed: '+e.message); }
     }
-
     function closeModal(){
       autoModal.style.display='none';
       clearInterval(istTimer); istTimer=null;
       if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
-      const ctx = snap.getContext('2d'); ctx.clearRect(0,0,snap.width,snap.height);
-      lastPhotoDataUrl = null;
-      setBtnEnabled(btnSave, false);
+      snap.getContext('2d').clearRect(0,0,snap.width,snap.height);
+      lastPhotoDataUrl=null; btnSave.disabled=true;
     }
-
     byId('btnAutoCheck').addEventListener('click', ()=>openModal('checkin'));
     byId('btnAutoCheckout').addEventListener('click', ()=>openModal('checkout'));
     closeAuto.addEventListener('click', closeModal);
 
     btnCapture.addEventListener('click', ()=>{
-      const ctx = snap.getContext('2d');
-      ctx.drawImage(cam, 0, 0, snap.width, snap.height);
-      lastPhotoDataUrl = snap.toDataURL('image/png');
-      // Only after capturing enable Save/Check-In/Out
-      setBtnEnabled(btnSave, true);
+      const ctx=snap.getContext('2d'); ctx.drawImage(cam,0,0,snap.width,snap.height);
+      lastPhotoDataUrl=snap.toDataURL('image/png'); maybeToggleSave();
     });
     btnRetake.addEventListener('click', ()=>{
-      const ctx = snap.getContext('2d'); ctx.clearRect(0,0,snap.width,snap.height);
-      lastPhotoDataUrl = null;
-      setBtnEnabled(btnSave, false);
+      const ctx=snap.getContext('2d'); ctx.clearRect(0,0,snap.width,snap.height);
+      lastPhotoDataUrl=null; maybeToggleSave();
     });
 
-    // ---------- AJAX Save ----------
-    async function postJSON(url, payload){
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      if(!res.ok){
-        const t = await res.text().catch(()=> '');
-        throw new Error(`${res.status} ${res.statusText} ${t}`);
-      }
-      return res.json().catch(()=> ({}));
-    }
-
+    // Save from modal — includes sessionId on checkout
     btnSave.addEventListener('click', async ()=>{
-      if(!selectedEmployee){ alert('No employee selected'); return; }
-
+      if(!selectedEmployee){ alert('Please select an employee from the search bar first.'); return; }
       try{
         if(mode==='checkin'){
           if(!lastPhotoDataUrl){ alert('Please capture a photo first.'); return; }
-
           const payload = {
             employeeId: selectedEmployee.id,
             employeeName: selectedEmployee.name,
             checkinIst: istNow.value,
             imageBase64: lastPhotoDataUrl
           };
-          // Save
-          await postJSON('/v1/attendance/checkin', payload);
-
-          // UI: add row in dashboard
-          addRowCheckin(selectedEmployee, payload.checkinIst);
-          hasOpenSession = true;
+          const resp = await postJSON('/v1/attendance/checkin', payload);
+          const newSessionId = resp.sessionId || resp.id || '';
+          addRowCheckin(selectedEmployee, payload.checkinIst, null, newSessionId);
+          try{
+            const r=await fetch(`/v1/attendance/photo/latest?employeeId=${encodeURIComponent(selectedEmployee.id)}`);
+            const j=await r.json().catch(()=>null);
+            if(j&&j.url){
+              const cell=tblBody.querySelector(`tr[data-emp-id="${selectedEmployee.id}"] td:first-child`);
+              if(cell) cell.innerHTML=`<img class="photo" src="${j.url}" alt="${selectedEmployee.name}">`;
+            }
+          }catch(_){}
+          hasOpenSession=true; byId('btnAutoCheckout').disabled=false;
           alert(`Check-In saved for ${selectedEmployee.name} at ${payload.checkinIst}`);
           closeModal();
-        } else {
-          // CHECK-OUT
-          // If user did not capture, default to 6:30 PM IST today
-          let checkoutTs = istNow.value;
-          if(!lastPhotoDataUrl){
-            const sixThirty = todayAtIST(18,30);
-            checkoutTs = formatIST(sixThirty);
-          }
+        }else{
+          const openRow=[...tblBody.querySelectorAll('tr')].find(r=>r.dataset.empId===selectedEmployee.id && r.dataset.sessionOpen==='true');
+          const sessionId = openRow?.dataset.sessionId || '';
           const payload = {
+            sessionId,
             employeeId: selectedEmployee.id,
             employeeName: selectedEmployee.name,
-            checkoutIst: checkoutTs,
+            checkoutIst: istNow.value,
             imageBase64: lastPhotoDataUrl || null
           };
           await postJSON('/v1/attendance/checkout', payload);
-
-          // UI: close row if exists, else add one with only checkout
           closeRowCheckout(selectedEmployee.id, payload.checkoutIst);
-          hasOpenSession = false;
+          hasOpenSession=false; byId('btnAutoCheckout').disabled=true;
           alert(`Check-Out saved for ${selectedEmployee.name} at ${payload.checkoutIst}`);
           closeModal();
         }
-      }catch(e){
-        alert('Save failed: ' + e.message);
-      }
+      }catch(e){ alert('Save failed: ' + e.message); }
     });
 
-    // ---------- Demo: initial empty table ----------
-    // (Intentionally empty; rows will be added as check-ins happen)
+    // ===== Load today & totals =====
+    function normalizeTodayRow(r){
+      return {
+        employeeId: r.employeeId || r.empId || r.id || '',
+        employeeName: r.employeeName || r.empName || r.name || '',
+        sessionId: r.sessionId || r.id || r._id || '',
+        checkinIst: r.checkinIst || r.checkInIst || r.checkin || '',
+        checkoutIst: r.checkoutIst || r.checkOutIst || r.checkout || '',
+        photoUrl: r.photoUrl || r.imageUrl || r.photo || ''
+      };
+    }
+    async function loadToday(){
+      tblBody.innerHTML='';
+      try{
+        const res=await fetch('/v1/attendance/today');
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const arr=await res.json(); const rows=Array.isArray(arr)?arr:(arr?.data||[]);
+        for(const r of rows){
+          const o=normalizeTodayRow(r);
+          if(!o.photoUrl && o.employeeId){ o.photoUrl=await resolvePhotoUrl(o.employeeId); }
+          const temp=document.createElement('tbody'); temp.innerHTML=rowHTML(o);
+          tblBody.appendChild(temp.firstElementChild);
+        }
+        setInterval(()=>{
+          [...tblBody.querySelectorAll('tr')].forEach(tr=>{
+            if(tr.dataset.sessionOpen==='true'){
+              const tds=tr.children;
+              const cin=tds[5-1].textContent.trim();
+              const captured=calcCapturedHours(cin, null);
+              tds[8-1].innerHTML = `${EXPECTED_HOURS_PER_DAY.toFixed(2)} h <span class="tag ${captured>=EXPECTED_HOURS_PER_DAY?'ok':'warn'}" style="margin-left:6px">${captured.toFixed(2)} h</span>`;
+            }
+          });
+          rebuildTotalsTable();
+        }, 60000);
+        rebuildTotalsTable();
+      }catch(e){
+        console.error('Failed to load today:', e);
+        tblBody.innerHTML=`<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:18px">No records found for today.</td></tr>`;
+        totalsBody.innerHTML=`<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:18px">No totals to show.</td></tr>`;
+      }
+    }
+    function rebuildTotalsTable(){
+      const agg=new Map();
+      [...tblBody.querySelectorAll('tr')].forEach(tr=>{
+        const empId=tr.dataset.empId, name=tr.dataset.empName||tr.children[1]?.textContent?.trim()||empId;
+        const cin=tr.children[5-1]?.textContent?.trim(); const cout=tr.children[6-1]?.textContent?.trim();
+        if(cin && empId){
+          const ms=calcCapturedMs(cin, cout && cout!=='—' ? cout : null);
+          const prev=agg.get(empId)||{name, ms:0}; prev.ms+=ms; agg.set(empId, prev);
+        }
+      });
+      totalsBody.innerHTML='';
+      if(agg.size===0){ totalsBody.innerHTML=`<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:12px">No data.</td></tr>`; return; }
+      for(const [empId,v] of agg.entries()){
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${v.name}</td><td>${empId}</td><td>${humanHoursMinutes(v.ms)}</td>`;
+        totalsBody.appendChild(tr);
+      }
+    }
 
+    // ===== Admin manual entry =====
+    function buildISTStringFromInputs(dateStr, timeStr){
+      if(!dateStr || !timeStr) return null;
+      const [Y,M,D]=dateStr.split('-').map(Number);
+      let [h,m,s]=timeStr.split(':').map(v=>Number(v||0));
+      const ampm = h>=12?'pm':'am', hh12=((h%12)||12);
+      const pad=n=>String(n).padStart(2,'0');
+      return `${pad(D)}/${pad(M)}/${Y}, ${pad(hh12)}:${pad(m)}:${pad(s)} ${ampm}`;
+    }
+    byId('btnAdminSubmit').addEventListener('click', async ()=>{
+      const empId=byId('admEmpId').value.trim();
+      const empName=byId('admEmpName').value.trim();
+      const action=byId('admAction').value;
+      const dateStr=byId('admDate').value;
+      const timeStr=byId('admTime').value;
+      const manualSessionId=byId('admSessionId').value.trim();
+      if(!empId || !dateStr || !timeStr){ alert('Employee ID, Date and Time are required.'); return; }
+      const istString=buildISTStringFromInputs(dateStr,timeStr); if(!istString){ alert('Invalid date/time.'); return; }
+
+      let finalName=empName;
+      if(!finalName){
+        try{
+          const res=await fetch(`/v1/employees/search/${encodeURIComponent(empId)}`);
+          if(res.ok){ const j=await res.json(); const obj=Array.isArray(j)?j[0]:j; if(obj&&obj.empName) finalName=obj.empName; }
+        }catch(_){}
+      }
+
+      try{
+        if(action==='checkin'){
+          const payload={ employeeId:empId, employeeName:finalName||empId, checkinIst:istString, imageBase64:null };
+          const resp=await postJSON('/v1/attendance/checkin', payload);
+          const sid=resp.sessionId||resp.id||'';
+          addRowCheckin({id:empId,name:finalName||empId}, istString, null, sid);
+          alert('Manual check-in saved.');
+        }else{
+          const payload={ sessionId: manualSessionId||'', employeeId:empId, employeeName:finalName||empId, checkoutIst:istString, imageBase64:null };
+          await postJSON('/v1/attendance/checkout', payload);
+          closeRowCheckout(empId, istString);
+          alert('Manual check-out saved.');
+        }
+      }catch(e){ alert('Manual entry failed: '+e.message); }
+    });
+
+    // ===== Boot =====
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      await loadToday();
+    });
 </script>
 </body>
 </html>

@@ -32,7 +32,7 @@
         .btn{height:36px;padding:0 12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
         .btn.secondary{background:#fff;color:var(--text);border:1px solid var(--stroke)}
         .btn.small{height:30px;border-radius:8px}
-        .btn.linklike{background:#fff;border:1px solid var(--stroke);color:#var(--text)}
+        .btn.linklike{background:#fff;border:1px solid var(--stroke);color:var(--text)}
         .btn.linklike:hover{background:#fff8f2}
         .field{display:grid;gap:6px}
         .field input,.field select,.field textarea{height:36px;padding:0 10px;border:1px solid var(--stroke);border-radius:10px;background:#fff}
@@ -222,7 +222,7 @@
             <div id="courierHint" class="hint" style="margin-top:6px"></div>
         </div>
 
-        <!-- Line items (with images) + assignment -->
+        <!-- Line items -->
         <div class="card" style="padding:12px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:6px">Line Items (assign to packages)</div>
             <div id="lineItems"></div>
@@ -297,23 +297,75 @@
                 </div>
             </div>
 
+            <!-- Packaging Dimensions (now includes quote controls) -->
             <div class="card" style="padding:12px">
                 <div style="font-weight:600;margin-bottom:6px">Packaging Dimensions</div>
+
                 <div class="grid cols4">
-                    <!-- start with EMPTY values; placeholders guide the user -->
                     <div class="field"><label class="hint">Length (cm)</label><input id="lenCm" type="number" min="0" placeholder="e.g., 20"></div>
                     <div class="field"><label class="hint">Width (cm)</label><input id="widCm" type="number" min="0" placeholder="e.g., 15"></div>
                     <div class="field"><label class="hint">Height (cm)</label><input id="heiCm" type="number" min="0" placeholder="e.g., 10"></div>
                     <div class="field"><label class="hint">Dead wt (kg)</label><input id="deadWt" type="number" step="0.01" min="0" placeholder="e.g., 0.80"></div>
                 </div>
-                <div class="row" style="margin-top:8px">
+
+                <!-- Lightweight request controls -->
+                <div class="grid cols3" style="margin-top:10px">
+                    <div class="field">
+                        <label class="hint">Pickup Pincode</label>
+                        <input id="pkPin" inputmode="numeric" placeholder="e.g., 248001" value="248001">
+                    </div>
+                    <div class="field">
+                        <label class="hint">Payment Type</label>
+                        <select id="payType">
+                            <option value="PREPAID">PREPAID</option>
+                            <option value="COD">COD</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label class="hint">Shipment Type</label>
+                        <select id="shipType">
+                            <option value="FORWARD">FORWARD</option>
+                            <option value="REVERSE">REVERSE</option>
+                            <option value="RTO">RTO</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid cols3" style="margin-top:8px">
+                    <div class="field">
+                        <label class="hint">Type of Package</label>
+                        <select id="pkgType">
+                            <option value="SPS">SPS</option>
+                            <option value="DOCUMENT">DOCUMENT</option>
+                            <option value="FRAGILE">FRAGILE</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label class="hint">ROV Type</label>
+                        <select id="rovType">
+                            <option value="ROV_OWNER">ROV_OWNER</option>
+                            <option value="SPECIAL">SPECIAL</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label class="hint">COD Amount (₹)</label>
+                        <input id="codAmt" type="number" step="0.01" value="0">
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:8px;align-items:center">
                     <div>Volumetric weight: <b id="volWt">—</b> kg</div>
-                    <div class="hint">Vol wt = (L×W×H)/5000</div>
+                    <div class="hint" style="margin-left:8px">Vol wt = (L×W×H)/5000</div>
+                    <button id="getQuoteBtn" class="btn small" style="margin-left:auto">Get Quote</button>
+                </div>
+
+                <div class="hint" style="margin-top:6px">
+                    Uses same request as CourierQuotationRequest. Weight is auto-summed from “Packages & Tracking” (falls back to Dead wt above).
                 </div>
             </div>
         </div>
 
-        <!-- Contact (mapped from order details automatically) -->
+        <!-- Contact -->
         <div class="card" style="padding:12px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:6px">Contact & Address</div>
             <div class="grid cols3">
@@ -368,7 +420,6 @@
       pastOrders: 2
     }];
 
-    // Fallback static options
     const COURIERS_FALLBACK = [
       {name:"BlueDart", service:"Priority", eta:"1-3 days", cost:160, cod:true},
       {name:"Delhivery", service:"Express", eta:"2-4 days", cost:135, cod:true},
@@ -539,6 +590,18 @@
     const deadWtInput = document.getElementById("deadWt");
     const volWtEl = document.getElementById("volWt");
     const warehouseSel = document.getElementById("warehouse");
+    const getQuoteBtn = document.getElementById("getQuoteBtn");
+
+    // Small controls (with default pickup pincode 248001, editable)
+    const pkPin = document.getElementById('pkPin');
+    const payType = document.getElementById('payType');
+    const shipType = document.getElementById('shipType');
+    const pkgType = document.getElementById('pkgType');
+    const rovType = document.getElementById('rovType');
+    const codAmt = document.getElementById('codAmt');
+
+    // ensure default (in case HTML value is removed later)
+    if (!pkPin.value) pkPin.value = '248001';
 
     document.getElementById("backBtn").addEventListener("click", ()=>{
       detailView.classList.remove("active");
@@ -590,6 +653,7 @@
         </div>
       `).join("");
 
+      // input changes
       packagesWrap.querySelectorAll('.pkg input, .pkg select').forEach(inp=>{
         inp.addEventListener('input', (e)=>{
           const wrap = e.target.closest('.pkg');
@@ -610,9 +674,27 @@
       });
     }
 
+    // handle add, remove, copyTrack with delegation
     document.getElementById('addPackageBtn').addEventListener('click', ()=>{
       PACKAGES.push(newPackage(PACKAGES.length));
       renderPackages();
+    });
+
+    packagesWrap.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      const id  = btn.dataset.id;
+      const idx = PACKAGES.findIndex(p=>p.id===id);
+      if (act === 'remove' && idx>-1){
+        PACKAGES.splice(idx,1);
+        // re-name remaining packages sequentially
+        PACKAGES.forEach((p,i)=> p.name = `Package ${i+1}`);
+        renderPackages();
+      } else if (act === 'copyTrack' && idx>0){
+        PACKAGES[idx].trackingId = PACKAGES[idx-1].trackingId || '';
+        renderPackages();
+      }
     });
 
     sameTrackingAll.addEventListener('change', ()=>{
@@ -652,6 +734,9 @@
       addrMsg.textContent  = '';
       pinMsg.textContent   = '';
 
+      // default pickup pincode (editable)
+      if (!pkPin.value) pkPin.value = '248001';
+
       const items = (o.items && o.items.length) ? o.items : [];
       lineItemsDiv.innerHTML = items.map((it)=>`
         <div class="item" data-sku="${it.sku||''}">
@@ -669,18 +754,28 @@
         </div>
       `).join("") || '<div class="hint">No items present for this order.</div>';
 
-      PACKAGES = [newPackage(0)];
+      // NO DEFAULT PACKAGE ROW
+      PACKAGES = [];
       renderPackages();
 
       const photoTarget = document.getElementById("photoTarget");
       photoTarget.innerHTML = items.map(it=>`<option value="item:${it.sku||'NA'}">Item: ${it.name||it.sku||'NA'}</option>`).join("")
         + `<option value="item:OTHER">Item: Other</option>`;
 
-      renderCourierRows([], 'Add package dimensions (L, W, H) and Dead weight to see courier quotes.');
+      renderCourierRows([], 'Enter dims + click Get Quote.');
     }
 
-    function selectCourier(name, svc, cost){ alert(`Selected: ${name} – ${svc} (Rs ${cost})`); }
+    // Selecting a courier row: ALWAYS add a brand-new package row and assign courier
+    function selectCourier(name, svc, cost){
+      const idx = PACKAGES.length;
+      const pkg = newPackage(idx);
+      pkg.courier = name;
+      PACKAGES.push(pkg);
+      renderPackages();
+      alert(`Selected: ${name} – ${svc} (Rs ${cost}). Added ${pkg.name}.`);
+    }
 
+    // Volumetric weight calculator
     ["lenCm","widCm","heiCm"].forEach(id=>document.getElementById(id)?.addEventListener("input", ()=>{
       const L=+lenInput.value||0, W=+widInput.value||0, H=+heiInput.value||0;
       if (L>0 && W>0 && H>0){
@@ -688,11 +783,7 @@
       } else {
         volWtEl.textContent = '—';
       }
-      debouncedFetchCourierOptions();
     }));
-    deadWtInput.addEventListener("input", debouncedFetchCourierOptions);
-    pincodeInput.addEventListener("input", debouncedFetchCourierOptions);
-    warehouseSel.addEventListener("change", debouncedFetchCourierOptions);
 
     document.getElementById("validateBtn").addEventListener("click", ()=>{
       const ph = (phoneInput.value||'').trim(), ad = (addressInput.value||'').trim(), pc = (pincodeInput.value||'').trim();
@@ -708,7 +799,7 @@
       document.getElementById("avgDelivery").textContent = avgDaysForPincode(pc) || "N/A";
     });
 
-    /* Webcam: Photos */
+    /* Webcam: Photos (unchanged) */
     const videoPhoto = document.getElementById("camPhoto");
     const photoCanvas = document.getElementById("photoCanvas");
     const startPhotoCam = document.getElementById("startPhotoCam");
@@ -771,7 +862,7 @@
       });
     }
 
-    /* Webcam: Video */
+    /* Webcam: Video (unchanged) */
     const camVideo = document.getElementById("camVideo");
     const startVideoCam = document.getElementById("startVideoCam");
     const stopVideoCam  = document.getElementById("stopVideoCam");
@@ -862,36 +953,63 @@
     });
 
     /* ------------------------
-       Courier options (AJAX)
+       Quotes via Packaging Dimensions
+       Exact mapping to CourierQuotationRequest
        ------------------------ */
 
-    // UPDATED: Build payload with required fields nested under payload.dimension
-    function currentShipmentPayload(){
+    function getDimensionsArray(){
+      const dims = [];
+      // try from package rows first
+      PACKAGES.forEach(p=>{
+        const L = +p.length || 0, W = +p.width || 0, H = +p.height || 0;
+        const dead = +p.weight || 0;
+        if (L>0 || W>0 || H>0 || dead>0){
+          dims.push({ length:L, width:W, height:H, dead_weight_kg: +(dead||0).toFixed(3) });
+        }
+      });
+      if (dims.length) return dims;
+
+      // fallback to single inputs (the dims card)
       const L = +lenInput.value || 0;
       const W = +widInput.value || 0;
       const H = +heiInput.value || 0;
       const dead = +deadWtInput.value || 0;
-      const vol = (L>0 && W>0 && H>0) ? +((L*W*H)/5000).toFixed(2) : 0;
-      const chargeable = Math.max(dead, vol);
-      volWtEl.textContent = (vol>0) ? vol.toFixed(2) : '—';
+      if (L>0 || W>0 || H>0 || dead>0){
+        return [{ length_cm:L, width_cm:W, height_cm:H, dead_weight_kg: +(dead||0).toFixed(3) }];
+      }
+      return [];
+    }
+
+    function sumPackageWeight(){
+      const total = PACKAGES.reduce((n,p)=> n + (+p.weight||0), 0);
+      return +total.toFixed(3);
+    }
+
+    function num(v){ const n=Number(v); return isNaN(n)?0:n; }
+
+    // Build exact CourierQuotationRequest from current UI
+    function buildCourierQuotationRequest(){
+      const order = CURRENT_ORDER || {};
+      const dims = getDimensionsArray();
+
+      // delivery from Contact block / order
+      const deliveryPin = (pincodeInput.value || order?.customer?.pincode || '').trim();
+
+      // auto weight: sum of packages OR dead wt field
+      const autoWeight = sumPackageWeight() || (+deadWtInput.value||0);
 
       return {
-        // keep non-dimension fields at root
-        delivery_pincode: (pincodeInput.value || CURRENT_ORDER?.customer?.pincode || '').trim(),
-        origin: warehouseSel.value || 'Primary',
-        order_id: CURRENT_ORDER?.id || '',
-        order_amount: Number(CURRENT_ORDER?.total || 0),
-        items_count: (CURRENT_ORDER?.items||[]).reduce((n,i)=>n+(i.quantity||0),0),
-
-        // nest all required fields under 'dimension'
-        dimension: {
-          length_cm: L,
-          width_cm: W,
-          height_cm: H,
-          dead_weight_kg: +(dead||0).toFixed(3),
-          volumetric_weight_kg: +(vol||0).toFixed(3),
-          chargeable_weight_kg: +(chargeable||0).toFixed(3),
-        }
+        order_id: (order.id || '').trim(),
+        delivery_pincode: deliveryPin,
+        pickup_pincode: (pkPin.value || '').trim(),
+        payment_type: payType.value,
+        shipment_type: shipType.value,
+        order_amount: num(order.total || 0),
+        type_of_package: pkgType.value,
+        rov_type: rovType.value,
+        cod_amount: num(codAmt.value || 0),
+        weight: +(+autoWeight || 0).toFixed(3),
+        dimension: dims
       };
     }
 
@@ -916,25 +1034,26 @@
       courierHint.textContent = '';
     }
 
-    // UPDATED: Use payload.dimension.* where applicable
     async function fetchCourierOptions(){
-      const payload = currentShipmentPayload();
+      const payload = buildCourierQuotationRequest();
 
-      const dimsReady = payload.dimension.length_cm>0 && payload.dimension.width_cm>0 &&
-                        payload.dimension.height_cm>0 && payload.dimension.dead_weight_kg>0;
-      const pinReady  = payload.delivery_pincode && /^\d{6}$/.test(payload.delivery_pincode);
-
-      if (!dimsReady){
-        renderCourierRows([], 'Add package dimensions and dead weight to fetch live quotes.');
-        return;
+      // quick validations
+      if (!/^\d{6}$/.test(payload.delivery_pincode||'')){
+        renderCourierRows([], 'Enter a valid 6-digit delivery pincode.'); return;
       }
-      if (!pinReady){
-        renderCourierRows([], 'Enter a valid 6-digit pincode to fetch live quotes.');
-        return;
+      if (!/^\d{6}$/.test(payload.pickup_pincode||'')){
+        renderCourierRows([], 'Enter a valid 6-digit pickup pincode.'); return;
+      }
+      if (!payload.dimension.length){
+        renderCourierRows([], 'Add at least one package dimension / weight.'); return;
+      }
+      if (payload.payment_type === 'COD' && payload.cod_amount <= 0){
+        renderCourierRows([], 'For COD, COD Amount must be > 0.'); return;
       }
 
       showCourierLoading();
       try{
+        // per requirement, use /quote
         const res = await fetch('/v1/courier/quotes', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
@@ -958,21 +1077,17 @@
         }
 
         list.sort((a,b)=> (Number(a.cost||Infinity) - Number(b.cost||Infinity)));
-        renderCourierRows(
-          list,
-          `Quotes for ${payload.dimension.chargeable_weight_kg} kg (chargeable), ${payload.dimension.length_cm}×${payload.dimension.width_cm}×${payload.dimension.height_cm} cm.`
-        );
+        // compute a display-only chargeable from first dim
+        const d0 = payload.dimension[0] || {};
+        const vol = (d0.length_cm||0)*(d0.width_cm||0)*(d0.height_cm||0)/5000;
+        const chg = Math.max(+d0.dead_weight_kg||0, +vol||0).toFixed(3);
+        renderCourierRows(list, `Quotes for chargeable ≈ ${chg} kg • dims ${d0.length_cm||0}×${d0.width_cm||0}×${d0.height_cm||0} cm.`);
       }catch(err){
         renderCourierRows(COURIERS_FALLBACK, `Error fetching quotes. Showing fallback. ${err.message||err}`);
       }
     }
 
-    // Debounce
-    let fetchTimer=null;
-    function debouncedFetchCourierOptions(){
-      clearTimeout(fetchTimer);
-      fetchTimer = setTimeout(fetchCourierOptions, 450);
-    }
+    document.getElementById('getQuoteBtn').addEventListener('click', fetchCourierOptions);
 </script>
 </body>
 </html>
