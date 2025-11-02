@@ -18,4 +18,8 @@ public class EmployeeDetailsService {
     public Optional<EmployeeDetails> findEmployeeById(String empId) {
         return employeeDetailsRepo.findById(empId);
     }
+
+    public void saveEmployeeDetails(EmployeeDetails emp) {
+        employeeDetailsRepo.save(emp);
+    }
 }

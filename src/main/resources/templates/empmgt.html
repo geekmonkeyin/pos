@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>Employee Management — Geekmonkey</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#F9FAFB; --card:#FFFFFF; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+      --accent:#FF7A00; --accent-ink:#9A4D00; --accent-weak:#FFE5D0; --radius:14px;
+      --ok:#10B981; --warn:#F59E0B; --err:#EF4444; --info:#60A5FA;
+    }
+    html, body { height:100%; background:var(--bg); color:var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+
+    /* Top bar */
+    .gm-topbar{
+      position:sticky; top:0; z-index:1030;
+      background:linear-gradient(90deg, var(--accent), #FF9A3D);
+      color:#fff; box-shadow:0 8px 18px rgba(0,0,0,0.08);
+    }
+    .gm-topbar .brand{ font-weight:800; letter-spacing:.3px; }
+    .gm-btn{ border-radius:12px; border:none; padding:.5rem .9rem; font-weight:600; }
+    .gm-btn-accent{ background:#fff; color:var(--accent-ink); }
+    .gm-btn-accent:hover{ background:var(--accent-weak); color:var(--accent-ink); }
+    .gm-btn-ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.55); }
+    .gm-btn-ghost:hover{ background:rgba(255,255,255,0.12); }
+
+    /* Cards & inputs */
+    .gm-card{
+      background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius);
+      box-shadow:0 8px 24px rgba(17,24,39,0.06);
+    }
+    .gm-section-title{ font-weight:800; font-size:1.25rem; margin:1.25rem 0 .75rem; }
+
+    .form-control, .form-select{
+      border-radius:12px; border:1px solid var(--stroke);
+    }
+    .form-control:focus, .form-select:focus{
+      border-color: var(--accent); box-shadow: 0 0 0 .2rem rgba(255,122,0,.15);
+    }
+
+    /* Tabs */
+    .nav-tabs .nav-link{
+      border:none; color:var(--muted); font-weight:700;
+    }
+    .nav-tabs .nav-link.active{
+      color:#000; border-bottom:3px solid var(--accent); background:transparent;
+    }
+
+    /* Tables */
+    .table thead th{
+      text-transform:uppercase; font-size:.75rem; letter-spacing:.04em; color:#111827;
+      background:#F9FAFB;
+    }
+    .badge-soft{
+      background:var(--accent-weak); color:var(--accent-ink);
+      border-radius:999px; padding:.25rem .6rem; font-weight:700; font-size:.75rem;
+    }
+
+    /* Floating save */
+    .sticky-actions{
+      position:sticky; bottom:0; background:#fff; border-top:1px solid var(--stroke);
+      padding:12px; display:flex; gap:10px; justify-content:flex-end; border-radius:0 0 var(--radius) var(--radius);
+    }
+    .btn-accent{
+      background:var(--accent); color:#fff; border:none; border-radius:12px; font-weight:700; padding:.6rem 1rem;
+    }
+    .btn-accent:hover{ background:#ff8f29; }
+
+    /* Password modal (app gate) */
+    .gate-backdrop{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(17,24,39,.55); z-index:2000; padding:16px;
+    }
+    .gate-card{
+      width:min(520px, 95vw); background:#fff; border:1px solid var(--stroke);
+      border-radius:16px; box-shadow:0 18px 40px rgba(0,0,0,.18);
+    }
+    .gate-card .hd{ padding:14px 16px; border-bottom:1px solid var(--stroke); font-weight:800; }
+    .gate-card .bd{ padding:16px; }
+    .gate-card .ft{ padding:12px 16px; border-top:1px solid var(--stroke); display:flex; gap:8px; justify-content:flex-end; }
+
+    /* Camera capture */
+    .cam-wrap{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .cam-box{ border:1px dashed var(--stroke); border-radius:12px; padding:10px; background:#fff; }
+    .cam-box h6{ margin:0 0 8px 0; font-weight:800; }
+    .cam-video{ width:100%; border-radius:10px; background:#f5f5f5; }
+    .cam-canvas{ width:100%; border-radius:10px; background:#fafafa; border:1px solid var(--stroke); }
+    .cam-actions{ display:flex; flex-wrap:wrap; gap:8px; }
+    @media (max-width: 992px){ .cam-wrap{ grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="gm-topbar">
+  <div class="container d-flex align-items-center justify-content-between py-2">
+    <div class="d-flex gap-2">
+      <button type="button" class="gm-btn gm-btn-ghost" id="backBtn" title="Back">← Back</button>
+      <button type="button" class="gm-btn gm-btn-accent" id="homeBtn" title="Home">⌂ Home</button>
+    </div>
+    <div class="brand">Geekmonkey • Employee Management</div>
+    <div></div>
+  </div>
+</div>
+
+<main class="container my-4">
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="empTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="add-tab" data-bs-toggle="tab" data-bs-target="#tab-add" type="button" role="tab">Add New</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="update-tab" data-bs-toggle="tab" data-bs-target="#tab-update" type="button" role="tab">Update</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="salary-tab" data-bs-toggle="tab" data-bs-target="#tab-salary" type="button" role="tab">Salary Management</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="perf-tab" data-bs-toggle="tab" data-bs-target="#tab-performance" type="button" role="tab">Employee Performance</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="empTabsContent">
+
+    <!-- Add New -->
+    <div class="tab-pane fade show active" id="tab-add" role="tabpanel" aria-labelledby="add-tab">
+      <div class="gm-card p-3">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Employee ID</label>
+            <input class="form-control" id="addEmpId" placeholder="EMP001" />
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Full Name</label>
+            <input class="form-control" id="addEmpName" placeholder="Jane Doe" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Email</label>
+            <input class="form-control" id="addEmail" type="email" placeholder="jane@company.com" />
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Phone</label>
+            <input class="form-control" id="addPhone" placeholder="+91-XXXXXXXXXX" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Department</label>
+            <select class="form-select" id="addDept">
+              <option value="">Select</option>
+              <option>Operations</option>
+              <option>Warehousing</option>
+              <option>Support</option>
+              <option>Tech</option>
+              <option>Marketing</option>
+              <option>Finance</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Role/Designation</label>
+            <input class="form-control" id="addRole" placeholder="Associate" />
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Join Date</label>
+            <input class="form-control" id="addJoin" type="date" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Status</label>
+            <select class="form-select" id="addStatus">
+              <option>Active</option>
+              <option>On Leave</option>
+              <option>Probation</option>
+              <option>Resigned</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Base Salary (₹ / month)</label>
+            <input class="form-control" id="addSalary" type="number" placeholder="35000" />
+          </div>
+
+          <!-- Agreement Upload -->
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Employment Agreement (PDF/DOC/DOCX/JPG/PNG)</label>
+            <input class="form-control" id="addAgreement" type="file" accept=".pdf,.doc,.docx,image/*" />
+            <div class="small text-muted mt-1">Optional, but recommended to attach signed agreement.</div>
+          </div>
+
+          <!-- Photo: Upload or Capture -->
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Photo (upload or capture)</label>
+            <input class="form-control mb-2" id="addPhoto" type="file" accept="image/*" />
+            <div class="cam-wrap">
+              <div class="cam-box">
+                <h6>Live Camera</h6>
+                <video id="cam" class="cam-video" autoplay playsinline></video>
+                <div class="cam-actions mt-2">
+                  <button class="btn btn-outline-secondary btn-sm" id="btnCamStart" type="button">Start Camera</button>
+                  <button class="btn btn-outline-secondary btn-sm" id="btnCamStop" type="button" disabled>Stop Camera</button>
+                  <button class="btn btn-accent btn-sm" id="btnCapture" type="button" disabled>Capture</button>
+                </div>
+              </div>
+              <div class="cam-box">
+                <h6>Captured Preview</h6>
+                <canvas id="snap" class="cam-canvas" width="640" height="480"></canvas>
+                <div class="cam-actions mt-2">
+                  <button class="btn btn-outline-secondary btn-sm" id="btnRetake" type="button" disabled>Retake</button>
+                  <span id="photoNote" class="small text-muted">If you capture, that image will be sent instead of uploaded file.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sticky-actions">
+          <button class="btn btn-outline-secondary" id="btnAddReset">Reset</button>
+          <button class="btn-accent" id="btnAddSave">Save Employee</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update -->
+    <div class="tab-pane fade" id="tab-update" role="tabpanel" aria-labelledby="update-tab">
+      <div class="gm-card p-3">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Search by Employee ID</label>
+            <input class="form-control" id="updSearchId" placeholder="EMP001" />
+          </div>
+          <div class="col-md-3">
+            <button class="btn-accent" id="btnUpdFetch">Fetch</button>
+          </div>
+          <div class="col-md-5 text-md-end">
+            <span class="badge-soft">Tip: use exact ID for faster lookup</span>
+          </div>
+        </div>
+
+        <hr class="my-3"/>
+
+        <div id="updFormWrap" class="row g-3" style="display:none">
+          <!-- Photo column -->
+          <div class="col-md-3">
+            <label class="form-label fw-semibold d-flex align-items-center justify-content-between">
+              <span>Current Photo</span>
+              <a id="updPhotoOpenLink" href="#" target="_blank" style="display:none" class="small">Open</a>
+            </label>
+            <div class="border rounded-3 p-2 text-center" style="background:#fff;border-color:var(--stroke);">
+              <img id="updPhotoPreview" alt="Employee Photo"
+                   style="max-width:100%;height:auto;border-radius:12px;display:none;" />
+              <div id="updNoPhoto" class="text-muted small" style="padding:24px 6px;">
+                No photo on file.
+              </div>
+            </div>
+
+            <div class="mt-2">
+              <label class="form-label fw-semibold">Replace Photo</label>
+              <input class="form-control" id="updPhoto" type="file" accept="image/*"/>
+              <div class="small text-muted mt-1">Choosing a file will preview it here.</div>
+            </div>
+          </div>
+
+          <!-- Fields column -->
+          <div class="col-md-9">
+            <div class="row g-3">
+              <div class="col-md-5">
+                <label class="form-label fw-semibold">Full Name</label>
+                <input class="form-control" id="updEmpName"/>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Email</label>
+                <input class="form-control" id="updEmail" type="email"/>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Phone</label>
+                <input class="form-control" id="updPhone"/>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Department</label>
+                <select class="form-select" id="updDept">
+                  <option>Operations</option><option>Warehousing</option><option>Support</option>
+                  <option>Tech</option><option>Marketing</option><option>Finance</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Role/Designation</label>
+                <input class="form-control" id="updRole"/>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select" id="updStatus">
+                  <option>Active</option><option>On Leave</option><option>Probation</option><option>Resigned</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Base Salary (₹ / month)</label>
+                <input class="form-control" id="updSalary" type="number"/>
+              </div>
+            </div>
+
+            <div class="sticky-actions mt-3">
+              <button class="btn btn-outline-danger" id="btnUpdDelete">Delete Employee</button>
+              <button class="btn-accent" id="btnUpdSave">Save Changes</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="updEmpty" class="text-muted" style="display:block">Search to load employee details…</div>
+      </div>
+    </div>
+
+    <!-- Salary -->
+    <div class="tab-pane fade" id="tab-salary" role="tabpanel" aria-labelledby="salary-tab">
+      <div class="gm-card p-3">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Month</label>
+            <input class="form-control" id="salMonth" type="month"/>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Department</label>
+            <select class="form-select" id="salDeptFilter">
+              <option value="">All</option>
+              <option>Operations</option><option>Warehousing</option><option>Support</option>
+              <option>Tech</option><option>Marketing</option><option>Finance</option>
+            </select>
+          </div>
+          <div class="col-md-6 d-flex align-items-end justify-content-end gap-2">
+            <input type="file" id="salCsv" accept=".csv" class="form-control" style="max-width:300px"/>
+            <button class="btn btn-outline-secondary" id="btnSalUpload">Upload CSV</button>
+            <button class="btn-accent" id="btnSalGenerate">Generate Payout</button>
+          </div>
+        </div>
+
+        <div class="table-responsive mt-3">
+          <table class="table align-middle">
+            <thead>
+            <tr>
+              <th>Employee</th><th>Emp ID</th><th>Base</th><th>HRA</th><th>Bonus</th><th>Deductions</th><th>Net</th><th>Action</th>
+            </tr>
+            </thead>
+            <tbody id="salTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="sticky-actions">
+          <button class="btn btn-outline-secondary" id="btnSalExport">Export CSV</button>
+          <button class="btn-accent" id="btnSalSave">Save Salary Sheet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance -->
+    <div class="tab-pane fade" id="tab-performance" role="tabpanel" aria-labelledby="perf-tab">
+      <div class="gm-card p-3">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Employee ID</label>
+            <input class="form-control" id="perfEmpId" placeholder="EMP001"/>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Range (From)</label>
+            <input class="form-control" id="perfFrom" type="date"/>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Range (To)</label>
+            <input class="form-control" id="perfTo" type="date"/>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button class="btn-accent" id="btnPerfFetch">Load Metrics</button>
+          </div>
+        </div>
+
+        <hr class="my-3"/>
+
+        <div id="perfSummary" class="row g-3" style="display:none">
+          <div class="col-md-3">
+            <div class="gm-card p-3 text-center">
+              <div class="text-muted small">Attendance %</div>
+              <div class="fs-3 fw-bold" id="metAttend">—</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="gm-card p-3 text-center">
+              <div class="text-muted small">Avg Handling Time</div>
+              <div class="fs-3 fw-bold" id="metAht">—</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="gm-card p-3 text-center">
+              <div class="text-muted small">Orders Packed</div>
+              <div class="fs-3 fw-bold" id="metOrders">—</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="gm-card p-3 text-center">
+              <div class="text-muted small">Quality Score</div>
+              <div class="fs-3 fw-bold" id="metQ">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive mt-3">
+          <table class="table align-middle">
+            <thead>
+            <tr><th>Date</th><th>Metric</th><th>Value</th><th>Notes</th></tr>
+            </thead>
+            <tbody id="perfTable"></tbody>
+          </table>
+        </div>
+
+        <div class="gm-card p-3 mt-3">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Metric</label>
+              <select class="form-select" id="revMetric">
+                <option>Initiative</option><option>Quality</option><option>Speed</option><option>Teamwork</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Score (1–10)</label>
+              <input class="form-control" type="number" id="revScore" min="1" max="10" value="8"/>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Manager Notes</label>
+              <input class="form-control" id="revNotes" placeholder="Short feedback…"/>
+            </div>
+            <div class="col-md-2">
+              <button class="btn-accent w-100" id="btnAddReview">Add Review</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Password Gate Modal -->
+<div class="gate-backdrop" id="gateBackdrop" style="display:flex">
+  <div class="gate-card">
+    <div class="hd d-flex align-items-center gap-2">
+      <span>🔒 Admin Access</span>
+    </div>
+    <div class="bd">
+      <p class="text-muted mb-2">Enter password to access Employee Management.</p>
+      <input id="gatePwd" type="password" class="form-control" placeholder="Enter password" autofocus />
+      <div id="gateHint" class="small text-muted mt-2">Hint: same credential you use on Admin panel.</div>
+    </div>
+    <div class="ft">
+      <button class="btn btn-outline-secondary" id="gateCancel">Cancel</button>
+      <button class="btn-accent" id="gateSubmit">Continue</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Header buttons
+  document.getElementById('homeBtn').addEventListener('click', () => {
+    window.location.href = '/v1/home';
+  });
+  document.getElementById('backBtn').addEventListener('click', () => {
+    if (history.length > 1) { history.back(); }
+    else { window.location.href = '/v1/home'; }
+  });
+
+  // ===== Password Gate =====
+  async function verifyPassword(pw){
+    try{
+      const res = await fetch('/v1/employees/auth?password='+pw, {
+        method:'GET',
+        headers:{'Content-Type':'application/json'}
+              });
+      if(!res.ok) return false;
+      const j = await res.json().catch(()=> ({}));
+      return !!j.ok;
+    }catch(e){
+      return false;
+    }
+  }
+  async function handleGateSubmit(){
+    const pw = document.getElementById('gatePwd').value.trim();
+    if(!pw){ alert('Password required'); return; }
+    const ok = await verifyPassword(pw);
+    if(ok){
+      document.getElementById('gateBackdrop').style.display='none';
+      setTimeout(()=> document.getElementById('gatePwd').value = '', 200);
+    }else{
+      alert('Invalid password. Redirecting to Home.');
+      window.location.href = '/v1/home';
+    }
+  }
+  document.getElementById('gateSubmit').addEventListener('click', handleGateSubmit);
+  document.getElementById('gateCancel').addEventListener('click', ()=> {
+    window.location.href = '/v1/home';
+  });
+  document.getElementById('gatePwd').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') handleGateSubmit();
+  });
+
+  // ===== Camera logic (Add New) =====
+  let camStream = null;
+  const cam = document.getElementById('cam');
+  const snap = document.getElementById('snap');
+  const btnCamStart = document.getElementById('btnCamStart');
+  const btnCamStop  = document.getElementById('btnCamStop');
+  const btnCapture  = document.getElementById('btnCapture');
+  const btnRetake   = document.getElementById('btnRetake');
+  let capturedBlob = null;
+
+  function uiSetCam(active){
+    btnCamStart.disabled = active;
+    btnCamStop.disabled  = !active;
+    btnCapture.disabled  = !active;
+  }
+  function uiSetCaptured(has){
+    btnRetake.disabled = !has;
+  }
+
+  btnCamStart.addEventListener('click', async ()=>{
+    try{
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' } });
+      cam.srcObject = camStream;
+      uiSetCam(true);
+      uiSetCaptured(false);
+      capturedBlob = null;
+      snap.getContext('2d').clearRect(0,0,snap.width,snap.height);
+    }catch(e){
+      alert('Camera error: ' + e.message);
+    }
+  });
+  btnCamStop.addEventListener('click', ()=>{
+    if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+    cam.srcObject = null;
+    uiSetCam(false);
+  });
+  btnCapture.addEventListener('click', ()=>{
+    if(!camStream){ alert('Start camera first'); return; }
+    const ctx = snap.getContext('2d');
+    // Fit video -> canvas
+    const vw = cam.videoWidth || 640, vh = cam.videoHeight || 480;
+    snap.width = vw; snap.height = vh;
+    ctx.drawImage(cam, 0, 0, vw, vh);
+    snap.toBlob((blob)=>{ capturedBlob = blob; uiSetCaptured(true); }, 'image/png');
+  });
+  btnRetake.addEventListener('click', ()=>{
+    capturedBlob = null;
+    const ctx = snap.getContext('2d');
+    ctx.clearRect(0,0,snap.width,snap.height);
+    uiSetCaptured(false);
+  });
+
+  // ===== Add New: Save & Reset =====
+  function collectAddPayload(){
+    return {
+      empId:  document.getElementById('addEmpId').value.trim(),
+      name:   document.getElementById('addEmpName').value.trim(),
+      email:  document.getElementById('addEmail').value.trim(),
+      phone:  document.getElementById('addPhone').value.trim(),
+      dept:   document.getElementById('addDept').value,
+      role:   document.getElementById('addRole').value.trim(),
+      join:   document.getElementById('addJoin').value,
+      status: document.getElementById('addStatus').value,
+      salary: +(document.getElementById('addSalary').value||0)
+    };
+  }
+
+  function resetAddForm(){
+    ['addEmpId','addEmpName','addEmail','addPhone','addDept','addRole','addJoin','addStatus','addSalary','addPhoto','addAgreement'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el && el.type==='file') el.value='';
+      else if(el) el.value='';
+    });
+    // Reset camera preview
+    capturedBlob = null;
+    snap.getContext('2d').clearRect(0,0,snap.width,snap.height);
+    if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; cam.srcObject=null; }
+    uiSetCam(false); uiSetCaptured(false);
+  }
+
+  document.getElementById('btnAddReset').addEventListener('click', resetAddForm);
+
+  document.getElementById('btnAddSave').addEventListener('click', async ()=>{
+    const payload = collectAddPayload();
+    if(!payload.empId || !payload.name){ alert('Employee ID and Name are required.'); return; }
+
+    // Decide upload mode: if we have any attachments (agreement/captured/uploaded photo) -> FormData
+    const filePhoto = document.getElementById('addPhoto').files[0] || null;
+    const fileAgreement = document.getElementById('addAgreement').files[0] || null;
+
+    const hasAttachments = !!(fileAgreement || filePhoto || capturedBlob);
+
+    try{
+      if(hasAttachments){
+        const fd = new FormData();
+        fd.append('data', new Blob([JSON.stringify(payload)], {type:'application/json'}));
+
+        if(fileAgreement){ fd.append('agreement', fileAgreement, fileAgreement.name); }
+
+        // Prefer captured image over uploaded file
+        if(capturedBlob){
+          fd.append('photo', capturedBlob, 'captured.png');
+        }else if(filePhoto){
+          fd.append('photo', filePhoto, filePhoto.name);
+        }
+
+        // Endpoint that handles JSON + files (adjust on server as needed)
+        const res = await fetch('/v1/employees/create-with-files', { method:'POST', body: fd });
+        if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+      }else{
+        const res = await fetch('/v1/employees/create', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+      }
+      alert('Employee added successfully.');
+      resetAddForm();
+    }catch(e){ alert('Save failed: ' + e.message); }
+  });
+
+  // ===== Update =====
+  let updLoadedId = null;
+  document.getElementById('btnUpdFetch').addEventListener('click', async ()=>{
+    const id = document.getElementById('updSearchId').value.trim();
+    if(!id){ alert('Enter Employee ID'); return; }
+    try{
+      const res = await fetch(`/v1/employees/search/${encodeURIComponent(id)}`);
+      if(!res.ok){ throw new Error('Not found'); }
+      const j = await res.json();
+      updLoadedId = j.empId || id;
+      document.getElementById('updEmpName').value = j.empName || '';
+      document.getElementById('updEmail').value   = j.email || '';
+      document.getElementById('updPhone').value   = j.contactNumber || '';
+      document.getElementById('updDept').value    = j.dept || 'Operations';
+      document.getElementById('updRole').value    = j.role || '';
+      document.getElementById('updStatus').value  = j.status || 'Active';
+      document.getElementById('updSalary').value  = j.salary || 0;
+      document.getElementById('updFormWrap').style.display='flex';
+      document.getElementById('updEmpty').style.display='none';
+    }catch(e){
+
+      document.getElementById('updFormWrap').style.display='none';
+      document.getElementById('updEmpty').style.display='block';
+      alert('Employee not found');
+    }
+  });
+
+  document.getElementById('btnUpdSave').addEventListener('click', async ()=>{
+    if(!updLoadedId){ alert('Nothing loaded'); return; }
+    const payload = {
+      empId:  updLoadedId,
+      empName:document.getElementById('updEmpName').value.trim(),
+      email:  document.getElementById('updEmail').value.trim(),
+      phone:  document.getElementById('updPhone').value.trim(),
+      dept:   document.getElementById('updDept').value,
+      role:   document.getElementById('updRole').value.trim(),
+      status: document.getElementById('updStatus').value,
+      salary: +(document.getElementById('updSalary').value||0)
+    };
+    try{
+      const file = document.getElementById('updPhoto').files[0];
+      let res;
+      if(file){
+        const fd = new FormData();
+        fd.append('data', new Blob([JSON.stringify(payload)], {type:'application/json'}));
+        fd.append('photo', file);
+        res = await fetch('/v1/employees/update-with-photo', { method:'POST', body: fd });
+      }else{
+        res = await fetch('/v1/employees/update', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      }
+      if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+      alert('Changes saved.');
+    }catch(e){ alert('Update failed: ' + e.message); }
+  });
+
+  document.getElementById('btnUpdDelete').addEventListener('click', async ()=>{
+    if(!updLoadedId){ alert('Nothing loaded'); return; }
+    if(!confirm('Delete this employee? This action cannot be undone.')) return;
+    try{
+      const res = await fetch(`/v1/employees/delete/${encodeURIComponent(updLoadedId)}`, { method:'DELETE' });
+      if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+      alert('Employee removed.');
+      updLoadedId = null;
+      document.getElementById('updFormWrap').style.display='none';
+      document.getElementById('updEmpty').style.display='block';
+      document.getElementById('updSearchId').value='';
+    }catch(e){ alert('Delete failed: ' + e.message); }
+  });
+
+  // ===== Salary =====
+  function addSalaryRow(row){
+    const tr = document.createElement('tr');
+    const base = +(row.base||0), hra = +(row.hra||0), bonus=+(row.bonus||0), ded=+(row.deductions||0);
+    const net = base + hra + bonus - ded;
+    tr.innerHTML = `
+      <td>${row.name||''}</td>
+      <td>${row.empId||''}</td>
+      <td><input type="number" class="form-control form-control-sm sal-base" value="${base}"></td>
+      <td><input type="number" class="form-control form-control-sm sal-hra" value="${hra}"></td>
+      <td><input type="number" class="form-control form-control-sm sal-bonus" value="${bonus}"></td>
+      <td><input type="number" class="form-control form-control-sm sal-ded" value="${ded}"></td>
+      <td class="fw-bold sal-net">₹ ${net.toFixed(0)}</td>
+      <td><button class="btn btn-sm btn-outline-danger btnRemoveRow">Remove</button></td>
+    `;
+    tr.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const b = +(tr.querySelector('.sal-base').value||0);
+        const h = +(tr.querySelector('.sal-hra').value||0);
+        const bo= +(tr.querySelector('.sal-bonus').value||0);
+        const d = +(tr.querySelector('.sal-ded').value||0);
+        tr.querySelector('.sal-net').textContent = '₹ ' + (b+h+bo-d).toFixed(0);
+      });
+    });
+    tr.querySelector('.btnRemoveRow').addEventListener('click', ()=> tr.remove());
+    document.getElementById('salTbody').appendChild(tr);
+  }
+  document.getElementById('btnSalGenerate').addEventListener('click', async ()=>{
+    const month = document.getElementById('salMonth').value;
+    const dept  = document.getElementById('salDeptFilter').value;
+    try{
+      const res = await fetch(`/v1/salary/baselined?month=${encodeURIComponent(month||'')}&dept=${encodeURIComponent(dept||'')}`);
+      const data = res.ok ? await res.json() : [];
+      document.getElementById('salTbody').innerHTML='';
+      (data||[]).forEach(addSalaryRow);
+      if(!data || !data.length) alert('No rows generated (check filters).');
+    }catch(e){
+      alert('Could not generate. Using empty sheet.');
+      document.getElementById('salTbody').innerHTML='';
+    }
+  });
+  document.getElementById('btnSalUpload').addEventListener('click', async ()=>{
+    const f = document.getElementById('salCsv').files[0];
+    if(!f){ alert('Choose a CSV'); return; }
+    const text = await f.text();
+    const rows = text.split(/\r?\n/).map(r=>r.split(','));
+    document.getElementById('salTbody').innerHTML='';
+    rows.filter(r=>r.length>=6).forEach(r=>{
+      addSalaryRow({ empId:r[0], name:r[1], base:+r[2], hra:+r[3], bonus:+r[4], deductions:+r[5] });
+    });
+  });
+  document.getElementById('btnSalExport').addEventListener('click', ()=>{
+    const rows = [];
+    document.querySelectorAll('#salTbody tr').forEach(tr=>{
+      const tds = tr.querySelectorAll('td');
+      const name = tds[0].textContent.trim();
+      const emp  = tds[1].textContent.trim();
+      const base = tr.querySelector('.sal-base').value || '0';
+      const hra  = tr.querySelector('.sal-hra').value  || '0';
+      const bonus= tr.querySelector('.sal-bonus').value|| '0';
+      const ded  = tr.querySelector('.sal-ded').value  || '0';
+      const net  = tds[6].textContent.replace(/[₹\s]/g,'')||'0';
+      rows.push([emp,name,base,hra,bonus,ded,net]);
+    });
+    const csv = rows.map(r=>r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download = 'salary-sheet.csv';
+    a.click();
+  });
+  document.getElementById('btnSalSave').addEventListener('click', async ()=>{
+    const month = document.getElementById('salMonth').value;
+    if(!month){ alert('Select month'); return; }
+    const payload = { month, rows: [] };
+    document.querySelectorAll('#salTbody tr').forEach(tr=>{
+      const tds = tr.querySelectorAll('td');
+      payload.rows.push({
+        empId:  tds[1].textContent.trim(),
+        name:   tds[0].textContent.trim(),
+        base:   +(tr.querySelector('.sal-base').value||0),
+        hra:    +(tr.querySelector('.sal-hra').value||0),
+        bonus:  +(tr.querySelector('.sal-bonus').value||0),
+        deductions:+(tr.querySelector('.sal-ded').value||0),
+      });
+    });
+    try{
+      const res = await fetch('/v1/salary/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+      alert('Salary sheet saved.');
+    }catch(e){ alert('Save failed: ' + e.message); }
+  });
+
+  // ===== Performance =====
+  document.getElementById('btnPerfFetch').addEventListener('click', async ()=>{
+    const empId = document.getElementById('perfEmpId').value.trim();
+    const from  = document.getElementById('perfFrom').value;
+    const to    = document.getElementById('perfTo').value;
+    if(!empId){ alert('Employee ID required'); return; }
+
+    try{
+      const res = await fetch(`/v1/perf/metrics?empId=${encodeURIComponent(empId)}&from=${encodeURIComponent(from||'')}&to=${encodeURIComponent(to||'')}`);
+      const j = res.ok ? await res.json() : {};
+      document.getElementById('perfSummary').style.display='flex';
+      document.getElementById('metAttend').textContent = (j.attendancePct ?? '—') + (j.attendancePct ? '%' : '');
+      document.getElementById('metAht').textContent    = j.avgHandlingTime ?? '—';
+      document.getElementById('metOrders').textContent = j.orders ?? '—';
+      document.getElementById('metQ').textContent      = j.qualityScore ?? '—';
+
+      const tb = document.getElementById('perfTable'); tb.innerHTML='';
+      (j.rows||[]).forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.date||''}</td><td>${r.metric||''}</td><td>${r.value||''}</td><td>${r.notes||''}</td>`;
+        tb.appendChild(tr);
+      });
+      if(!(j.rows||[]).length){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="4" class="text-muted text-center">No rows.</td>`;
+        document.getElementById('perfTable').appendChild(tr);
+      }
+    }catch(e){
+      alert('Failed to load metrics');
+    }
+  });
+
+  document.getElementById('btnAddReview').addEventListener('click', async ()=>{
+    const empId = document.getElementById('perfEmpId').value.trim();
+    if(!empId){ alert('Employee ID required'); return; }
+    const payload = {
+      empId,
+      metric: document.getElementById('revMetric').value,
+      score:  +(document.getElementById('revScore').value||0),
+      notes:  document.getElementById('revNotes').value.trim()
+    };
+    try{
+      const res = await fetch('/v1/perf/review', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+      alert('Review added.');
+      document.getElementById('btnPerfFetch').click();
+      document.getElementById('revNotes').value='';
+    }catch(e){ alert('Failed to add review: '+e.message); }
+  });
+
+  // Boot: gate visible by default
+
+  // ===== Update: image helpers & events =====
+
+  // Show/hide the stored (or newly chosen) photo
+  function setUpdPreview(url) {
+    const img = document.getElementById('updPhotoPreview');
+    const empty = document.getElementById('updNoPhoto');
+    const openLink = document.getElementById('updPhotoOpenLink');
+
+    if (url) {
+      img.src = url;
+      img.style.display = 'block';
+      empty.style.display = 'none';
+      openLink.style.display = 'inline';
+      openLink.href = url;
+    } else {
+      img.removeAttribute('src');
+      img.style.display = 'none';
+      empty.style.display = 'block';
+      openLink.style.display = 'none';
+      openLink.removeAttribute('href');
+    }
+  }
+
+  // Local preview when replacing photo
+  document.getElementById('updPhoto').addEventListener('change', (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => setUpdPreview(ev.target.result);
+    reader.readAsDataURL(f);
+  });
+
+  // Fetch employee — also load stored image
+  document.getElementById('btnUpdFetch').addEventListener('click', async ()=>{
+    const id = document.getElementById('updSearchId').value.trim();
+    if(!id){ alert('Enter Employee ID'); return; }
+    try{
+      const res = await fetch(`/v1/employees/search/${encodeURIComponent(id)}`);
+      if(!res.ok){ throw new Error('Not found'); }
+      const j = await res.json();
+
+      updLoadedId = j.empId || id;
+      document.getElementById('updEmpName').value = j.empName || '';
+      document.getElementById('updEmail').value   = j.email || '';
+      document.getElementById('updPhone').value   = j.contactNumber || '';
+      document.getElementById('updDept').value    = j.dept || 'Operations';
+      document.getElementById('updRole').value    = j.role || '';
+      document.getElementById('updStatus').value  = j.status || 'Active';
+      document.getElementById('updSalary').value  = j.salary || 0;
+
+      // Accept either a direct URL or a GridFS id from backend
+      const photoUrl = j.photoUrl
+        || (j.photoGridFsId ? `/v1/employees/photo/${j.photoGridFsId}` : null);
+      setUpdPreview(photoUrl);
+
+      document.getElementById('updFormWrap').style.display='flex';
+      document.getElementById('updEmpty').style.display='none';
+    }catch(e){
+      updLoadedId = null;
+      document.getElementById('updFormWrap').style.display='none';
+      document.getElementById('updEmpty').style.display='block';
+      setUpdPreview(null);
+      alert('Employee not found');
+    }
+  });
+
+  // Save update — keep existing flow, and refresh preview if API returns new photo id/url
+  document.getElementById('btnUpdSave').addEventListener('click', async ()=>{
+    if(!updLoadedId){ alert('Nothing loaded'); return; }
+    const payload = {
+      empId:  updLoadedId,
+      empName:document.getElementById('updEmpName').value.trim(),
+      email:  document.getElementById('updEmail').value.trim(),
+      phone:  document.getElementById('updPhone').value.trim(),
+      dept:   document.getElementById('updDept').value,
+      role:   document.getElementById('updRole').value.trim(),
+      status: document.getElementById('updStatus').value,
+      salary: +(document.getElementById('updSalary').value||0)
+    };
+
+    try{
+      const file = document.getElementById('updPhoto').files[0];
+      let res;
+      if(file){
+        const fd = new FormData();
+        fd.append('data', new Blob([JSON.stringify(payload)], {type:'application/json'}));
+        fd.append('photo', file);
+        res = await fetch('/v1/employees/update-with-photo', { method:'POST', body: fd });
+      }else{
+        res = await fetch('/v1/employees/update', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+      }
+      if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+
+      // If backend returns new photo info, refresh preview
+      const body = await res.json().catch(()=> ({}));
+      const freshUrl = body.photoUrl || (body.photoId ? `/v1/employees/photo/${body.photoId}` : null);
+      if (freshUrl) setUpdPreview(freshUrl);
+
+      alert('Changes saved.');
+      document.getElementById('updPhoto').value = '';
+    }catch(e){ alert('Update failed: ' + e.message); }
+  });
+
+  // Delete — also clear preview
+  document.getElementById('btnUpdDelete').addEventListener('click', async ()=>{
+    if(!updLoadedId){ alert('Nothing loaded'); return; }
+    if(!confirm('Delete this employee? This action cannot be undone.')) return;
+    try{
+      const res = await fetch(`/v1/employees/delete/${encodeURIComponent(updLoadedId)}`, { method:'DELETE' });
+      if(!res.ok){ const t=await res.text(); throw new Error(t||'Request failed'); }
+      alert('Employee removed.');
+      updLoadedId = null;
+      document.getElementById('updFormWrap').style.display='none';
+      document.getElementById('updEmpty').style.display='block';
+      document.getElementById('updSearchId').value='';
+      setUpdPreview(null);
+      document.getElementById('updPhoto').value='';
+    }catch(e){ alert('Delete failed: ' + e.message); }
+  });
+
+</script>
+</body>
+</html>

@@ -22,7 +22,11 @@ public class EmployeeDetails {
     private String emergencyContact;
     private String aadharNumber;
     private String panNumber;
-
+    private String status;
+    private String role;
+    private String photoGridFsId;      // ObjectId as hex string
+    private String photoContentType;   // e.g. image/png
+    private Long   photoLength;        // bytes
 
 
 }

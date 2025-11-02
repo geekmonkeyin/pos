@@ -97,7 +97,7 @@ public class AttendanceService {
             dto.setSessionId(s.getId());
             dto.setEmployeeId(s.getEmployeeId());
             dto.setEmployeeName(s.getEmployeeName());
-
+            //dto.setPhotoUrl();
             if (s.getCheckinAt() != null) {
                 dto.setCheckinIst(IST_FMT.format(s.getCheckinAt()).toLowerCase(Locale.ENGLISH));
             }
