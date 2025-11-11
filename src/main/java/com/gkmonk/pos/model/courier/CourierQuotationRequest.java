@@ -23,11 +23,12 @@ public class CourierQuotationRequest {
     private String rov_type;
     private double cod_amount;
     private double weight;
-    private List<Dimension> dimension;
+    private List<Dimension> dimensions;
 
     @Data
     static class Dimension{
 
+        private int no_of_box = 1;
         private double length;
         private double width;
         private double height;

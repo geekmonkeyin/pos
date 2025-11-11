@@ -67,6 +67,7 @@ public class ShipmozoServiceImpl extends  AbstractServiceImpl {
     @Override
     public List<CourierOption> getQuote(CourierQuotationRequest request) throws Exception {
         try {
+            request.setOrder_id(POSConstants.EMPTY);
                 String jsonBody = MAPPER.writeValueAsString(request);
 
                 HttpResponse<String> res = Unirest.post(API_URL)

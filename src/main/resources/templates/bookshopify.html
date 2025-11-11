@@ -975,7 +975,7 @@
       const H = +heiInput.value || 0;
       const dead = +deadWtInput.value || 0;
       if (L>0 || W>0 || H>0 || dead>0){
-        return [{ length_cm:L, width_cm:W, height_cm:H, dead_weight_kg: +(dead||0).toFixed(3) }];
+        return [{ length:L, width:W, height:H, dead_weight_kg: +(dead||0).toFixed(3) }];
       }
       return [];
     }
@@ -1009,7 +1009,7 @@
         rov_type: rovType.value,
         cod_amount: num(codAmt.value || 0),
         weight: +(+autoWeight || 0).toFixed(3),
-        dimension: dims
+        dimensions: dims
       };
     }
 
@@ -1044,7 +1044,7 @@
       if (!/^\d{6}$/.test(payload.pickup_pincode||'')){
         renderCourierRows([], 'Enter a valid 6-digit pickup pincode.'); return;
       }
-      if (!payload.dimension.length){
+      if (!payload.dimensions.length){
         renderCourierRows([], 'Add at least one package dimension / weight.'); return;
       }
       if (payload.payment_type === 'COD' && payload.cod_amount <= 0){
@@ -1078,10 +1078,10 @@
 
         list.sort((a,b)=> (Number(a.cost||Infinity) - Number(b.cost||Infinity)));
         // compute a display-only chargeable from first dim
-        const d0 = payload.dimension[0] || {};
-        const vol = (d0.length_cm||0)*(d0.width_cm||0)*(d0.height_cm||0)/5000;
+        const d0 = payload.dimensions[0] || {};
+        const vol = (d0.length||0)*(d0.width||0)*(d0.height||0)/5000;
         const chg = Math.max(+d0.dead_weight_kg||0, +vol||0).toFixed(3);
-        renderCourierRows(list, `Quotes for chargeable ≈ ${chg} kg • dims ${d0.length_cm||0}×${d0.width_cm||0}×${d0.height_cm||0} cm.`);
+        renderCourierRows(list, `Quotes for chargeable ≈ ${chg} kg • dims ${d0.length||0}×${d0.width||0}×${d0.height||0} cm.`);
       }catch(err){
         renderCourierRows(COURIERS_FALLBACK, `Error fetching quotes. Showing fallback. ${err.message||err}`);
       }
