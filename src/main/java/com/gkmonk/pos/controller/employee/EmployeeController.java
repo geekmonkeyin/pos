@@ -5,17 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gkmonk.pos.model.emp.EmployeeDetails;
 import com.gkmonk.pos.services.ImageDBServiceImpl;
 import com.gkmonk.pos.services.employee.EmployeeDetailsService;
-import com.mongodb.client.gridfs.model.GridFSFile;
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.gridfs.GridFsOperations;
-import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -168,12 +162,14 @@ public class EmployeeController {
 
     private EmployeeDetails mapPayloadToEmployee(Map<String, Object> payload, Optional<EmployeeDetails> employeeDetails, MultipartFile photo) {
 
-        String empName = (String) payload.get("empName");
+        String empName = (String) payload.get("name");
         String email = (String) payload.get("email");
         String phone = (String) payload.get("phone");
         String dept = (String) payload.get("dept");
         String role = (String) payload.get("role");
+        String doj = (String) payload.get("join");
         String status = (String) payload.get("status");
+
         Double salary = payload.get("salary") != null ? ((Number) payload.get("salary")).doubleValue() : null;
 
         EmployeeDetails emp = employeeDetails.get();
@@ -191,13 +187,18 @@ public class EmployeeController {
         }
         if (com.gkmonk.pos.utils.StringUtils.isNotBlank(role)) {
             emp.setRole(role);
+            emp.setDesignation(role);
         }
         if (com.gkmonk.pos.utils.StringUtils.isNotBlank(status)) {
             emp.setStatus(status);
         }
+        if (com.gkmonk.pos.utils.StringUtils.isNotBlank(doj)) {
+            emp.setDoj(doj);
+        }
         if (salary != null) {
             emp.setSalary(salary);
         }
+
         if(photo != null){
             String fileId = null;
             try {
@@ -220,6 +221,30 @@ public class EmployeeController {
                 .contentType(type)
                 .cacheControl(CacheControl.noCache())          // or as you prefer
                 .body(bytes.get(0));
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createEmployee(@RequestBody Map<String, Object> payload) {
+        String empId = (String) payload.get("empId");
+        if (empId == null || empId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Employee ID is required"));
+        }
+
+        Optional<EmployeeDetails> existingEmployee = employeeDetailsService.findEmployeeById(empId);
+        if (existingEmployee.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("ok", false, "message", "Employee with this ID already exists"));
+        }
+
+        EmployeeDetails newEmployee = mapPayloadToEmployee(payload, Optional.of(new EmployeeDetails()), null);
+        newEmployee.setEmpId(empId);
+
+        employeeDetailsService.saveEmployeeDetails(newEmployee);
+        Map<String, Object> res = new HashMap<>();
+        res.put("ok", true);
+        res.put("message", "Employee created");
+        res.put("empId", newEmployee.getEmpId());
+        return ResponseEntity.ok(res);
     }
 
 }

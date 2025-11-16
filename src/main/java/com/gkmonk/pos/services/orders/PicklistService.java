@@ -56,7 +56,14 @@ public class PicklistService {
             existing.setQty(existing.getQty() + item.getQty());
             item = existing;
         }else {
-            item.setStorage(getStorage(item.getVariationId()));
+            List<Inventory>  inventories =  inventoryService.fetchProductsUsingId(item.getVariationId());
+            String storage =  (inventories != null && !inventories.isEmpty()) ? StringUtils.isNotBlank(inventories.get(0).getStorage())? inventories.get(0).getStorage() : "N/A": "N/A";
+            String shopifyStock = (inventories != null && !inventories.isEmpty()) ? String.valueOf(inventories.get(0).getShopifyQuantity()) : "N/A";
+            String ourQuantity = (inventories != null && !inventories.isEmpty()) ? String.valueOf(inventories.get(0).getQuantity()) : "N/A";
+
+            item.setStorage(storage);
+            item.setShopifyQuantity(shopifyStock);
+            item.setOurQuantity(ourQuantity);
         }
             store.put(item.getVariationId(), item);
 

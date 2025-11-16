@@ -14,6 +14,8 @@ public class PickItem {
         private boolean picked;
         private String notes;
         private String storage;
+        private String shopifyQuantity;
+        private String ourQuantity;
 
         public enum Priority { HIGH, MEDIUM, LOW }
 

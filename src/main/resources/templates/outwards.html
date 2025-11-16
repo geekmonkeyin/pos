@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geekmonkey Outbound Sheet — Editable</title>
+    <style>
+        :root {
+          --accent: #ff7a00;
+          --bg: #f9fafb;
+          --text: #111827;
+          --card: #ffffff;
+          --stroke: #e5e7eb;
+          --radius: 12px;
+          --font: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: var(--font);
+          background: var(--bg);
+          margin: 0;
+          padding: 16px;
+          color: var(--text);
+        }
+
+        .page {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        /* HEADER: only title + back/home */
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          background: var(--card);
+          padding: 16px 20px;
+          border-radius: var(--radius);
+          border: 1px solid var(--stroke);
+          box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+          margin-bottom: 12px;
+        }
+
+        .header h1 {
+          color: var(--accent);
+          margin: 0;
+          font-size: 1.25rem;
+          letter-spacing: 0.02em;
+          flex: 1;
+        }
+
+        .nav-buttons {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        /* BUTTON ROW: sits just above table */
+        .toolbar {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          margin-top: 8px;
+          margin-bottom: 4px; /* keeps buttons visually attached to table */
+        }
+
+        .btn {
+          border: 1px solid var(--stroke);
+          background: var(--card);
+          padding: 8px 12px;
+          border-radius: 999px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.85rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          box-shadow: 0 1px 2px rgba(0,0,0,.04);
+          transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+          white-space: nowrap;
+        }
+
+        .btn:hover {
+          background: #fff4e6;
+          box-shadow: 0 2px 4px rgba(0,0,0,.06);
+          transform: translateY(-1px);
+        }
+
+        .btn.primary {
+          background: var(--accent);
+          color: #fff;
+          border-color: transparent;
+        }
+
+        .btn.primary:hover {
+          background: #ff8b22;
+        }
+
+        .btn:disabled {
+          opacity: .5;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        .details {
+          margin-top: 12px;
+          background: var(--card);
+          padding: 16px;
+          border-radius: var(--radius);
+          border: 1px solid var(--stroke);
+          display: grid;
+          grid-template-columns: repeat(3, minmax(220px, 1fr));
+          gap: 12px 16px;
+        }
+
+        .field {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        label {
+          font-size: 12px;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select {
+          padding: 10px 11px;
+          border: 1px solid var(--stroke);
+          border-radius: 10px;
+          background: #fff;
+          font-size: 0.9rem;
+          outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        input:focus,
+        select:focus {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 1px rgba(255,122,0,0.15);
+        }
+
+        .suggestions {
+          position: absolute;
+          top: 64px;
+          left: 0;
+          right: 0;
+          background: #fff;
+          border: 1px solid var(--stroke);
+          border-radius: 10px;
+          max-height: 240px;
+          overflow: auto;
+          z-index: 10;
+          box-shadow: 0 8px 24px rgba(0,0,0,.08);
+          display: none;
+        }
+
+        .suggestions.show {
+          display: block;
+        }
+
+        .suggestions div {
+          padding: 10px 12px;
+          cursor: pointer;
+          font-size: 0.9rem;
+        }
+
+        .suggestions div:hover {
+          background: #fff4e6;
+        }
+
+        .table-wrapper {
+          margin-top: 4px; /* very close to toolbar */
+          background: var(--card);
+          border-radius: var(--radius);
+          border: 1px solid var(--stroke);
+          overflow: hidden;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+
+        .table-scroll {
+          width: 100%;
+          overflow-x: auto;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          min-width: 720px;
+        }
+
+        th,
+        td {
+          border-bottom: 1px solid var(--stroke);
+          padding: 8px;
+          text-align: left;
+          font-size: 0.85rem;
+        }
+
+        th {
+          background-color: var(--accent);
+          color: white;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        tbody tr:nth-child(even) {
+          background: #fff9f3;
+        }
+
+        tbody tr:last-child td {
+          border-bottom: none;
+        }
+
+        td input,
+        td select {
+          width: 100%;
+          padding: 7px 8px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+        }
+
+        .rownum {
+          width: 40px;
+          text-align: center;
+          font-weight: 600;
+          color: #4b5563;
+        }
+
+        .total {
+          text-align: right;
+          font-weight: 700;
+          margin-top: 10px;
+          font-size: 15px;
+          padding: 0 4px;
+        }
+
+        .total span {
+          color: var(--accent);
+        }
+
+        /* Print */
+        @media print {
+          .no-print,
+          .cost-col,
+          .costSummary {
+            display: none !important;
+          }
+          th.cost-col,
+          td.cost-col {
+            display: none !important;
+          }
+          body {
+            background:#fff;
+            padding: 0;
+          }
+          .page {
+            max-width: none;
+            margin: 0;
+          }
+          .header,
+          .details,
+          .table-wrapper {
+            box-shadow: none;
+            border-radius: 0;
+          }
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 900px) {
+          .header {
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+          }
+          .header h1 {
+            font-size: 1.15rem;
+          }
+          .nav-buttons {
+            order: -1;
+          }
+          .toolbar {
+            justify-content: flex-start;
+          }
+        }
+
+        @media (max-width: 720px) {
+          body {
+            padding: 12px;
+          }
+
+          .header {
+            padding: 12px 14px;
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .nav-buttons {
+            width: 100%;
+          }
+
+          .toolbar {
+            flex-direction: row;
+            flex-wrap: wrap;
+          }
+
+          .btn {
+            flex: 1 1 calc(50% - 6px);
+            min-width: 130px;
+          }
+
+          .details {
+            grid-template-columns: 1fr;
+          }
+
+          .details .field[style*="grid-column: span 2"] {
+            grid-column: auto !important;
+          }
+
+          .table-wrapper {
+            border-radius: 10px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .btn {
+            flex: 1 1 100%;
+          }
+          .header h1 {
+            font-size: 1.05rem;
+          }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <!-- HEADER: title + back + home -->
+    <div class="header">
+        <div class="nav-buttons no-print">
+            <button class="btn" onclick="history.back()">← Back</button>
+            <button class="btn" onclick="window.location.href='/v1/home'">🏠 Home</button>
+        </div>
+        <h1>Geekmonkey Outwards</h1>
+    </div>
+
+    <!-- DETAILS -->
+    <div class="details">
+        <div class="field" style="grid-column: span 2;">
+            <label>Vendor Name</label>
+            <input type="text" id="vendor" placeholder="Type 3+ letters to search" autocomplete="off" />
+            <div class="suggestions" id="vendorSuggestions"></div>
+        </div>
+        <div class="field">
+            <label>Inward Date</label>
+            <input type="date" id="inwardDate" />
+        </div>
+        <div class="field">
+            <label>Inward Location</label>
+            <input type="text" id="inwardLocation" placeholder="e.g., Warehouse A / Dehradun" />
+        </div>
+    </div>
+
+    <!-- BUTTON ROW: sits just above table -->
+    <div class="toolbar no-print">
+        <button class="btn" id="addRowBtn">+ Add Row</button>
+        <button class="btn" id="generateLabelsBtn">Generate A4 Labels</button>
+        <button class="btn" id="generateBarcodeLabelsBtn">Generate Barcode Labels</button>
+        <button class="btn" id="saveOutwardBtn">Save Outward</button>
+        <button class="btn primary" id="exportBtn">Export (PDF/Print)</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrapper">
+        <div class="table-scroll">
+            <table id="outboundTable">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product ID</th>
+                    <th>Product Name</th>
+                    <th>MRP (₹)</th>
+                    <th>Cost (₹)</th>
+                    <th>Qty</th>
+                    <th>Packaging Type</th>
+                    <th class="no-print">Action</th>
+                </tr>
+                </thead>
+                <tbody id="tbody">
+                <tr>
+                    <td class="rownum">1</td>
+                    <td><input type="text" placeholder="Product ID"></td>
+                    <td><input type="text" placeholder="Product Name"></td>
+                    <td><input type="number" min="0" step="0.01" placeholder="MRP"></td>
+                    <td><input type="number" min="0" step="0.01" placeholder="Cost"></td>
+                    <td><input type="number" min="0" step="1" value="1"></td>
+                    <td>
+                        <select>
+                            <option>PP Bag</option>
+                            <option>Box</option>
+                            <option>No Packaging</option>
+                            <option>Bubble + Box</option>
+                        </select>
+                    </td>
+                    <td class="no-print"><button class="btn" onclick="removeRow(this)">✕</button></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="total">
+        Total Inventory Cost: ₹<span id="total">0.00</span>
+    </div>
+</div>
+
+<script>
+    const tbody=document.getElementById('tbody');
+    const totalEl=document.getElementById('total');
+
+    // ==== Vendor search + inward defaults ====
+    const vendorInp = document.getElementById('vendor');
+    const vendorSug = document.getElementById('vendorSuggestions');
+    const inwardDate = document.getElementById('inwardDate');
+
+    function pad(n){ return n.toString().padStart(2,'0'); }
+    function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+
+    if(inwardDate && !inwardDate.value){ inwardDate.value = todayStr(); }
+
+    const debounce=(fn,ms=300)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+    const VENDOR_SEARCH_URL = '/v1/vendor/search/'; // update to your API route if different
+
+    async function fetchVendors(q){
+      try{
+        const res = await fetch(VENDOR_SEARCH_URL + encodeURIComponent(q));
+        if(!res.ok) throw new Error('Vendor API failed');
+        return await res.json(); // expect [{id, name, gstin?}]
+      }catch(e){ console.warn(e); return []; }
+    }
+
+    const onVendorType = debounce(async (e)=>{
+      const q = e.target.value.trim();
+      if(q.length < 3){ vendorSug.classList.remove('show'); vendorSug.innerHTML=''; return; }
+      const items = await fetchVendors(q);
+      if(!Array.isArray(items) || !items.length){ vendorSug.classList.remove('show'); vendorSug.innerHTML=''; return; }
+      vendorSug.innerHTML = items.map(v=>`<div data-name="${(v.vendorName||'').replace(/\"/g,'&quot;')}" data-id="${v.vendorId||''}">${v.vendorName||''}${v.gstin?` — <small>${v.gstin}</small>`:''}</div>`).join('');
+      vendorSug.classList.add('show');
+    }, 350);
+
+    if(vendorInp){
+      vendorInp.addEventListener('input', onVendorType);
+      vendorInp.addEventListener('focus', ()=>{ if(vendorSug.innerHTML.trim()) vendorSug.classList.add('show'); });
+    }
+    document.addEventListener('click', (e)=>{ if(vendorInp && !vendorInp.contains(e.target) && !vendorSug.contains(e.target)) vendorSug.classList.remove('show'); });
+    vendorSug && vendorSug.addEventListener('click', (e)=>{
+      const item = e.target.closest('div');
+      if(!item) return;
+      vendorInp.value = item.dataset.name || '';
+      vendorInp.dataset.vendorId = item.dataset.id || '';
+      vendorSug.classList.remove('show');
+    });
+
+    function addRow(){
+      const row=document.createElement('tr');
+      row.innerHTML=`
+        <td class="rownum"></td>
+        <td><input type="text" placeholder="Product ID"></td>
+        <td><input type="text" placeholder="Product Name"></td>
+        <td><input type="number" min="0" step="0.01" placeholder="MRP"></td>
+        <td><input type="number" min="0" step="0.01" placeholder="Cost"></td>
+        <td><input type="number" min="0" step="1" value="1"></td>
+        <td>
+          <select>
+            <option>PP Bag</option>
+            <option>Box</option>
+            <option>No Packaging</option>
+            <option>Bubble + Box</option>
+          </select>
+        </td>
+        <td class="no-print"><button class="btn" onclick="removeRow(this)">✕</button></td>
+      `;
+      tbody.appendChild(row);
+      updateRows();
+    }
+
+    function removeRow(btn){ btn.closest('tr').remove(); updateRows(); }
+
+    function updateRows(){
+      [...tbody.querySelectorAll('tr')].forEach((tr,idx)=>{
+        tr.querySelector('.rownum').textContent=idx+1;
+      });
+      calcTotal();
+    }
+
+    function calcTotal(){
+      let total=0;
+      [...tbody.querySelectorAll('tr')].forEach(tr=>{
+        const cost=parseFloat(tr.querySelector('td:nth-child(5) input').value)||0;
+        const qty=parseFloat(tr.querySelector('td:nth-child(6) input').value)||0;
+        total+=cost*qty;
+      });
+      totalEl.textContent=total.toFixed(2);
+    }
+
+    const generateQR = id =>
+      "https://api.qrserver.com/v1/create-qr-code/?size=80x80&data="+encodeURIComponent(id);
+
+    // A4 labels (4 x 10 grid) based on quantity
+    function generateLabels(){
+      const rows = [...tbody.querySelectorAll('tr')];
+
+      const labelsData = [];
+      rows.forEach(tr => {
+        const id   = tr.querySelector('td:nth-child(2) input').value.trim();
+        const name = tr.querySelector('td:nth-child(3) input').value.trim();
+        const mrp  = tr.querySelector('td:nth-child(4) input').value.trim();
+        const qty  = parseInt(tr.querySelector('td:nth-child(6) input').value, 10) || 0;
+
+        if(id && name && qty > 0){
+          for(let i = 0; i < qty; i++){
+            labelsData.push({ id, name, mrp });
+          }
+        }
+      });
+
+      if(!labelsData.length){
+        alert('No products with valid quantity to generate labels.');
+        return;
+      }
+
+      const popup=window.open('','_blank');
+      if(!popup){ alert('Popup blocked. Please allow popups for this site.'); return; }
+
+      let sheetsHtml = '';
+
+      // Chunk into pages of 40 labels (4 columns x 10 rows)
+      for(let i=0;i<labelsData.length;i+=40){
+        const slice = labelsData.slice(i, i+40);
+        let labelsHtml = '';
+
+        slice.forEach(p=>{
+          labelsHtml += `
+            <div class="label">
+              <img class="qr" src="${generateQR(p.id)}" alt="QR">
+              <div class="info">
+                <div class="name">${p.name}</div>
+                <div class="mrp">MRP: ₹${p.mrp}</div>
+                <div class="pid">ID: ${p.id}</div>
+                <div class="mk">Marketed by Geekmonkey</div>
+              </div>
+            </div>
+          `;
+        });
+
+        const padCount = 40 - slice.length;
+        for(let j=0;j<padCount;j++){
+          labelsHtml += `
+            <div class="label">
+              <div class="placeholder"></div>
+            </div>
+          `;
+        }
+
+        sheetsHtml += `<div class="sheet">${labelsHtml}</div>`;
+      }
+
+      const css=`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        body{
+          margin:0;
+          padding:0;
+          font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          -webkit-print-color-adjust:exact;
+          print-color-adjust:exact;
+        }
+        .sheet{
+          width:210mm;
+          height:297mm;
+          display:grid;
+          grid-template-columns: repeat(4, 52.5mm);
+          grid-auto-rows: 29.7mm;
+          page-break-after: always;
+        }
+        .sheet:last-child{
+          page-break-after: auto;
+        }
+        .label{
+          width:52.5mm;
+          height:29.7mm;
+          border:0.2mm dashed #ff7a00;
+          padding:1mm;
+          display:flex;
+          flex-direction:row;
+          align-items:center;
+          gap:2mm;
+          box-sizing:border-box;
+        }
+        .qr{
+          width:14mm;
+          height:14mm;
+        }
+        .info{
+          display:flex;
+          flex-direction:column;
+          font-size:7pt;
+          line-height:1.2;
+          overflow:hidden;
+        }
+        .info .name{
+          font-weight:700;
+          font-size:7.5pt;
+          color:#111827;
+          max-height:2.4em;
+          overflow:hidden;
+        }
+        .info .mrp,
+        .info .pid{
+          font-size:7pt;
+        }
+        .info .mk{
+          font-size:6.5pt;
+          color:#555;
+        }
+        .placeholder{
+          width:100%;
+          height:100%;
+        }
+      `;
+
+      const html=`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Geekmonkey A4 Labels</title>
+<style>${css}</style>
+</head>
+<body>
+${sheetsHtml}
+<script>
+window.onload = function(){
+  window.print();
+  setTimeout(function(){ window.close(); }, 500);
+};
+<\/script>
+</body>
+</html>`;
+
+      popup.document.open('text/html');
+      popup.document.write(html);
+      popup.document.close();
+    }
+
+    // Barcode labels (2 per row) – QR + Product Name + MRP
+    function generateBarcodeLabels(){
+      const rows = [...tbody.querySelectorAll('tr')];
+      const labelsData = [];
+      const perRow = 2;
+
+      rows.forEach(tr => {
+        const id   = tr.querySelector('td:nth-child(2) input').value.trim();
+        const name = tr.querySelector('td:nth-child(3) input').value.trim();
+        const mrp  = tr.querySelector('td:nth-child(4) input').value.trim();
+        const qty  = parseInt(tr.querySelector('td:nth-child(6) input').value, 10) || 0;
+
+        if(id && name && qty > 0){
+          for(let i = 0; i < qty; i++){
+            labelsData.push({ id, name, mrp });
+          }
+        }
+      });
+
+      if(!labelsData.length){
+        alert('No products with valid quantity to generate barcode labels.');
+        return;
+      }
+
+      const popup = window.open('', '_blank');
+      if(!popup){
+        alert('Popup blocked. Please allow popups for this site.');
+        return;
+      }
+
+      let labelsHtml = '';
+      labelsData.forEach(p => {
+        labelsHtml += `
+          <div class="bc-label">
+            <img class="bc-qr" src="${generateQR(p.id)}" alt="QR">
+            <div class="bc-info">
+              <div class="bc-name">${p.name}</div>
+              <div class="bc-mrp">MRP: ₹${p.mrp}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      const css = `
+        @page {
+          size: A4;
+          margin: 6mm;
+        }
+        body{
+          margin:0;
+          padding:0;
+          font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          -webkit-print-color-adjust:exact;
+          print-color-adjust:exact;
+        }
+        .bc-sheet{
+          width:100%;
+          display:grid;
+          grid-template-columns: repeat(${perRow}, 1fr);
+          grid-auto-rows: 22mm;
+          gap: 3mm 4mm;
+        }
+        .bc-label{
+          border:0.25mm solid #ff7a00;
+          border-radius:1mm;
+          padding:2mm 3mm;
+          display:flex;
+          flex-direction:row;
+          align-items:center;
+          gap:3mm;
+          box-sizing:border-box;
+        }
+        .bc-qr{
+          width:14mm;
+          height:14mm;
+        }
+        .bc-info{
+          display:flex;
+          flex-direction:column;
+          font-size:7pt;
+          line-height:1.2;
+          overflow:hidden;
+        }
+        .bc-name{
+          font-weight:700;
+          font-size:7.5pt;
+          color:#111827;
+          max-height:2.4em;
+          overflow:hidden;
+        }
+        .bc-mrp{
+          font-size:7pt;
+          color:#111827;
+        }
+      `;
+
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Geekmonkey Barcode Labels</title>
+<style>${css}</style>
+</head>
+<body>
+<div class="bc-sheet">
+${labelsHtml}
+</div>
+<script>
+window.onload = function(){
+  window.print();
+  setTimeout(function(){ window.close(); }, 500);
+};
+<\/script>
+</body>
+</html>`;
+
+      popup.document.open('text/html');
+      popup.document.write(html);
+      popup.document.close();
+    }
+
+    // helper: generate outward id by "encrypting" vendorId + date + year
+    function generateOutwardId(vendorId, inwardDateStr){
+      const baseVendor = vendorId || 'NA';
+      const dateStr = inwardDateStr && inwardDateStr.trim() ? inwardDateStr : todayStr();
+      const year = dateStr.split('-')[0] || new Date().getFullYear().toString();
+      const raw = `${baseVendor}|${dateStr}|${year}`;
+      return btoa(raw).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+    }
+
+    // build outward payload
+    function buildOutwardPayload(){
+      const inwardLocation = document.getElementById('inwardLocation');
+      const rows = [...tbody.querySelectorAll('tr')];
+      const items = rows.map(tr => {
+        return {
+          productId: tr.querySelector('td:nth-child(2) input').value.trim(),
+          productName: tr.querySelector('td:nth-child(3) input').value.trim(),
+          mrp: parseFloat(tr.querySelector('td:nth-child(4) input').value) || 0,
+          cost: parseFloat(tr.querySelector('td:nth-child(5) input').value) || 0,
+          qty: parseFloat(tr.querySelector('td:nth-child(6) input').value) || 0,
+          packagingType: tr.querySelector('td:nth-child(7) select').value
+        };
+      }).filter(it => it.productId || it.productName);
+
+      const vendorId = vendorInp ? (vendorInp.dataset.vendorId || null) : null;
+      const inwardDateVal = inwardDate ? inwardDate.value : '';
+
+      return {
+        outwardId: generateOutwardId(vendorId, inwardDateVal),
+        vendorId: vendorId,
+        vendorName: vendorInp ? vendorInp.value : '',
+        inwardDate: inwardDateVal,
+        inwardLocation: inwardLocation ? inwardLocation.value : '',
+        totalInventoryCost: parseFloat(totalEl.textContent) || 0,
+        items
+      };
+    }
+
+    // save outward to backend
+    async function saveOutward(){
+      const payload = buildOutwardPayload();
+      if(!payload.items.length){
+        alert('No rows to save.');
+        return;
+      }
+      try{
+        const res = await fetch('/v1/outward/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if(!res.ok){
+          throw new Error('Failed to save outward');
+        }
+        alert('Outward saved successfully. ID: ' + payload.outwardId);
+      }catch(err){
+        console.error(err);
+        alert('Error saving outward. Please try again.');
+      }
+    }
+
+    document.getElementById('addRowBtn').addEventListener('click',addRow);
+    tbody.addEventListener('input',calcTotal);
+    document.getElementById('exportBtn').addEventListener('click',()=>window.print());
+    document.getElementById('generateLabelsBtn').addEventListener('click',generateLabels);
+    document.getElementById('generateBarcodeLabelsBtn').addEventListener('click',generateBarcodeLabels);
+    document.getElementById('saveOutwardBtn').addEventListener('click',saveOutward);
+</script>
+</body>
+</html>
