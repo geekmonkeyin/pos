@@ -70,7 +70,7 @@
           flex-wrap: wrap;
           justify-content: flex-end;
           margin-top: 8px;
-          margin-bottom: 4px; /* keeps buttons visually attached to table */
+          margin-bottom: 4px;
         }
 
         .btn {
@@ -165,8 +165,8 @@
           background: #fff;
           border: 1px solid var(--stroke);
           border-radius: 10px;
-          max-height: 240px;
-          overflow: auto;
+          max-height: 320px;
+          overflow-y: auto;
           z-index: 10;
           box-shadow: 0 8px 24px rgba(0,0,0,.08);
           display: none;
@@ -186,12 +186,28 @@
           background: #fff4e6;
         }
 
+        /* Per-row product search dropdown */
+        .product-cell {
+          position: relative;
+        }
+        .product-cell .suggestions {
+          top: 34px;
+          max-height: 320px;
+        }
+        .product-title {
+          font-size: 0.85rem;
+          font-weight: 500;
+          display: block;
+        }
+
         .table-wrapper {
-          margin-top: 4px; /* very close to toolbar */
+          margin-top: 4px;
           background: var(--card);
           border-radius: var(--radius);
           border: 1px solid var(--stroke);
-          overflow: hidden;
+          max-height: 70vh;
+          overflow-y: auto;
+          overflow-x: hidden;
           box-shadow: 0 4px 10px rgba(0,0,0,0.02);
         }
 
@@ -203,7 +219,7 @@
         table {
           width: 100%;
           border-collapse: collapse;
-          min-width: 720px;
+          min-width: 950px;
         }
 
         th,
@@ -238,6 +254,14 @@
           padding: 7px 8px;
           border-radius: 8px;
           font-size: 0.85rem;
+          border: 1px solid var(--stroke);
+          outline: none;
+        }
+
+        td input:focus,
+        td select:focus {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 1px rgba(255,122,0,0.15);
         }
 
         .rownum {
@@ -257,6 +281,31 @@
 
         .total span {
           color: var(--accent);
+        }
+
+        .product-thumb {
+          width: 40px;
+          height: 40px;
+          object-fit: cover;
+          border-radius: 6px;
+          border: 1px solid var(--stroke);
+          display: none;
+        }
+
+        /* Qty highlight animation when merged */
+        .qty-input.qty-flash {
+          animation: qtyFlash 1s ease-out;
+        }
+
+        @keyframes qtyFlash {
+          0% {
+            background-color: #ffe3d0;
+            box-shadow: 0 0 0 1px rgba(255,122,0,0.6);
+          }
+          100% {
+            background-color: #ffffff;
+            box-shadow: 0 0 0 0 rgba(255,122,0,0);
+          }
         }
 
         /* Print */
@@ -384,8 +433,10 @@
     <div class="toolbar no-print">
         <button class="btn" id="addRowBtn">+ Add Row</button>
         <button class="btn" id="generateLabelsBtn">Generate A4 Labels</button>
-        <button class="btn" id="generateBarcodeLabelsBtn">Generate Barcode Labels</button>
+        <button class="btn" id="generateBarcodeLabelsBtn">Generate Barcode Labels (2/row)</button>
+        <button class="btn" id="generateBarcodeA4Btn">Generate Barcode A4 (40/Sheet)</button>
         <button class="btn" id="saveOutwardBtn">Save Outward</button>
+        <button class="btn" id="exportFlxyBtn">Export to Flxy Format</button>
         <button class="btn primary" id="exportBtn">Export (PDF/Print)</button>
     </div>
 
@@ -397,7 +448,9 @@
                 <tr>
                     <th>#</th>
                     <th>Product ID</th>
+                    <th>SKU</th>
                     <th>Product Name</th>
+                    <th>Image</th>
                     <th>MRP (₹)</th>
                     <th>Cost (₹)</th>
                     <th>Qty</th>
@@ -408,11 +461,18 @@
                 <tbody id="tbody">
                 <tr>
                     <td class="rownum">1</td>
-                    <td><input type="text" placeholder="Product ID"></td>
-                    <td><input type="text" placeholder="Product Name"></td>
-                    <td><input type="number" min="0" step="0.01" placeholder="MRP"></td>
-                    <td><input type="number" min="0" step="0.01" placeholder="Cost"></td>
-                    <td><input type="number" min="0" step="1" value="1"></td>
+                    <td class="product-cell">
+                        <input type="text" class="product-id-input" placeholder="Product ID" autocomplete="off">
+                        <div class="suggestions product-suggestions"></div>
+                    </td>
+                    <td><input type="text" class="sku-input" placeholder="SKU"></td>
+                    <td><input type="text" class="product-name-input" placeholder="Product Name"></td>
+                    <td class="img-cell">
+                        <img class="product-thumb" alt="Product Image">
+                    </td>
+                    <td><input type="number" class="mrp-input" min="0" step="0.01" placeholder="MRP"></td>
+                    <td><input type="number" class="cost-input" min="0" step="0.01" placeholder="Cost (35% of MRP)" readonly></td>
+                    <td><input type="number" class="qty-input" min="0" step="1" value="1"></td>
                     <td>
                         <select>
                             <option>PP Bag</option>
@@ -434,8 +494,8 @@
 </div>
 
 <script>
-    const tbody=document.getElementById('tbody');
-    const totalEl=document.getElementById('total');
+    const tbody = document.getElementById('tbody');
+    const totalEl = document.getElementById('total');
 
     // ==== Vendor search + inward defaults ====
     const vendorInp = document.getElementById('vendor');
@@ -448,13 +508,13 @@
     if(inwardDate && !inwardDate.value){ inwardDate.value = todayStr(); }
 
     const debounce=(fn,ms=300)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
-    const VENDOR_SEARCH_URL = '/v1/vendor/search/'; // update to your API route if different
+    const VENDOR_SEARCH_URL = '/v1/vendor/search/';
 
     async function fetchVendors(q){
       try{
         const res = await fetch(VENDOR_SEARCH_URL + encodeURIComponent(q));
         if(!res.ok) throw new Error('Vendor API failed');
-        return await res.json(); // expect [{id, name, gstin?}]
+        return await res.json();
       }catch(e){ console.warn(e); return []; }
     }
 
@@ -462,8 +522,14 @@
       const q = e.target.value.trim();
       if(q.length < 3){ vendorSug.classList.remove('show'); vendorSug.innerHTML=''; return; }
       const items = await fetchVendors(q);
-      if(!Array.isArray(items) || !items.length){ vendorSug.classList.remove('show'); vendorSug.innerHTML=''; return; }
-      vendorSug.innerHTML = items.map(v=>`<div data-name="${(v.vendorName||'').replace(/\"/g,'&quot;')}" data-id="${v.vendorId||''}">${v.vendorName||''}${v.gstin?` — <small>${v.gstin}</small>`:''}</div>`).join('');
+      if(!Array.isArray(items) || !items.length){
+        vendorSug.classList.remove('show'); vendorSug.innerHTML=''; return;
+      }
+      vendorSug.innerHTML = items.map(v=>`
+        <div data-name="${(v.vendorName||'').replace(/\"/g,'&quot;')}" data-id="${v.vendorId||''}">
+          ${v.vendorName||''}${v.gstin?` — <small>${v.gstin}</small>`:''}
+        </div>
+      `).join('');
       vendorSug.classList.add('show');
     }, 350);
 
@@ -471,7 +537,11 @@
       vendorInp.addEventListener('input', onVendorType);
       vendorInp.addEventListener('focus', ()=>{ if(vendorSug.innerHTML.trim()) vendorSug.classList.add('show'); });
     }
-    document.addEventListener('click', (e)=>{ if(vendorInp && !vendorInp.contains(e.target) && !vendorSug.contains(e.target)) vendorSug.classList.remove('show'); });
+    document.addEventListener('click', (e)=>{
+      if(vendorInp && !vendorInp.contains(e.target) && !vendorSug.contains(e.target)){
+        vendorSug.classList.remove('show');
+      }
+    });
     vendorSug && vendorSug.addEventListener('click', (e)=>{
       const item = e.target.closest('div');
       if(!item) return;
@@ -480,15 +550,272 @@
       vendorSug.classList.remove('show');
     });
 
+    // ========= Product search by Product ID (per row) =========
+    const PRODUCT_SEARCH_URL = '/v1/outward/search?query=';
+
+    function escapeHtml(str){
+      return String(str||'').replace(/[&<>"']/g, s => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[s]));
+    }
+
+    function isAbsUrl(u){ return /^https?:\/\//i.test(u); }
+    function toImageUrl(val){
+      if (!val) return '';
+      const s = String(val);
+      if (isAbsUrl(s) || s.startsWith('/')) return s;
+      return `/v1/inventory/images/${s}`;
+    }
+    function pickProductImage(p){
+      const candidates = [];
+      if(!p) return '';
+      if (p.shopifyImageUrl) candidates.push(p.shopifyImageUrl);
+      if (p.shopify_image_url) candidates.push(p.shopify_image_url);
+      if (p.shopifyImage && typeof p.shopifyImage === 'string') candidates.push(p.shopifyImage);
+      if (p.shopifyImage && typeof p.shopifyImage === 'object' && (p.shopifyImage.url || p.shopifyImage.src)) {
+        candidates.push(p.shopifyImage.url || p.shopifyImage.src);
+      }
+      if (Array.isArray(p.shopifyImages) && p.shopifyImages.length){
+        const s = p.shopifyImages[0];
+        candidates.push(typeof s === 'string' ? s : (s.url || s.src));
+      }
+      if (p.imageUrl) candidates.push(p.imageUrl);
+      if (Array.isArray(p.images) && p.images.length) candidates.push(p.images[0]);
+      const chosen = candidates.find(Boolean);
+      return toImageUrl(chosen);
+    }
+
+    async function fetchProductsById(q){
+      try{
+        const res = await fetch(PRODUCT_SEARCH_URL + encodeURIComponent(q));
+        if(!res.ok) throw new Error('Product search failed');
+        return await res.json();
+      }catch(e){
+        console.warn(e);
+        return [];
+      }
+    }
+
+    // helper: set cost = 35% of MRP for a given row
+    function setCostFromMrp(row){
+      if (!row) return;
+      const mrpInput = row.querySelector('.mrp-input');
+      const costInput = row.querySelector('.cost-input');
+      if (!mrpInput || !costInput) return;
+      const mrp = parseFloat(mrpInput.value) || 0;
+      if (mrp > 0){
+        costInput.value = (mrp * 0.35).toFixed(2);
+      } else {
+        costInput.value = '';
+      }
+    }
+
+    function applyProductToRow(row, p){
+      const pidInput = row.querySelector('.product-id-input');
+      const skuInput = row.querySelector('.sku-input');
+      const nameInput = row.querySelector('.product-name-input');
+      const mrpInput = row.querySelector('.mrp-input');
+      const costInput = row.querySelector('.cost-input');
+      const imgEl = row.querySelector('.product-thumb');
+
+      const pid = p.upcId || p.productVariantId || '';
+      const title = p.productTitle || '';
+      const variant = p.productVariantTitle ? ` (${p.productVariantTitle})` : '';
+
+      if (pidInput) pidInput.value = pid;
+      if (nameInput) nameInput.value = title + variant;
+
+      const skuVal = p.sku || p.SKU || p.shopifySku || p.variantSku || p.productVariantSku ||'';
+      if (skuInput) skuInput.value = skuVal;
+
+      const mrpVal = p.mrp ?? p.price ?? p.shopifyPrice ?? null;
+      if (mrpInput && mrpVal != null) {
+        mrpInput.value = mrpVal;
+      }
+
+      if (costInput) {
+        setCostFromMrp(row);
+      }
+
+      const imgUrl = pickProductImage(p);
+      if (imgEl){
+        if (imgUrl){
+          imgEl.src = imgUrl;
+          imgEl.style.display = 'block';
+        } else {
+          imgEl.style.display = 'none';
+        }
+      }
+
+      // store full product meta for Flxy export
+      try {
+        row.dataset.productMeta = JSON.stringify(p || {});
+      } catch(e) {
+        row.dataset.productMeta = '{}';
+      }
+
+      calcTotal();
+    }
+
+    // helper to clear a row after merging qty
+    function clearRow(row){
+      if(!row) return;
+      row.querySelectorAll('input').forEach(inp => {
+        if (inp.classList.contains('qty-input')) {
+          inp.value = 1;
+        } else {
+          inp.value = '';
+        }
+      });
+      const sel = row.querySelector('select');
+      if (sel) sel.selectedIndex = 0;
+      const img = row.querySelector('.product-thumb');
+      if (img){
+        img.src = '';
+        img.style.display = 'none';
+      }
+      row.dataset.productMeta = '{}';
+    }
+
+    // flash qty cell when updated
+    function flashQtyCell(input){
+      if(!input) return;
+      input.classList.remove('qty-flash');
+      void input.offsetWidth;
+      input.classList.add('qty-flash');
+      setTimeout(() => input.classList.remove('qty-flash'), 1000);
+    }
+
+    // add a fresh row whenever a product is selected in the last row,
+    // BUT if same Product ID already exists, merge quantity instead of adding a new row
+    function addRowIfLast(row){
+      const rows = [...tbody.querySelectorAll('tr')];
+      if (!rows.length) return;
+
+      if (row !== rows[rows.length - 1]) return;
+
+      const pidInput = row.querySelector('.product-id-input');
+      const pid = pidInput ? pidInput.value.trim() : '';
+
+      if (pid) {
+        const existing = rows
+          .slice(0, rows.length - 1)
+          .find(r => (r.querySelector('.product-id-input')?.value.trim() || '') === pid);
+
+        if (existing) {
+          const srcQtyInput = row.querySelector('.qty-input');
+          const existingQtyInput = existing.querySelector('.qty-input');
+
+          const srcQty = parseFloat(srcQtyInput?.value) || 0;
+          const existingQty = parseFloat(existingQtyInput?.value) || 0;
+
+          existingQtyInput.value = (existingQty + (srcQty || 1)).toString();
+          flashQtyCell(existingQtyInput);
+
+          clearRow(row);
+          calcTotal();
+
+          const newPidInput = row.querySelector('.product-id-input');
+          if (newPidInput) {
+            newPidInput.focus();
+          }
+          return;
+        }
+      }
+
+      addRow();
+    }
+
+    function attachProductSearch(row){
+      const pidInput = row.querySelector('.product-id-input');
+      const sugBox = row.querySelector('.product-suggestions');
+
+      if(!pidInput || !sugBox) return;
+
+      const onType = debounce(async (e)=>{
+        const q = e.target.value.trim();
+        if(q.length < 2){
+          sugBox.classList.remove('show');
+          sugBox.innerHTML = '';
+          return;
+        }
+        const products = await fetchProductsById(q);
+        if(!Array.isArray(products) || !products.length){
+          sugBox.classList.remove('show');
+          sugBox.innerHTML = '';
+          return;
+        }
+
+        if (products.length === 1){
+          applyProductToRow(row, products[0]);
+          sugBox.classList.remove('show');
+          sugBox.innerHTML = '';
+          addRowIfLast(row);
+          return;
+        }
+
+        sugBox.innerHTML = products.map(p=>{
+          const pid = p.upcId || p.productVariantId || '';
+          const title = p.productTitle || '';
+          const variant = p.productVariantTitle ? ` (${p.productVariantTitle})` : '';
+          return `
+            <div class="product-option"
+                 data-product='${JSON.stringify(p).replace(/'/g,"&#39;")}'>
+              <span class="product-title">${escapeHtml(pid)}${title ? ' — '+escapeHtml(title+variant) : ''}</span>
+            </div>`;
+        }).join('');
+        sugBox.classList.add('show');
+      }, 300);
+
+      pidInput.addEventListener('input', onType);
+      pidInput.addEventListener('focus', ()=>{
+        if(sugBox.innerHTML.trim()){
+          sugBox.classList.add('show');
+        }
+      });
+
+      sugBox.addEventListener('click', (e)=>{
+        const opt = e.target.closest('.product-option');
+        if(!opt) return;
+        try{
+          const p = JSON.parse(opt.getAttribute('data-product').replace(/&#39;/g,"'"));
+          applyProductToRow(row, p);
+          sugBox.classList.remove('show');
+          sugBox.innerHTML = '';
+          addRowIfLast(row);
+        }catch(err){
+          console.warn('Failed to parse product data', err);
+        }
+      });
+    }
+
+    // Hide any open product suggestions on outside click
+    document.addEventListener('click', (e)=>{
+      document.querySelectorAll('.product-suggestions').forEach(box=>{
+        const cell = box.closest('.product-cell');
+        if(cell && !cell.contains(e.target)){
+          box.classList.remove('show');
+        }
+      });
+    });
+
+    // ========= Rows & totals =========
     function addRow(){
       const row=document.createElement('tr');
       row.innerHTML=`
         <td class="rownum"></td>
-        <td><input type="text" placeholder="Product ID"></td>
-        <td><input type="text" placeholder="Product Name"></td>
-        <td><input type="number" min="0" step="0.01" placeholder="MRP"></td>
-        <td><input type="number" min="0" step="0.01" placeholder="Cost"></td>
-        <td><input type="number" min="0" step="1" value="1"></td>
+        <td class="product-cell">
+          <input type="text" class="product-id-input" placeholder="Product ID" autocomplete="off">
+          <div class="suggestions product-suggestions"></div>
+        </td>
+        <td><input type="text" class="sku-input" placeholder="SKU"></td>
+        <td><input type="text" class="product-name-input" placeholder="Product Name"></td>
+        <td class="img-cell">
+          <img class="product-thumb" alt="Product Image">
+        </td>
+        <td><input type="number" class="mrp-input" min="0" step="0.01" placeholder="MRP"></td>
+        <td><input type="number" class="cost-input" min="0" step="0.01" placeholder="Cost (35% of MRP)" readonly></td>
+        <td><input type="number" class="qty-input" min="0" step="1" value="1"></td>
         <td>
           <select>
             <option>PP Bag</option>
@@ -500,10 +827,20 @@
         <td class="no-print"><button class="btn" onclick="removeRow(this)">✕</button></td>
       `;
       tbody.appendChild(row);
+      attachProductSearch(row);
+      row.dataset.productMeta = '{}';
       updateRows();
+
+      const pidInput = row.querySelector('.product-id-input');
+      if (pidInput) {
+        pidInput.focus();
+      }
     }
 
-    function removeRow(btn){ btn.closest('tr').remove(); updateRows(); }
+    function removeRow(btn){
+      btn.closest('tr').remove();
+      updateRows();
+    }
 
     function updateRows(){
       [...tbody.querySelectorAll('tr')].forEach((tr,idx)=>{
@@ -515,26 +852,43 @@
     function calcTotal(){
       let total=0;
       [...tbody.querySelectorAll('tr')].forEach(tr=>{
-        const cost=parseFloat(tr.querySelector('td:nth-child(5) input').value)||0;
-        const qty=parseFloat(tr.querySelector('td:nth-child(6) input').value)||0;
+        const cost=parseFloat(tr.querySelector('.cost-input')?.value)||0;
+        const qty=parseFloat(tr.querySelector('.qty-input')?.value)||0;
         total+=cost*qty;
       });
       totalEl.textContent=total.toFixed(2);
     }
 
+    // QR for QR sheet (A4 labels)
     const generateQR = id =>
       "https://api.qrserver.com/v1/create-qr-code/?size=80x80&data="+encodeURIComponent(id);
 
-    // A4 labels (4 x 10 grid) based on quantity
+    // REAL BARCODE (Code128) for Product ID (used in 2-per-row + 40-per-sheet)
+    const generateBarcode = id =>
+      "https://bwipjs-api.metafloor.com/?bcid=code128" +
+      "&text=" + encodeURIComponent(id || '') +
+      "&scale=2&height=10&includetext=1";
+
+    // Fallback barcode (slightly different params)
+    const generateBarcodeFallback  = id =>
+      "https://bwipjs-api.metafloor.com/?bcid=code128&text=" +
+      encodeURIComponent(id || '')+"&includetext&scale=2";
+
+    // === Helper: product name limited to 15 chars ===
+    function shortName15(name){
+      const s = (name || '').trim();
+      return s.length <= 25 ? s : s.slice(0, 25);
+    }
+
+    // ========== A4 QR labels (4 x 10 grid) ==========
     function generateLabels(){
       const rows = [...tbody.querySelectorAll('tr')];
-
       const labelsData = [];
       rows.forEach(tr => {
-        const id   = tr.querySelector('td:nth-child(2) input').value.trim();
-        const name = tr.querySelector('td:nth-child(3) input').value.trim();
-        const mrp  = tr.querySelector('td:nth-child(4) input').value.trim();
-        const qty  = parseInt(tr.querySelector('td:nth-child(6) input').value, 10) || 0;
+        const id   = tr.querySelector('.product-id-input').value.trim();
+        const name = tr.querySelector('.product-name-input').value.trim();
+        const mrp  = tr.querySelector('.mrp-input').value.trim();
+        const qty  = parseInt(tr.querySelector('.qty-input').value, 10) || 0;
 
         if(id && name && qty > 0){
           for(let i = 0; i < qty; i++){
@@ -553,7 +907,6 @@
 
       let sheetsHtml = '';
 
-      // Chunk into pages of 40 labels (4 columns x 10 rows)
       for(let i=0;i<labelsData.length;i+=40){
         const slice = labelsData.slice(i, i+40);
         let labelsHtml = '';
@@ -574,21 +927,14 @@
 
         const padCount = 40 - slice.length;
         for(let j=0;j<padCount;j++){
-          labelsHtml += `
-            <div class="label">
-              <div class="placeholder"></div>
-            </div>
-          `;
+          labelsHtml += `<div class="label"><div class="placeholder"></div></div>`;
         }
 
         sheetsHtml += `<div class="sheet">${labelsHtml}</div>`;
       }
 
       const css=`
-        @page {
-          size: A4;
-          margin: 0;
-        }
+        @page { size: A4; margin: 5mm; }
         body{
           margin:0;
           padding:0;
@@ -597,21 +943,22 @@
           print-color-adjust:exact;
         }
         .sheet{
-          width:210mm;
-          height:297mm;
+          width:200mm;
+          height:287mm;
+          margin:0 auto;
+          padding:2mm;
+          box-sizing:border-box;
           display:grid;
-          grid-template-columns: repeat(4, 52.5mm);
+          grid-template-columns: repeat(4, 1fr);
           grid-auto-rows: 29.7mm;
+          gap: 1mm;
           page-break-after: always;
         }
-        .sheet:last-child{
-          page-break-after: auto;
-        }
+        .sheet:last-child{ page-break-after: auto; }
         .label{
-          width:52.5mm;
-          height:29.7mm;
-          border:0.2mm dashed #ff7a00;
-          padding:1mm;
+          width:100%;
+          height:100%;
+          padding:2mm;
           display:flex;
           flex-direction:row;
           align-items:center;
@@ -640,50 +987,50 @@
         .info .pid{
           font-size:7pt;
         }
+        .info .mrp{
+          font-weight:700;
+        }
         .info .mk{
           font-size:6.5pt;
           color:#555;
         }
-        .placeholder{
-          width:100%;
-          height:100%;
-        }
+        .placeholder{ width:100%; height:100%; }
       `;
 
       const html=`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Geekmonkey A4 Labels</title>
-<style>${css}</style>
-</head>
-<body>
-${sheetsHtml}
-<script>
-window.onload = function(){
-  window.print();
-  setTimeout(function(){ window.close(); }, 500);
-};
-<\/script>
-</body>
-</html>`;
+  <html>
+  <head>
+  <meta charset="utf-8">
+  <title>Geekmonkey A4 Labels</title>
+  <style>${css}</style>
+  </head>
+  <body>
+  ${sheetsHtml}
+  <script>
+  window.onload = function(){
+    window.print();
+    setTimeout(function(){ window.close(); }, 500);
+  };
+  <\/script>
+  </body>
+  </html>`;
 
       popup.document.open('text/html');
       popup.document.write(html);
       popup.document.close();
     }
 
-    // Barcode labels (2 per row) – QR + Product Name + MRP
+    // ========== Barcode labels (2 per row, Code128 with fallback) ==========
     function generateBarcodeLabels(){
       const rows = [...tbody.querySelectorAll('tr')];
       const labelsData = [];
       const perRow = 2;
 
       rows.forEach(tr => {
-        const id   = tr.querySelector('td:nth-child(2) input').value.trim();
-        const name = tr.querySelector('td:nth-child(3) input').value.trim();
-        const mrp  = tr.querySelector('td:nth-child(4) input').value.trim();
-        const qty  = parseInt(tr.querySelector('td:nth-child(6) input').value, 10) || 0;
+        const id   = tr.querySelector('.product-id-input').value.trim();
+        const name = tr.querySelector('.product-name-input').value.trim();
+        const mrp  = tr.querySelector('.mrp-input').value.trim();
+        const qty  = parseInt(tr.querySelector('.qty-input').value, 10) || 0;
 
         if(id && name && qty > 0){
           for(let i = 0; i < qty; i++){
@@ -705,22 +1052,24 @@ window.onload = function(){
 
       let labelsHtml = '';
       labelsData.forEach(p => {
+        const bcUrl = generateBarcode(p.id);
+        const fbUrl = generateBarcodeFallback(p.id);
+        const shortName = shortName15(p.name);
         labelsHtml += `
           <div class="bc-label">
-            <img class="bc-qr" src="${generateQR(p.id)}" alt="QR">
+            <img class="bc-qr" src="${bcUrl}" alt="${p.id}"
+                 onerror="this.onerror=null;this.src='${fbUrl}'">
             <div class="bc-info">
-              <div class="bc-name">${p.name}</div>
               <div class="bc-mrp">MRP: ₹${p.mrp}</div>
+              <div class="bc-name">${shortName}</div>
+              <div class="bc-mktd">Mktd by: Geekmonkey.in</div>
             </div>
           </div>
         `;
       });
 
       const css = `
-        @page {
-          size: A4;
-          margin: 6mm;
-        }
+        @page { size: A4; margin: 6mm; }
         body{
           margin:0;
           padding:0;
@@ -733,12 +1082,12 @@ window.onload = function(){
           display:grid;
           grid-template-columns: repeat(${perRow}, 1fr);
           grid-auto-rows: 22mm;
-          gap: 3mm 4mm;
+          gap: 4mm 4mm;
+          padding:2mm;
+          box-sizing:border-box;
         }
         .bc-label{
-          border:0.25mm solid #ff7a00;
-          border-radius:1mm;
-          padding:2mm 3mm;
+          padding:3mm 4mm;
           display:flex;
           flex-direction:row;
           align-items:center;
@@ -746,55 +1095,231 @@ window.onload = function(){
           box-sizing:border-box;
         }
         .bc-qr{
-          width:14mm;
-          height:14mm;
+          width:25mm;
+          height:12mm;
+          object-fit:contain;
         }
         .bc-info{
           display:flex;
           flex-direction:column;
-          font-size:7pt;
-          line-height:1.2;
+          font-size:6pt;
+          line-height:1.1;
           overflow:hidden;
+          align-items:center;
+          text-align:center;
+        }
+        .bc-mrp{
+          font-size:6pt;
+          color:#111827;
+          font-weight:700;
+          white-space:nowrap;
         }
         .bc-name{
           font-weight:700;
-          font-size:7.5pt;
+          font-size:6pt;
           color:#111827;
-          max-height:2.4em;
+          max-height:1.2em;
           overflow:hidden;
+          white-space:nowrap;
         }
-        .bc-mrp{
-          font-size:7pt;
-          color:#111827;
+        .bc-mktd{
+          font-size:5.5pt;
+          white-space:nowrap;
+          margin-top:0.5mm;
         }
       `;
 
       const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Geekmonkey Barcode Labels</title>
-<style>${css}</style>
-</head>
-<body>
-<div class="bc-sheet">
-${labelsHtml}
-</div>
-<script>
-window.onload = function(){
-  window.print();
-  setTimeout(function(){ window.close(); }, 500);
-};
-<\/script>
-</body>
-</html>`;
+  <html>
+  <head>
+  <meta charset="utf-8">
+  <title>Geekmonkey Barcode Labels</title>
+  <style>${css}</style>
+  </head>
+  <body>
+  <div class="bc-sheet">
+  ${labelsHtml}
+  </div>
+  <script>
+  window.onload = function(){
+    window.print();
+    setTimeout(function(){ window.close(); }, 500);
+  };
+  <\/script>
+  </body>
+  </html>`;
 
       popup.document.open('text/html');
       popup.document.write(html);
       popup.document.close();
     }
 
-    // helper: generate outward id by "encrypting" vendorId + date + year
+    // ===== NEW: Barcode A4 (4 x 10 grid, 40 labels, Code128 with fallback) =====
+    function batchDateDDMMYY(){
+      const d = new Date();
+      const dd = pad(d.getDate());
+      const mm = pad(d.getMonth() + 1);
+      const yy = d.getFullYear().toString().slice(-2);
+      return dd + mm + yy;
+    }
+
+    function truncateName(name, maxLen = 25){
+      const s = (name || '').trim();
+      if (s.length <= maxLen) return s;
+      return s.slice(0, maxLen);
+    }
+
+    function generateBarcodeA4(){
+      const rows = [...tbody.querySelectorAll('tr')];
+      const labelsData = [];
+      const batch = batchDateDDMMYY();
+
+      rows.forEach(tr => {
+        const id   = tr.querySelector('.product-id-input').value.trim();
+        const name = tr.querySelector('.product-name-input').value.trim();
+        const mrp  = tr.querySelector('.mrp-input').value.trim();
+        const qty  = parseInt(tr.querySelector('.qty-input').value, 10) || 0;
+
+        if(id && name && qty > 0){
+          for(let i = 0; i < qty; i++){
+            labelsData.push({ id, name, mrp, batch });
+          }
+        }
+      });
+
+      if(!labelsData.length){
+        alert('No products with valid quantity to generate A4 barcode sheet.');
+        return;
+      }
+
+      const popup = window.open('', '_blank');
+      if(!popup){
+        alert('Popup blocked. Please allow popups for this site.');
+        return;
+      }
+
+      let sheetsHtml = '';
+
+      // 4 × 10 = 40 labels per sheet
+      for(let i = 0; i < labelsData.length; i += 40){
+        const slice = labelsData.slice(i, i+40);
+        let labelsHtml = '';
+
+        slice.forEach(p => {
+          const shortLabelName = truncateName(p.name, 25);
+          const bcUrl = generateBarcode(p.id);
+          const fbUrl = generateBarcodeFallback(p.id);
+          labelsHtml += `
+            <div class="bc-a4-label">
+              <img class="bc-a4-barcode" src="${bcUrl}" alt="${p.id}"
+                   onerror="this.onerror=null;this.src='${fbUrl}'">
+              <div class="bc-a4-mrp">MRP: ₹${p.mrp}</div>
+              <div class="bc-a4-name">${shortLabelName}</div>
+              <div class="bc-a4-mktd">Mktd by: Geekmonkey.in</div>
+            </div>
+          `;
+        });
+
+        const padCount = 40 - slice.length;
+        for(let j=0;j<padCount;j++){
+          labelsHtml += `<div class="bc-a4-label bc-a4-empty"></div>`;
+        }
+
+        sheetsHtml += `<div class="bc-a4-sheet">${labelsHtml}</div>`;
+      }
+
+      const css = `
+        /* TOP GAP REDUCED HERE */
+        @page { size: A4; margin: 2mm 5mm 5mm 5mm; }
+        body{
+          margin:0;
+          padding:0;
+          font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+          -webkit-print-color-adjust:exact;
+          print-color-adjust:exact;
+        }
+        .bc-a4-sheet{
+          width:200mm;
+          height:287mm;
+          margin:0 auto;
+          padding:0 2mm 2mm 2mm; /* no top padding to reduce top white space */
+          box-sizing:border-box;
+          display:grid;
+          grid-template-columns: repeat(4, 1fr);
+          grid-auto-rows: 29.7mm;
+          gap: 1mm;
+          page-break-after: always;
+        }
+        .bc-a4-sheet:last-child{ page-break-after:auto; }
+        .bc-a4-label{
+          width:100%;
+          height:100%;
+          padding:2mm;
+          box-sizing:border-box;
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          justify-content:flex-start;
+        }
+        .bc-a4-empty{
+          border:none;
+          outline:none;
+          background:none;
+        }
+        .bc-a4-barcode{
+          width:46mm;
+          max-height:18mm;
+          object-fit:contain;
+          image-rendering: crisp-edges;
+          margin:0.25mm 0;
+        }
+        .bc-a4-mrp{
+          font-size:5pt;
+          font-weight:700;
+          margin-top:0.25mm;
+          text-align:center;
+          white-space:nowrap;
+        }
+        .bc-a4-name{
+          font-size:5pt;
+          font-weight:700;
+          text-align:center;
+          max-height:1.2em;
+          overflow:hidden;
+          white-space:nowrap;
+          margin-top:0.25mm;
+        }
+        .bc-a4-mktd{
+          font-size:4.5pt;
+          text-align:center;
+          white-space:nowrap;
+          margin-top:0.25mm;
+        }
+      `;
+
+      const html = `<!DOCTYPE html>
+  <html>
+  <head>
+  <meta charset="utf-8">
+  <title>Geekmonkey A4 Barcode Labels</title>
+  <style>${css}</style>
+  </head>
+  <body>
+  ${sheetsHtml}
+  <script>
+  window.onload = function(){
+    window.print();
+    setTimeout(function(){ window.close(); }, 500);
+  };
+  <\/script>
+  </body>
+  </html>`;
+
+      popup.document.open('text/html');
+      popup.document.write(html);
+      popup.document.close();
+    }
+
     function generateOutwardId(vendorId, inwardDateStr){
       const baseVendor = vendorId || 'NA';
       const dateStr = inwardDateStr && inwardDateStr.trim() ? inwardDateStr : todayStr();
@@ -803,20 +1328,20 @@ window.onload = function(){
       return btoa(raw).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
     }
 
-    // build outward payload
     function buildOutwardPayload(){
       const inwardLocation = document.getElementById('inwardLocation');
       const rows = [...tbody.querySelectorAll('tr')];
       const items = rows.map(tr => {
         return {
-          productId: tr.querySelector('td:nth-child(2) input').value.trim(),
-          productName: tr.querySelector('td:nth-child(3) input').value.trim(),
-          mrp: parseFloat(tr.querySelector('td:nth-child(4) input').value) || 0,
-          cost: parseFloat(tr.querySelector('td:nth-child(5) input').value) || 0,
-          qty: parseFloat(tr.querySelector('td:nth-child(6) input').value) || 0,
-          packagingType: tr.querySelector('td:nth-child(7) select').value
+          productId: tr.querySelector('.product-id-input').value.trim(),
+          sku: tr.querySelector('.sku-input').value.trim(),
+          productName: tr.querySelector('.product-name-input').value.trim(),
+          mrp: parseFloat(tr.querySelector('.mrp-input').value) || 0,
+          cost: parseFloat(tr.querySelector('.cost-input').value) || 0,
+          qty: parseFloat(tr.querySelector('.qty-input').value) || 0,
+          packagingType: tr.querySelector('select') ? tr.querySelector('select').value : ''
         };
-      }).filter(it => it.productId || it.productName);
+      }).filter(it => it.productName);
 
       const vendorId = vendorInp ? (vendorInp.dataset.vendorId || null) : null;
       const inwardDateVal = inwardDate ? inwardDate.value : '';
@@ -832,7 +1357,6 @@ window.onload = function(){
       };
     }
 
-    // save outward to backend
     async function saveOutward(){
       const payload = buildOutwardPayload();
       if(!payload.items.length){
@@ -855,12 +1379,189 @@ window.onload = function(){
       }
     }
 
+    // ===== Flxy export =====
+    const FLXY_COLUMNS = [
+      'Brand',
+      'ProductName',
+      'SKUCode',
+      'Parentage',
+      'ParentSKU',
+      'HSNCode',
+      'Barcode/EANCode',
+      'ImageURL',
+      'MRP',
+      'SellingPrice',
+      'Stock',
+      'Category',
+      'TaxCategory',
+      'CostPrice',
+      'StyleCode',
+      'Season',
+      'UOM',
+      'ProductType',
+      'Size',
+      'Color',
+      'SUB CATEGORY',
+      'MERCH CLASSES',
+      'GENDER ',
+      'STATUS',
+      'Tags',
+      'Description',
+      'Composition',
+      'JobWorker',
+      'SetQuantity',
+      'ImageURL2',
+      'ImageURL3',
+      'ImageURL4',
+      'ImageURL5',
+      'ImageURL6',
+      'ImageURL7'
+    ];
+
+    function csvEscape(val){
+      if (val === null || val === undefined) return '""';
+      const s = String(val);
+      return `"${s.replace(/"/g,'""')}"`;
+    }
+
+    function getMetaField(meta, candidates){
+      for (const key of candidates){
+        if (meta && meta[key] !== undefined && meta[key] !== null && String(meta[key]).trim() !== ''){
+          return meta[key];
+        }
+      }
+      return '';
+    }
+
+    function buildFlxyRowFromTr(tr){
+      const productId = tr.querySelector('.product-id-input')?.value.trim() || '';
+      const sku = tr.querySelector('.sku-input')?.value.trim() || '';
+      const name = tr.querySelector('.product-name-input')?.value.trim() || '';
+      const mrpVal = tr.querySelector('.mrp-input')?.value;
+      const qtyVal = tr.querySelector('.qty-input')?.value;
+      const mrp = mrpVal !== '' && mrpVal !== null ? mrpVal : '';
+      const qty = qtyVal !== '' && qtyVal !== null ? qtyVal : '';
+
+      let meta = {};
+      try {
+        meta = tr.dataset.productMeta ? JSON.parse(tr.dataset.productMeta) : {};
+      } catch(e) {
+        meta = {};
+      }
+
+      const category = getMetaField(meta, ['category','productCategory','ProductCategory','collection','productType','product_type']);
+      const hsn = getMetaField(meta, ['hsn','hsnCode','hsncode','hsn_sac','HSN','HSNCode']);
+      const taxRate = getMetaField(meta, ['taxRate','tax_rate','gst','gstRate','GST']);
+      const variantName = getMetaField(meta, ['productVariantTitle','variantTitle','option1','color','Color']);
+      const color = variantName ? variantName : 'Random';
+
+      const imgEl = tr.querySelector('.product-thumb');
+      const imgSrc = imgEl && imgEl.src ? imgEl.src : '';
+      const imageUrlMeta = getMetaField(meta, [
+        'shopifyImageUrl','shopify_image_url',
+        'imageUrl','ImageURL',
+        'featured_image','featuredImage'
+      ]);
+      const finalImageUrl = imageUrlMeta || imgSrc || '';
+
+      const categoryVal = category || '';
+
+      return {
+        'Brand': 'Geekmonkey',
+        'ProductName': name,
+        'SKUCode': sku,
+        'Parentage': 'Child',
+        'ParentSKU': categoryVal,
+        'HSNCode': hsn,
+        'Barcode/EANCode': productId,
+        'ImageURL': finalImageUrl,
+        'MRP': mrp,
+        'SellingPrice': mrp,
+        'Stock': qty,
+        'Category': categoryVal,
+        'TaxCategory': categoryVal,
+        'CostPrice': taxRate,
+        'StyleCode': categoryVal,
+        'Season': 'SS 25',
+        'UOM': 'Pieces',
+        'ProductType': 'FINISHED GOODS',
+        'Size': 'ASSORTED',
+        'Color': color,
+        'SUB CATEGORY': 'GIFT ITEMS',
+        'MERCH CLASSES': 'Gifts',
+        'GENDER ': 'Unisex',
+        'STATUS': 'Active',
+        'Tags': '',
+        'Description': '',
+        'Composition': '',
+        'JobWorker': '',
+        'SetQuantity': '',
+        'ImageURL2': '',
+        'ImageURL3': '',
+        'ImageURL4': '',
+        'ImageURL5': '',
+        'ImageURL6': '',
+        'ImageURL7': ''
+      };
+    }
+
+    function exportToFlxy(){
+      const rows = [...tbody.querySelectorAll('tr')];
+      const dataRows = [];
+
+      rows.forEach(tr => {
+        const name = tr.querySelector('.product-name-input')?.value.trim() || '';
+        const qty = parseFloat(tr.querySelector('.qty-input')?.value) || 0;
+        const pid = tr.querySelector('.product-id-input')?.value.trim() || '';
+        if (!name || !pid || qty <= 0) return;
+        dataRows.push(buildFlxyRowFromTr(tr));
+      });
+
+      if (!dataRows.length){
+        alert('No valid rows to export.');
+        return;
+      }
+
+      let csv = FLXY_COLUMNS.map(c => csvEscape(c)).join(',') + '\r\n';
+      dataRows.forEach(rowObj => {
+        const line = FLXY_COLUMNS.map(col => csvEscape(rowObj[col] ?? '')).join(',');
+        csv += line + '\r\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Geekmonkey_Flxy_Export.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // === Event wiring ===
     document.getElementById('addRowBtn').addEventListener('click',addRow);
-    tbody.addEventListener('input',calcTotal);
+
+    tbody.addEventListener('input', (e)=>{
+      if (e.target.classList.contains('mrp-input')) {
+        const row = e.target.closest('tr');
+        setCostFromMrp(row);
+        calcTotal();
+      }
+      if (e.target.classList.contains('qty-input')) {
+        calcTotal();
+      }
+    });
+
     document.getElementById('exportBtn').addEventListener('click',()=>window.print());
     document.getElementById('generateLabelsBtn').addEventListener('click',generateLabels);
     document.getElementById('generateBarcodeLabelsBtn').addEventListener('click',generateBarcodeLabels);
+    document.getElementById('generateBarcodeA4Btn').addEventListener('click',generateBarcodeA4);
     document.getElementById('saveOutwardBtn').addEventListener('click',saveOutward);
+    document.getElementById('exportFlxyBtn').addEventListener('click', exportToFlxy);
+
+    // Attach product search to initial row
+    attachProductSearch(tbody.querySelector('tr'));
 </script>
 </body>
 </html>
