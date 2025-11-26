@@ -43,6 +43,9 @@ public interface InventoryRepo extends MongoRepository<Inventory,Long> {
     @Query("{$or:[{_id: ?0},{productVariantId:?0}]}")
     Optional<List<Inventory>> findById(String id);
 
+    @Query("{_id: ?0}")
+    Optional<Inventory> findByUPCId(String id);
+
     @Query(value = "{ 'productId' : ?0 }", delete = true)
     void deleteByProductid(String productId);
 

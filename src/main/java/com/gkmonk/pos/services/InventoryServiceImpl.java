@@ -18,6 +18,7 @@ import com.opencsv.CSVReaderBuilder;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -85,7 +86,17 @@ public class InventoryServiceImpl {
     }
 
     public void saveInventory(Inventory inventory) {
+        Optional<Inventory> existingInventory  = inventoryRepo.findByUPCId(inventory.getUpcId());
+        if(existingInventory.isPresent()){
+            existingInventory.get().setShopifyQuantity(inventory.getShopifyQuantity());
+            existingInventory.get().setPrice(inventory.getPrice());
+            existingInventory.get().setProductVariantSku(inventory.getProductVariantSku());
+            existingInventory.get().setImageUrl(inventory.getImageUrl());
+            existingInventory.get().setProductType(inventory.getProductType());
+            inventoryRepo.save(existingInventory.get());
+        }else {
             inventoryRepo.save(inventory);
+        }
     }
 
     public Inventory fetchProductDetails(String sku) {
@@ -268,14 +279,15 @@ public class InventoryServiceImpl {
         return inventories.orElseGet(ArrayList::new);
     }
 
+    @Cacheable(value = "inventoryList", key = "#query")
     public List<Inventory> fetchProductsUsingId(String query) {
         List<Inventory> inventoryList = new ArrayList<>();
-        Optional<List<Inventory>> inventories =  inventoryRepo.findById(String.valueOf(query));
-        if(inventories.isPresent() && !inventories.get().isEmpty()){
-            inventories.get().forEach(inventory -> shopifyServiceImpl.updateShopifyDetails(inventory));
-            inventories.get().forEach(this::updateInventoryDetailsFromShopify);
-            inventoryList.addAll(inventories.get());
-        }else {
+        Optional<List<Inventory>> inventories =  inventoryRepo.findAllByProductId(String.valueOf(query));
+//        if(inventories.isPresent() && !inventories.get().isEmpty()){
+//            inventories.get().forEach(inventory -> shopifyServiceImpl.updateShopifyDetails(inventory));
+//            inventories.get().forEach(this::updateInventoryDetailsFromShopify);
+//            inventoryList.addAll(inventories.get());
+//        }else {
             List<Inventory> shopifyInventory = shopifyServiceImpl.fetchProductFromShopify(query);
             if (shopifyInventory == null || shopifyInventory.isEmpty()) {
                 return inventoryList;
@@ -283,7 +295,7 @@ public class InventoryServiceImpl {
                 shopifyInventory.forEach(this::saveInventory);
                 inventoryList = shopifyInventory;
             }
-        }
+        //}
          return inventoryList;
 
     }

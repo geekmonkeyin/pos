@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Geekmonkey — SOR PO Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <style>
+    :root {
+      --accent: #ff7a00;
+      --accent-soft: #ffe7d3;
+      --bg: #f9fafb;
+      --card: #ffffff;
+      --stroke: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --radius: 14px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.08);
+      --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: radial-gradient(circle at top, #fff7ed 0, #f9fafb 40%);
+      color: var(--text);
+    }
+
+    .shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 16px 32px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 10%, #ffe7d3 0, #ff7a00 45%, #ff4b00 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .brand-text-title {
+      font-weight: 700;
+      font-size: 20px;
+    }
+    .brand-text-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .tab.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: #fed7aa;
+      font-weight: 600;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(148,163,184,0.15);
+      padding: 16px 18px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #e5f6ff;
+      color: #0369a1;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+    }
+
+    select, input, button, textarea {
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    input, select {
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--stroke);
+      background: #f9fafb;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(255,122,0,0.2);
+      background: #ffffff;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 14px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-secondary {
+      background: #0f172a;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    th, td {
+      padding: 6px 6px;
+      text-align: left;
+    }
+
+    thead {
+      background: #f3f4f6;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .stat {
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: #f9fafb;
+      border: 1px dashed #e5e7eb;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <div class="brand-logo">GM</div>
+      <div>
+        <div class="brand-text-title">Geekmonkey SOR Console</div>
+        <div class="brand-text-sub">Store-wise sales · Auto PO · Settlement ready</div>
+      </div>
+    </div>
+    <nav>
+      <button class="tab active">Dashboard</button>
+      <button class="tab">Sales Upload</button>
+      <button class="tab">Generate PO</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- LEFT: Sales upload & PO generation -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Sales Upload & PO</div>
+        <span class="pill">Step 1 → 2</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="store">Store</label>
+          <select id="store">
+            <option>Flexy - Cyber Hub</option>
+            <option>DLF Mall of India Kiosk</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cycle">Cycle Month</label>
+          <input id="cycle" placeholder="2025-11 (YYYY-MM)" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="file">Sales Report (Excel / CSV)</label>
+          <input id="file" type="file" />
+        </div>
+      </div>
+
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button class="btn">
+          ⬆ Upload Sales
+        </button>
+        <button class="btn btn-secondary">
+          ⚙ Generate PO
+        </button>
+      </div>
+
+      <table>
+        <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product</th>
+          <th>Qty Sold</th>
+          <th>Gross Sale (₹)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td>GM-ONEPIECE-LAMP</td>
+          <td>Luffy Gear 5 Lamp</td>
+          <td>12</td>
+          <td>29,988</td>
+        </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- RIGHT: Summary / Stats -->
+    <aside class="card">
+      <div class="card-header">
+        <div class="card-title">Cycle Summary</div>
+        <span class="pill">Preview</span>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">Gross Sales</div>
+          <div class="stat-value">₹ 2,99,880</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Output GST</div>
+          <div class="stat-value">₹ 45,572</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Take Rate (15%)</div>
+          <div class="stat-value">₹ 37,485</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Basic Value</div>
+          <div class="stat-value">₹ 2,16,823</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Settlement GST</div>
+          <div class="stat-value">₹ 39,028</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">PO Value Payable</div>
+          <div class="stat-value">₹ 2,55,851</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+</body>
+</html>

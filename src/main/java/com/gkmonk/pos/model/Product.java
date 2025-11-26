@@ -306,4 +306,7 @@ public class Product {
     @CSVAnnotations(column = "Status")
     private String status;
 
+    private String hsncode;
+
+
 }

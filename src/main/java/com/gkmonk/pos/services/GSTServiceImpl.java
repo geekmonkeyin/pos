@@ -14,6 +14,9 @@ public class GSTServiceImpl {
     @Autowired
     private GSTRepo gstRepo;
 
+    public GSTRate findGSTByCategory(String category){
+        return gstRepo.findFirstByCategory(category);
+    }
     public void updateHSNCode(List<ReportDetails> reportDetails){
        List<GSTRate> gstRateList =  gstRepo.findAll();
         for (ReportDetails reportDetail : reportDetails) {

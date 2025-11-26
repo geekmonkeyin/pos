@@ -220,7 +220,10 @@ public class InventoryController {
        if(products.isEmpty()){
            if(isQueryNumber(query)) {
                products = inventoryService.fetchProductsUsingId(query);
-
+               List<Inventory> filteredProducts = products.stream().filter( p -> p.getUpcId().equalsIgnoreCase(query)).toList();
+               if(filteredProducts.size() == 1){
+                   return ResponseEntity.ok(filteredProducts);
+               }
            }
        }
            return ResponseEntity.ok(products);

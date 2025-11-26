@@ -44,7 +44,7 @@ public class ChangeStreamStarter {
     private AuditEventRepo auditEventRepository;
     @Autowired
     private ChangeStreamOffsetRepo changeStreamOffsetRepo;
-    @Bean
+  //  @Bean
     ApplicationRunner runner() {
         return args -> {
             // $match pipeline: only insert/update/replace

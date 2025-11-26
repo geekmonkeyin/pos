@@ -78,6 +78,10 @@ public class Inventory {
 
     private List<StockHistory> stockHistory;
 
+    private double gstRate;
+
+    private String hsnCode;
+
 
     public List<String> getImages() {
         if( images == null){

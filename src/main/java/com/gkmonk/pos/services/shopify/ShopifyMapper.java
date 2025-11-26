@@ -57,9 +57,27 @@ public class ShopifyMapper {
             inventory.setShopifyQuantity(getQuantity(response));
             inventory.setQuantity(getQuantity(response));
             inventory.setProductId(getProductId(response));
+            inventory.setPrice(getMrpForNonVariant(response));
+            inventory.setProductType(getProductType(response));
+           // inventory.setImageUrl(getImageUrlForProduct(response));
+            inventory.setProductVariantSku(getProductVariantSku(response));
             inventoryList.add(inventory);
         }
         return inventoryList;
+    }
+
+    private static String getImageUrlForProduct(JsonObject response) {
+        return getVariantSku((JsonObject) getProduct(response).getAsJsonArray("variants").get(0));
+
+    }
+
+    private static String getProductVariantSku(JsonObject response) {
+        return getVariantSku((JsonObject) getProduct(response).getAsJsonArray("variants").get(0));
+        //get("sku").getAsString();
+    }
+
+    private static String getProductType(JsonObject response) {
+        return getProduct(response).get("product_type").getAsString();
     }
 
 
@@ -77,11 +95,16 @@ public class ShopifyMapper {
                 inventory.setProductVariantSku(getVariantSku(variantObject));
                 inventory.setQuantity(getVariantQty(variantObject));
                 inventory.setShopifyQuantity(getVariantQty(variantObject));
+                inventory.setPrice(getVariantMrp(variantObject));
                 inventoryList.add(inventory);
 
             });
         }
         return inventoryList;
+    }
+
+    private static double getVariantMrp(JsonObject variantObject) {
+        return variantObject != null ? variantObject.get("price").getAsDouble() : null;
     }
 
     private static String getVariantTitle(JsonObject variantObject) {
@@ -111,6 +134,13 @@ public class ShopifyMapper {
             return getVariants(getProduct(variantObject)).get(0).getAsJsonObject().get("inventory_quantity").getAsInt();
         }
         return variantObject != null ? variantObject.get("inventory_quantity").getAsInt() : 0;
+    }
+
+    private static double getMrpForNonVariant(JsonObject variantObject) {
+        if(isProductNestedJson(variantObject)) {
+            return getVariants(getProduct(variantObject)).get(0).getAsJsonObject().get("price").getAsDouble();
+        }
+        return variantObject != null ? variantObject.get("price").getAsDouble() : 0;
     }
 
 

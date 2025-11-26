@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Geekmonkey — Stores & SOR Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Bootstrap 4.5 -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+
+  <style>
+    :root{
+      --bg:#F9FAFB;
+      --card:#ffffff;
+      --stroke:#E5E7EB;
+      --text:#111827;
+      --muted:#6B7280;
+      --accent:#FF7A00;
+      --accent-ink:#9A4D00;
+      --radius:16px;
+    }
+    html,body{height:100%;}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+
+    /* Header */
+    .gm-header{
+      position:sticky; top:0; z-index:1000;
+      background:#fff; border-bottom:1px solid var(--stroke);
+    }
+    .gm-brand{
+      display:flex; align-items:center; gap:.6rem; font-weight:700; letter-spacing:.2px;
+      color:var(--text); text-decoration:none;
+    }
+    .gm-dot{
+      width:28px; height:28px; border-radius:10px; background:var(--accent);
+      display:inline-block;
+      box-shadow:0 8px 18px rgba(255,122,0,.25);
+    }
+    .gm-actions .btn{ border-radius:12px; }
+    .btn-ghost{
+      background:#fff; border:1px solid var(--stroke); color:var(--text);
+    }
+    .btn-ghost:hover{border-color:#d6d9de; background:#fdfdfd;}
+    .btn-accent{ background:var(--accent); color:#fff; border:0; }
+    .btn-accent:hover{background:#ff8d26;}
+
+    .page-title{ font-weight:800; letter-spacing:.3px; }
+
+    .gm-wrap{padding:20px;}
+    @media (min-width:992px){ .gm-wrap{padding:28px;} }
+
+    a, button{outline:0;}
+    a:focus-visible, button:focus-visible{
+      box-shadow:0 0 0 3px rgba(255,122,0,.35)!important;
+      border-radius:12px;
+    }
+
+    /* Tiles */
+    .gm-card-link{
+      display:flex; align-items:center; justify-content:flex-start;
+      min-height:150px; width:100%;
+      background:var(--card); color:var(--text);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      text-decoration:none; text-align:left;
+      font-size:1.02rem; font-weight:700;
+      box-shadow:0 4px 16px rgba(17,24,39,0.04);
+      transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      padding:1.1rem 1.25rem; gap:.75rem;
+    }
+    .gm-card-link:hover, .gm-card-link:focus{
+      transform:translateY(-2px);
+      border-color:#d6d9de;
+      box-shadow:0 10px 24px rgba(17,24,39,0.08);
+      text-decoration:none; color:var(--text);
+    }
+    .gm-card-link .gm-badge{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:40px; height:40px; border-radius:14px; background:#FFF1E6;
+      border:1px solid #FFD2AD; flex-shrink:0;
+    }
+    .gm-card-link .gm-title-text{
+      display:block; font-weight:700; font-size:1rem;
+    }
+    .gm-sub{
+      display:block; font-size:.85rem; font-weight:500; color:var(--muted); margin-top:.22rem;
+    }
+
+    .gm-section-sub{
+      font-size:.9rem; color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<nav class="gm-header">
+  <div class="container d-flex align-items-center justify-content-between py-2">
+    <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">
+      <span class="gm-dot" aria-hidden="true"></span>
+      <span>Geekmonkey</span>
+    </a>
+    <div class="gm-actions d-flex gap-2">
+      <button id="gmBackBtn" type="button" class="btn btn-ghost btn-sm mr-2" aria-label="Go Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="ml-1">Back</span>
+      </button>
+      <a href="/v1/home" class="btn btn-accent btn-sm" aria-label="Go Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 10.5l9-7 9 7V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H3v-9.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="ml-1">Home</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="gm-wrap">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <h1 class="page-title m-0">Stores &amp; SOR Management</h1>
+    </div>
+    <p class="gm-section-sub mb-4">
+      Manage partner stores, track SOR stock flows, upload sales and generate purchase orders in a single hub.
+    </p>
+
+    <div class="row">
+      <!-- 1. Add Store -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/stores/add">
+          <span class="gm-badge">
+            <!-- plus/store icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 10l1-5h14l1 5M4 10h16v9a1 1 0 0 1-1 1h-4v-4H9v4H5a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 4v3m-1.5-1.5h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <span class="gm-title-text">Add Store</span>
+            <small class="gm-sub">Create new SOR partner with take rate &amp; GST settings</small>
+          </span>
+        </a>
+      </div>
+
+      <!-- 2. Update Store -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/store/update">
+          <span class="gm-badge">
+            <!-- edit icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 20h4l10.5-10.5a1.5 1.5 0 0 0 0-2.12L17.62 6.5a1.5 1.5 0 0 0-2.12 0L5 17v3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <span class="gm-title-text">Update Store</span>
+            <small class="gm-sub">Edit take rate, GST, address or deactivate store</small>
+          </span>
+        </a>
+      </div>
+
+      <!-- 3. Prepare Outward -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/stores/outward">
+          <span class="gm-badge">
+            <!-- outward/box icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 9l8-5 8 5-8 5-8-5z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 15l8 5 8-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 9v6m16-6v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <span class="gm-title-text">Prepare Outward</span>
+            <small class="gm-sub">Create SOR dispatch challan &amp; update store inventory</small>
+          </span>
+        </a>
+      </div>
+
+      <!-- 4. Returns -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/sor/returns">
+          <span class="gm-badge">
+            <!-- return arrow icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 10l4-4m0 0L4 2m4 4H13a7 7 0 1 1 0 14h-2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <span class="gm-title-text">Returns</span>
+            <small class="gm-sub">Record unsold / damaged stock returning from store</small>
+          </span>
+        </a>
+      </div>
+
+      <!-- 5. Sales Update -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/sales/update">
+          <span class="gm-badge">
+            <!-- upload icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 15V3m0 0l-4 4m4-4l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <span class="gm-title-text">Sales Update</span>
+            <small class="gm-sub">Upload cycle-wise sales report (CSV / Excel)</small>
+          </span>
+        </a>
+      </div>
+
+      <!-- 6. Purchase Order -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/po">
+          <span class="gm-badge">
+            <!-- document icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 11h6M9 15h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <span class="gm-title-text">Purchase Order</span>
+            <small class="gm-sub">Generate SOR-based POs from uploaded sales</small>
+          </span>
+        </a>
+      </div>
+
+      <!-- 7. Payment Reconciliation -->
+      <div class="col-md-4 mb-3">
+        <a class="gm-card-link" href="/v1/po/reconciliation">
+          <span class="gm-badge">
+            <!-- rupee/ledger icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 4h10a2 2 0 0 1 2 2v12H8a2 2 0 0 1-2-2V4z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 7h6M9 10h6M9 13h3M11 17l2 2m0-2l-2 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <span class="gm-title-text">Payment Reconciliation</span>
+            <small class="gm-sub">Map store payments to POs &amp; track outstanding</small>
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  (function(){
+    const backBtn = document.getElementById('gmBackBtn');
+    if(backBtn){
+      backBtn.addEventListener('click', function(){
+        if (window.history && window.history.length > 1) {
+          try { window.history.back(); return; } catch(e){}
+        }
+        window.location.href = '/v1/home';
+      });
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Geekmonkey — Add Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Bootstrap 4.5 -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+
+  <style>
+    :root{
+      --bg:#F9FAFB;
+      --card:#ffffff;
+      --stroke:#E5E7EB;
+      --text:#111827;
+      --muted:#6B7280;
+      --accent:#FF7A00;
+      --accent-ink:#9A4D00;
+      --radius:16px;
+    }
+
+    html,body{height:100%;}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+
+    /* Header */
+    .gm-header{
+      position:sticky; top:0; z-index:1000;
+      background:#fff; border-bottom:1px solid var(--stroke);
+    }
+    .gm-brand{
+      display:flex; align-items:center; gap:.6rem; font-weight:700; letter-spacing:.2px;
+      color:var(--text); text-decoration:none;
+    }
+    .gm-dot{
+      width:28px; height:28px; border-radius:10px; background:var(--accent);
+      display:inline-block;
+      box-shadow:0 8px 18px rgba(255,122,0,.25);
+    }
+    .gm-actions .btn{ border-radius:12px; }
+    .btn-ghost{
+      background:#fff; border:1px solid var(--stroke); color:var(--text);
+    }
+    .btn-ghost:hover{border-color:#d6d9de; background:#fdfdfd;}
+    .btn-accent{ background:var(--accent); color:#fff; border:0; }
+    .btn-accent:hover{background:#ff8d26;}
+
+    .page-title{ font-weight:800; letter-spacing:.3px; }
+
+    .gm-wrap{padding:20px;}
+    @media (min-width:992px){ .gm-wrap{padding:28px;} }
+
+    a, button{outline:0;}
+    a:focus-visible, button:focus-visible{
+      box-shadow:0 0 0 3px rgba(255,122,0,.35)!important;
+      border-radius:12px;
+    }
+
+    /* Card / form */
+    .gm-card{
+      background:var(--card);
+      border-radius:var(--radius);
+      border:1px solid var(--stroke);
+      box-shadow:0 6px 20px rgba(15,23,42,0.06);
+      padding:20px 22px;
+    }
+    .gm-card-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .gm-chip{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:2px 8px;
+      font-size:.7rem;
+      border-radius:999px;
+      background:#FFF1E6;
+      color:var(--accent-ink);
+      border:1px solid #FFD2AD;
+    }
+    .gm-help{
+      font-size:.9rem; color:var(--muted); margin-bottom:14px;
+    }
+
+    .gm-field-label{
+      font-size:.75rem;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--muted);
+      margin-bottom:3px;
+    }
+    .gm-input, .gm-select{
+      width:100%;
+      border-radius:10px;
+      border:1px solid var(--stroke);
+      padding:.45rem .6rem;
+      font-size:.9rem;
+      background:#F9FAFB;
+    }
+    .gm-input:focus, .gm-select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 2px rgba(255,122,0,.2);
+      outline:0;
+      background:#fff;
+    }
+
+    .gm-btn-primary{
+      background:var(--accent); color:#fff; border-radius:12px;
+      border:0; padding:.5rem 1.1rem; font-size:.92rem; font-weight:600;
+    }
+    .gm-btn-primary:hover{background:#ff8d26;}
+
+    .gm-pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:8px;
+    }
+    .gm-pill{
+      border-radius:999px;
+      border:1px solid #e5e7eb;
+      font-size:.75rem;
+      padding:2px 8px;
+      background:#f9fafb;
+      color:var(--muted);
+    }
+
+    .text-muted-small{
+      font-size:.75rem;
+      color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<nav class="gm-header">
+  <div class="container d-flex align-items-center justify-content-between py-2">
+    <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">
+      <span class="gm-dot" aria-hidden="true"></span>
+      <span>Geekmonkey</span>
+    </a>
+    <div class="gm-actions d-flex gap-2">
+      <button id="gmBackBtn" type="button" class="btn btn-ghost btn-sm mr-2" aria-label="Go Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="ml-1">Back</span>
+      </button>
+      <a href="/v1/home" class="btn btn-accent btn-sm" aria-label="Go Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 10.5l9-7 9 7V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H3v-9.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="ml-1">Home</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="gm-wrap">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h1 class="page-title m-0">Add Store</h1>
+    </div>
+    <p class="gm-help">
+      Register a new store or kiosk for SOR operations. Key commercial and contact details will be used for PO, rent and reconciliation.
+    </p>
+
+    <div class="gm-card">
+      <div class="gm-card-head">
+        <h2 class="h6 mb-0">Store Details</h2>
+        <span class="gm-chip">Step 1 · Store Onboarding</span>
+      </div>
+
+      <form action="/v1/stores/addStore" method="post" enctype="multipart/form-data">
+        <!-- Row 1: Store & Location -->
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <div class="gm-field-label">Store Name *</div>
+            <input type="text" name="storeName" class="gm-input" placeholder="Flexy Brand — Cyber Hub" required>
+          </div>
+          <div class="form-group col-md-6">
+            <div class="gm-field-label">Location *</div>
+            <input type="text" name="location" class="gm-input" placeholder="Cyber Hub, Gurgaon · 1st Floor" required>
+          </div>
+        </div>
+
+        <!-- Row 2: Rental, Commission & GST -->
+        <div class="form-row">
+          <div class="form-group col-md-3">
+            <div class="gm-field-label">Monthly Rental (₹) *</div>
+            <input type="number" step="0.01" name="rental" class="gm-input" placeholder="25000" required>
+            <div class="text-muted-small mt-1">
+              Base rent per month, excluding GST and revenue share.
+            </div>
+          </div>
+          <div class="form-group col-md-3">
+            <div class="gm-field-label">Commission % *</div>
+            <input type="number" step="0.01" name="commissionPercent" class="gm-input" placeholder="15" required>
+            <div class="text-muted-small mt-1">
+              Store commission / revenue share on net sales.
+            </div>
+          </div>
+          <div class="form-group col-md-3">
+            <div class="gm-field-label">GSTIN *</div>
+            <input type="text" name="gstNo" class="gm-input" placeholder="07ABCDE1234F1Z5" required>
+          </div>
+          <div class="form-group col-md-3">
+            <div class="gm-field-label">GST Registration State</div>
+            <input type="text" name="gstState" class="gm-input" placeholder="Haryana / Delhi / Uttarakhand">
+          </div>
+        </div>
+
+        <!-- Row 3: Contact Person -->
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <div class="gm-field-label">Contact Person Name *</div>
+            <input type="text" name="contactPerson" class="gm-input" placeholder="Mr. XYZ / Store Manager" required>
+          </div>
+          <div class="form-group col-md-3">
+            <div class="gm-field-label">POC Phone No. *</div>
+            <input type="tel" name="pocPhone" class="gm-input" placeholder="+91-98XXXXXX00" required>
+          </div>
+          <div class="form-group col-md-3">
+            <div class="gm-field-label">POC Email</div>
+            <input type="email" name="pocEmail" class="gm-input" placeholder="manager@mallstore.com">
+          </div>
+        </div>
+
+        <!-- Row 4: Agreement Upload -->
+        <div class="form-row">
+          <div class="form-group col-md-8">
+            <div class="gm-field-label">Upload Agreement (PDF) *</div>
+            <input type="file" name="agreementPdf" class="gm-input" accept="application/pdf" required>
+            <div class="text-muted-small mt-1">
+              Upload the signed store agreement or LOI in PDF format only. Max size e.g. 10 MB.
+            </div>
+          </div>
+          <div class="form-group col-md-4">
+            <div class="gm-field-label">Agreement Valid Till</div>
+            <input type="date" name="agreementValidTill" class="gm-input">
+          </div>
+        </div>
+
+        <!-- Optional notes -->
+        <div class="form-group">
+          <div class="gm-field-label">Internal Notes</div>
+          <textarea name="notes" rows="2" class="gm-input" placeholder="Anything specific about this location, timing, mall rules, branding clauses…"></textarea>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <div class="gm-pill-row">
+            <span class="gm-pill">SOR Store</span>
+            <span class="gm-pill">Rent + Commission</span>
+            <span class="gm-pill">Agreement on File</span>
+          </div>
+          <button type="submit" class="gm-btn-primary">
+            Save Store
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script>
+  (function(){
+    const backBtn = document.getElementById('gmBackBtn');
+    if(backBtn){
+      backBtn.addEventListener('click', function(){
+        if (window.history && window.history.length > 1) {
+          try { window.history.back(); return; } catch(e){}
+        }
+        window.location.href = '/v1/home';
+      });
+    }
+  })();
+</script>
+</body>
+</html>

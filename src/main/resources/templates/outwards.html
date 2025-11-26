@@ -1451,7 +1451,16 @@
 
       const category = getMetaField(meta, ['category','productCategory','ProductCategory','collection','productType','product_type']);
       const hsn = getMetaField(meta, ['hsn','hsnCode','hsncode','hsn_sac','HSN','HSNCode']);
-      const taxRate = getMetaField(meta, ['taxRate','tax_rate','gst','gstRate','GST']);
+      const taxRateRaw = getMetaField(meta, ['taxRate','tax_rate','gst','gstRate','GST']);
+      const taxRateStr = String(taxRateRaw || '').trim();
+      let taxCategoryVal;
+      if (taxRateStr) {
+        const hasPct = /%$/.test(taxRateStr);
+        taxCategoryVal = 'gift items ' + taxRateStr + (hasPct ? '' : ' %');
+      } else {
+        taxCategoryVal = 'gift items';
+      }
+
       const variantName = getMetaField(meta, ['productVariantTitle','variantTitle','option1','color','Color']);
       const color = variantName ? variantName : 'Random';
 
@@ -1479,8 +1488,8 @@
         'SellingPrice': mrp,
         'Stock': qty,
         'Category': categoryVal,
-        'TaxCategory': categoryVal,
-        'CostPrice': taxRate,
+        'TaxCategory': taxCategoryVal,
+        'CostPrice': '',                         // <-- now always blank
         'StyleCode': categoryVal,
         'Season': 'SS 25',
         'UOM': 'Pieces',

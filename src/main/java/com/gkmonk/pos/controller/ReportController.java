@@ -84,7 +84,7 @@ public class ReportController {
     @GetMapping("/shopifyreport")
     public ModelAndView getShopifyReport() {
         ModelAndView model = new ModelAndView();
-        List<ReportDetails> reportDetailsList = reportServiceImpl.getReportDetailsByDate("2025-01-01","2025-09-30");
+        List<ReportDetails> reportDetailsList = reportServiceImpl.getReportDetailsByDate("2025-01-01","2025-10-31");
         stateServiceImpl.updateStateCodes(reportDetailsList);
         gstServiceImpl.updateHSNCode(reportDetailsList);
         reportDetailsList.forEach(report -> report.setProductTitle(report.getProductTitle().replaceAll(",", "")));
