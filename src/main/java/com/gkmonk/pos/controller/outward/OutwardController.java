@@ -4,6 +4,7 @@ import com.gkmonk.pos.model.GSTRate;
 import com.gkmonk.pos.model.Inventory;
 import com.gkmonk.pos.services.GSTServiceImpl;
 import com.gkmonk.pos.services.InventoryServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/v1/outward")
+@Slf4j
 public class OutwardController {
 
     @Autowired
@@ -38,9 +40,12 @@ public class OutwardController {
     private void updateProductsTaxRate(List<Inventory> products) {
 
             products.forEach(product -> {
+                log.info("Getting tax rate from db for product type: {}", product.getProductType());
                 GSTRate gstRate = gstService.findGSTByCategory(product.getProductType());
-                product.setGstRate(gstRate.getRate());
-                product.setHsnCode(gstRate.getHsn());
+                if(gstRate != null) {
+                    product.setGstRate(gstRate.getRate());
+                    product.setHsnCode(gstRate.getHsn());
+                }
             });
     }
 }

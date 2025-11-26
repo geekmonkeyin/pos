@@ -18,6 +18,7 @@ import com.opencsv.CSVReaderBuilder;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -94,6 +95,8 @@ public class InventoryServiceImpl {
             existingInventory.get().setImageUrl(inventory.getImageUrl());
             existingInventory.get().setProductType(inventory.getProductType());
             inventoryRepo.save(existingInventory.get());
+            inventory.setStorage(existingInventory.get().getStorage());
+            inventory.setStockHistory(existingInventory.get().getStockHistory());
         }else {
             inventoryRepo.save(inventory);
         }
@@ -231,7 +234,8 @@ public class InventoryServiceImpl {
         inventoryRepo.deleteByUPCId(upcId);
     }
 
-    public void updateInventory(String productId, String location, Integer quantity, List<MultipartFile> images, String remarks, String deviceName,String empId) {
+    @CacheEvict(value = "inventoryList", key = "#productId")
+    public List<Inventory> updateInventory(String productId, String location, Integer quantity, List<MultipartFile> images, String remarks, String deviceName,String empId) {
         List<Inventory> inventoryList = getInventoryByProductId(productId);
         inventoryList.forEach(inventory -> {
            try {
@@ -247,8 +251,9 @@ public class InventoryServiceImpl {
            }catch (Exception e){
                e.printStackTrace();
            }
-        });
 
+        });
+        return inventoryList;
     }
 
     private String getDefaultDeviceName(String deviceName) {

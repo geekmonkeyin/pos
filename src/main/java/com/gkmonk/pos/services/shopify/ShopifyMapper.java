@@ -51,6 +51,10 @@ public class ShopifyMapper {
         if(isMoreVariationAvailable(response)){
             //createVariation;
             inventoryList.addAll(convertJSONToInventoryVariations(getVariants(getProduct(response)),inventory.getProductTitle()));
+            String productType = getProductType(response);
+            inventoryList.forEach(inven-> {
+                inven.setProductType(productType);
+            });
         }else{
             inventory.setProductVariantId(getProductId(response));
             inventory.setUpcId(getProductId(response));
@@ -96,6 +100,7 @@ public class ShopifyMapper {
                 inventory.setQuantity(getVariantQty(variantObject));
                 inventory.setShopifyQuantity(getVariantQty(variantObject));
                 inventory.setPrice(getVariantMrp(variantObject));
+
                 inventoryList.add(inventory);
 
             });
