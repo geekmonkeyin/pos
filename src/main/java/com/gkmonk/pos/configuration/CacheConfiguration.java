@@ -22,7 +22,7 @@ public class CacheConfiguration {
             protected Cache createConcurrentMapCache(final String name) {
                 return new ConcurrentMapCache(name,
                         CacheBuilder.newBuilder()
-                                .expireAfterWrite(4, TimeUnit.HOURS)
+                                .expireAfterWrite(12, TimeUnit.HOURS)
                                 .build()
                                 .asMap(),
                         false);
