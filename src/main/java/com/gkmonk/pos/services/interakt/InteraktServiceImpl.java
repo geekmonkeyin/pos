@@ -1,15 +1,18 @@
 package com.gkmonk.pos.services.interakt;
 
 import com.gkmonk.pos.model.notification.NotificationType;
+import com.gkmonk.pos.services.token.AllCredentialsService;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.Map;
 
 @Service
 public class InteraktServiceImpl {
@@ -19,16 +22,21 @@ public class InteraktServiceImpl {
     private String AUTH_TOKEN ;
     @Value(("${whatsapp.api.adduser.url}"))
     private String ADD_USER_URL;
-
+    @Autowired
+    private AllCredentialsService credentialsService;
 
 
     @PostConstruct
     void init(){
-        AUTH_TOKEN = System.getenv().get("whatsapp.api.token");
+        //AUTH_TOKEN = System.getenv().get("whatsapp.api.token");
 
     }
 
+
+
     public boolean sendOrderStatusUpdates(String currentStatus,String name,String awb,String phoneno, String edd, String courier, String paymentMode, String productURL, String trackingURL) {
+
+
         try {
             JSONObject traits = new JSONObject()
                     .put("username", name)
@@ -47,12 +55,39 @@ public class InteraktServiceImpl {
                     .put("traits", traits);
 
             HttpResponse<String> response = callInteraktService(payload,API_URL);
+            //send scam alert
+            sendScamAlert(phoneno);
             return isEventCreated(response);
         } catch (Exception e) {
             System.err.println("API request failed: " + e.getMessage());
         }
         return false;
     }
+
+    private void updateAuthToken() {
+        if(AUTH_TOKEN == null){
+            for ( Map credMap : credentialsService.getCredentials() ) {
+                if("interakt".equalsIgnoreCase((String) credMap.get("_id"))){
+                    AUTH_TOKEN = credMap.get("whatsapp.api.token").toString();
+                }
+            }
+        }
+    }
+
+    private void sendScamAlert(String phoneno) throws UnirestException {
+        JSONObject traits = new JSONObject();
+
+        JSONObject payload = new JSONObject()
+                .put("fullPhoneNumber",phoneno )
+                // .put("fullPhoneNumber","919560772223" )
+
+                .put("event", "scamalert")
+                .put("traits", traits);
+
+        HttpResponse<String> response = callInteraktService(payload,API_URL);
+
+    }
+
     public boolean sendMsgOnProductShipped(String name,String awb,String phoneno, String edd, String courier, String paymentMode, String productURL, String trackingURL) {
         return sendOrderStatusUpdates(NotificationType.ORDER_PICKED.getValue(),name,awb,phoneno,edd,courier,paymentMode,productURL,trackingURL);
 
@@ -72,6 +107,7 @@ public class InteraktServiceImpl {
     }
 
     public HttpResponse<String> callInteraktService(JSONObject payload,String url) throws UnirestException {
+        updateAuthToken();
         Unirest.setTimeouts(0, 0);
         return Unirest.post(url)
                 .header("Content-Type", "application/json")
