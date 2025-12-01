@@ -5,10 +5,12 @@ import com.gkmonk.pos.model.order.CourierOption;
 import com.gkmonk.pos.services.courier.IOrdersSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.util.List;
 
@@ -45,4 +47,8 @@ public class CourierController {
         return ResponseEntity.ok(courierOptions);
     }
 
+    @GetMapping("/convertToMozo")
+    public ModelAndView convertToMozo(){
+        return new ModelAndView("shopifytomozo");
+    }
 }

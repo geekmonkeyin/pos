@@ -5,6 +5,7 @@ import com.gkmonk.pos.model.legacy.ShopifyOrders;
 import com.gkmonk.pos.model.order.Customer;
 import com.gkmonk.pos.model.order.OrderStatus;
 import com.gkmonk.pos.services.externalapi.APIProxyService;
+import com.gkmonk.pos.services.token.AllCredentialsService;
 import com.gkmonk.pos.utils.POSConstants;
 import com.gkmonk.pos.utils.StringUtils;
 import com.google.gson.Gson;
@@ -19,9 +20,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,16 +47,33 @@ public class ShopifyServiceImpl {
     @Autowired
     private APIProxyService apiProxyService;
 
+    @Autowired
+    private AllCredentialsService credentialsService;
+    private List<Map> credentialsList;
+
     private String shortToken;
 
     @PostConstruct
     void init(){
-        shopifyToken = System.getenv().get("shopify_token");
-        shortToken  = System.getenv().get("shopify_shortToken");
+       // shopifyToken = System.getenv().get("shopify_token");
+        //shortToken  = System.getenv().get("shopify_shortToken");
+    }
+
+    public void updateTokens(){
+        credentialsList  = credentialsService.getCredentials();
+        for ( Map credMap : credentialsList ) {
+            if("shopify".equalsIgnoreCase((String) credMap.get("_id"))){
+                shortToken = credMap.get("shopify.shortToken").toString();
+                shopifyToken = credMap.get("shopify.token").toString();
+            }
+        }
     }
 
 
     public void updateShopifyDetails(Inventory inventory){
+        if(shopifyToken == null){
+            updateTokens();
+        }
         String id = StringUtils.isNotBlank(inventory.getProductId()) ? inventory.getProductId() : inventory.getProductVariantId();
         dynamicProductUrl = productUrl.replace("$$", "/"+id+".json");
         dynamicProductUrl = protocol  + shopifyToken + "@"+shopifyDomain + dynamicProductUrl;
@@ -139,6 +154,9 @@ public class ShopifyServiceImpl {
 
     public List<Inventory> fetchProductFromShopify(String productId) {
 
+        if(shopifyToken == null){
+            updateTokens();
+        }
         dynamicProductUrl = productUrl.replace("$$", "/"+productId+".json");
         dynamicProductUrl = protocol  + shopifyToken + "@"+shopifyDomain + dynamicProductUrl;
         try {
@@ -168,6 +186,10 @@ public class ShopifyServiceImpl {
 
 
     public boolean archieveOrder(String orderId){
+        if(shopifyToken == null){
+            updateTokens();
+        }
+
         String orderUrl = singleOrderUrl.replaceAll("[$]", "");
         orderUrl += orderId + "/close.json";
         String url = protocol + shopifyDomain + orderUrl;

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Geekmonkey — Shopify Orders → forward_bulk_order.csv</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+          --bg: #f9fafb;
+          --card: #ffffff;
+          --stroke: #e5e7eb;
+          --text: #111827;
+          --muted: #6b7280;
+          --accent: #ff7a00;
+          --accent-ink: #9A4D00;
+          --radius-lg: 24px;
+          --radius-pill: 999px;
+          --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        * , *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          background: radial-gradient(circle at top left, #ffe2c2 0, #f9fafb 55%);
+          color: var(--text);
+        }
+
+        body {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* Header */
+        .gm-header {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          backdrop-filter: blur(12px);
+          background: linear-gradient(90deg, rgba(255,122,0,0.08), rgba(249,250,251,0.96));
+          border-bottom: 1px solid rgba(229,231,235,0.6);
+        }
+
+        .gm-header-inner {
+          max-width: 1120px;
+          margin: 0 auto;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .gm-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .gm-logo-dot {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          background: var(--accent);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-weight: 700;
+          font-size: 18px;
+          box-shadow: 0 10px 24px rgba(255,122,0,0.55);
+        }
+
+        .gm-brand-text {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .gm-brand-text span:first-child {
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          font-size: 14px;
+          text-transform: uppercase;
+          color: #111827;
+        }
+
+        .gm-brand-text span:last-child {
+          font-size: 11px;
+          color: var(--muted);
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+        }
+
+        .gm-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .gm-btn-ghost,
+        .gm-btn-filled {
+          border-radius: var(--radius-pill);
+          padding: 6px 14px;
+          font-size: 13px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 1px solid transparent;
+          background: transparent;
+          cursor: pointer;
+          transition: all 0.15s ease-out;
+          text-decoration: none;
+          color: inherit;
+        }
+
+        .gm-btn-ghost {
+          border-color: rgba(17,24,39,0.15);
+          background: rgba(255,255,255,0.9);
+        }
+
+        .gm-btn-ghost:hover {
+          background: #ffffff;
+          border-color: rgba(17,24,39,0.3);
+          transform: translateY(-1px);
+        }
+
+        .gm-btn-filled {
+          background: var(--accent);
+          color: #fff;
+          box-shadow: 0 10px 25px rgba(255,122,0,0.65);
+          border-color: var(--accent);
+        }
+
+        .gm-btn-filled:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.05);
+        }
+
+        .gm-btn-icon {
+          font-size: 14px;
+        }
+
+        /* Main layout */
+        .gm-main {
+          flex: 1;
+          display: flex;
+          justify-content: center;
+          padding: 32px 16px 40px;
+        }
+
+        .gm-shell {
+          width: 100%;
+          max-width: 1120px;
+          display: grid;
+          grid-template-columns: minmax(0, 3.5fr) minmax(0, 2.5fr);
+          gap: 24px;
+          align-items: flex-start;
+        }
+
+        @media (max-width: 900px) {
+          .gm-shell {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+
+        .gm-card {
+          background: rgba(255,255,255,0.98);
+          border-radius: var(--radius-lg);
+          border: 1px solid rgba(229,231,235,0.95);
+          box-shadow: var(--shadow-soft);
+          padding: 24px 22px 20px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .gm-card::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: radial-gradient(circle at top right, rgba(255,122,0,0.12), transparent 55%);
+          opacity: 0.9;
+        }
+
+        .gm-card-inner {
+          position: relative;
+          z-index: 1;
+        }
+
+        .gm-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border-radius: 999px;
+          font-size: 11px;
+          padding: 3px 10px;
+          background: rgba(255,122,0,0.08);
+          color: var(--accent-ink);
+          border: 1px solid rgba(255,122,0,0.35);
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          margin-bottom: 8px;
+        }
+
+        .gm-title {
+          font-size: 22px;
+          font-weight: 700;
+          margin: 0 0 6px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .gm-title span.spark {
+          font-size: 20px;
+        }
+
+        .gm-subtitle {
+          margin: 0 0 18px;
+          font-size: 13px;
+          color: var(--muted);
+          max-width: 520px;
+        }
+
+        .gm-form-group {
+          margin-bottom: 16px;
+        }
+
+        .gm-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 12px;
+          font-weight: 500;
+          color: #4b5563;
+          margin-bottom: 4px;
+        }
+
+        .gm-label span.hint {
+          font-size: 11px;
+          color: var(--muted);
+          font-weight: 400;
+        }
+
+        .gm-input-file {
+          width: 100%;
+          padding: 9px 10px;
+          border-radius: 12px;
+          border: 1px dashed rgba(148,163,184,0.9);
+          background: linear-gradient(135deg, #ffffff, #fdfdfd);
+          font-size: 13px;
+          cursor: pointer;
+        }
+
+        .gm-actions-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 12px;
+          flex-wrap: wrap;
+        }
+
+        .gm-btn-primary {
+          border-radius: var(--radius-pill);
+          padding: 9px 16px;
+          font-size: 13px;
+          font-weight: 600;
+          border: none;
+          color: #fff;
+          background: var(--accent);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 12px 28px rgba(255,122,0,0.68);
+          transition: all 0.15s ease-out;
+        }
+
+        .gm-btn-primary:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.05);
+        }
+
+        .gm-btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          box-shadow: none;
+          transform: none;
+        }
+
+        .gm-status {
+          font-size: 12px;
+          color: var(--muted);
+        }
+
+        .gm-status strong {
+          color: #111827;
+        }
+
+        .gm-status.ok {
+          color: #047857;
+        }
+
+        .gm-status.error {
+          color: #b91c1c;
+        }
+
+        .gm-status-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #ecfdf3;
+          color: #166534;
+          border-radius: 999px;
+          padding: 3px 8px;
+          font-size: 11px;
+          font-weight: 500;
+        }
+
+        .gm-status-chip.error {
+          background: #fef2f2;
+          color: #b91c1c;
+        }
+
+        .gm-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border-radius: 999px;
+          background: #f3f4ff;
+          color: #4338ca;
+          font-size: 11px;
+          padding: 3px 9px;
+          margin-bottom: 8px;
+          font-weight: 500;
+        }
+
+        /* Right panel */
+        .gm-side-card {
+          background: rgba(255,255,255,0.97);
+          border-radius: var(--radius-lg);
+          padding: 18px 18px 16px;
+          border: 1px solid rgba(229,231,235,0.9);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.06);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .gm-side-card::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at top left, rgba(255,122,0,0.16), transparent 55%);
+          opacity: 0.8;
+          pointer-events: none;
+        }
+
+        .gm-side-inner {
+          position: relative;
+          z-index: 1;
+        }
+
+        .gm-side-title {
+          font-size: 14px;
+          font-weight: 600;
+          margin: 0 0 8px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .gm-side-list {
+          margin: 0;
+          padding-left: 16px;
+          font-size: 12px;
+          color: var(--muted);
+        }
+
+        .gm-side-list li {
+          margin-bottom: 6px;
+        }
+
+        .gm-kv {
+          border-radius: 14px;
+          background: rgba(255,255,255,0.9);
+          border: 1px dashed rgba(148,163,184,0.7);
+          padding: 9px 10px;
+          margin-top: 10px;
+          font-size: 11px;
+          color: #4b5563;
+        }
+
+        .gm-kv code {
+          background: #f3f4f6;
+          padding: 1px 4px;
+          border-radius: 5px;
+          font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="gm-header">
+    <div class="gm-header-inner">
+        <div class="gm-brand">
+            <div class="gm-logo-dot">G</div>
+            <div class="gm-brand-text">
+                <span>Geekmonkey</span>
+                <span>Anime · Gifts · Ops Tools</span>
+            </div>
+        </div>
+        <div class="gm-header-actions">
+            <button class="gm-btn-ghost" onclick="window.history.back()">
+                <span class="gm-btn-icon">←</span>
+                <span>Back</span>
+            </button>
+            <a class="gm-btn-filled" href="/">
+                <span class="gm-btn-icon">⌂</span>
+                <span>Home</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="gm-main">
+    <div class="gm-shell">
+        <!-- LEFT: main converter -->
+        <section class="gm-card">
+            <div class="gm-card-inner">
+                <div class="gm-tag">
+                    <span>CSV Utility</span>
+                </div>
+                <h1 class="gm-title">
+                    <span class="spark">⚙️</span>
+                    Shopify → forward_bulk_order.csv
+                </h1>
+                <p class="gm-subtitle">
+                    Upload <strong>live_orders.shopifyorders.csv</strong>. We’ll generate
+                    <strong>forward_bulk_order.csv</strong> with the exact courier header.
+                    If a field isn’t found, its value is left blank (header always kept).
+                </p>
+
+                <div class="gm-form-group">
+                    <label class="gm-label">
+                        <span>Source file</span>
+                        <span class="hint">Expected: <code>live_orders.shopifyorders.csv</code></span>
+                    </label>
+                    <input id="csvInput" type="file" accept=".csv,text/csv" class="gm-input-file" />
+                </div>
+
+                <div class="gm-actions-row">
+                    <button id="convertBtn" class="gm-btn-primary" disabled>
+                        <span>Convert to forward_bulk_order.csv</span>
+                    </button>
+                    <div id="statusText" class="gm-status">
+                        Choose a CSV file to get started.
+                    </div>
+                </div>
+
+                <div id="downloadSection" style="margin-top:14px; display:none;">
+          <span id="downloadChip" class="gm-status-chip">
+            ✅ Ready — forward_bulk_order.csv
+          </span>
+                    <a id="downloadLink" href="#" download="forward_bulk_order.csv"
+                       class="gm-btn-ghost" style="margin-left:8px; padding:4px 10px; font-size:12px;">
+                        ⬇ Download CSV
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: info / mapping -->
+        <aside class="gm-side-card">
+            <div class="gm-side-inner">
+                <div class="gm-pill">
+                    Mapping Guide · Geekmonkey Ops
+                </div>
+
+                <h2 class="gm-side-title">
+                    🔄 Column Mapping (Shopify → forward_bulk_order.csv)
+                </h2>
+                <ul class="gm-side-list">
+                    <li><strong>*Reference Id</strong> → <code>name</code></li>
+                    <li><strong>Order Date as dd/mm/yyyy (Default Today Date)</strong> → Today’s date (browser time)</li>
+                    <li><strong>company Name</strong> → blank</li>
+                    <li><strong>*Payment Method(COD/Prepaid)</strong> → <code>Prepaid</code> (hardcoded)</li>
+                    <li><strong>*Customer Name</strong> → <code>shipping_address.first_name</code> + <code>shipping_address.last_name</code></li>
+                    <li><strong>Email</strong> → <code>customer.email</code></li>
+                    <li><strong>*Customer Mobile</strong> → <code>shipping_address.phone</code></li>
+                    <li><strong>Customer Alternate Mobile</strong> → blank</li>
+                    <li><strong>*Shipping Address Line 1</strong> → <code>shipping_address.address1</code></li>
+                    <li><strong>Shipping Address Line 2</strong> → blank</li>
+                    <li><strong>*Shipping Address Postcode</strong> → <code>shipping_address.zip</code></li>
+                    <li><strong>Billing…</strong> fields → blank</li>
+                    <li><strong>*Product Name</strong> → <code>not available</code> (hardcoded)</li>
+                    <li><strong>Sku Number</strong> → blank</li>
+                    <li><strong>*Product Quantity</strong> → <code>1</code> (hardcoded)</li>
+                    <li><strong>*Unit Price per item</strong> → <code>2 × fulfillments[0].line_items[0].price</code> (blank if missing)</li>
+                    <li><strong>*Length/Breadth/Height (cm)</strong> → <code>10</code> (hardcoded)</li>
+                    <li><strong>*Weight Of Shipment(kg)</strong> → <code>0.2</code> (hardcoded)</li>
+                    <li><strong>GST / Added by / COD / Pickup</strong> → blank</li>
+                </ul>
+
+                <div class="gm-kv">
+                    <strong>Input headers expected (for mapped fields):</strong><br />
+                    <code>name</code>, <code>shipping_address.first_name</code>,
+                    <code>shipping_address.last_name</code>, <code>customer.email</code>,
+                    <code>shipping_address.phone</code>, <code>shipping_address.address1</code>,
+                    <code>shipping_address.zip</code>, <code>fulfillments[0].line_items[0].price</code>.<br><br>
+                    All 34 output headers are always included. Missing inputs → values left blank.
+                </div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<script>
+    // === INPUT COLUMN NAMES (from Shopify CSV) ===
+    const COL_REF_ID        = "name";
+    const COL_FIRST_NAME    = "shipping_address.first_name";
+    const COL_LAST_NAME     = "shipping_address.last_name";
+    const COL_EMAIL         = "customer.email";
+    const COL_MOBILE        = "shipping_address.phone";
+    const COL_ADDR1         = "shipping_address.address1";
+    const COL_ZIP           = "shipping_address.zip";
+    const COL_PRICE         = "fulfillments[0].line_items[0].price";
+
+    // === HARDCODED VALUES ===
+    const PAYMENT_METHOD    = "Prepaid";
+    const PRODUCT_QTY       = "1";
+    const PRODUCT_NAME      = "not available";
+    const LENGTH_CM         = "10";
+    const BREADTH_CM        = "10";
+    const HEIGHT_CM         = "10";
+    const WEIGHT_KG         = "0.2";
+
+    // Today date as dd/mm/yyyy
+    function formatTodayDdMmYyyy() {
+      const d = new Date();
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      return dd + "/" + mm + "/" + yyyy;
+    }
+    const ORDER_DATE = formatTodayDdMmYyyy();
+
+    const fileInput     = document.getElementById("csvInput");
+    const convertBtn    = document.getElementById("convertBtn");
+    const statusText    = document.getElementById("statusText");
+    const downloadSec   = document.getElementById("downloadSection");
+    const downloadLink  = document.getElementById("downloadLink");
+
+    let uploadedFile = null;
+
+    fileInput.addEventListener("change", (e) => {
+      uploadedFile = e.target.files[0] || null;
+      downloadSec.style.display = "none";
+
+      if (!uploadedFile) {
+        convertBtn.disabled = true;
+        statusText.className = "gm-status";
+        statusText.textContent = "Choose a CSV file to get started.";
+        return;
+      }
+
+      convertBtn.disabled = false;
+      statusText.className = "gm-status";
+      statusText.innerHTML = "File selected: <strong>" + uploadedFile.name + "</strong>";
+    });
+
+    convertBtn.addEventListener("click", () => {
+      if (!uploadedFile) return;
+
+      convertBtn.disabled = true;
+      statusText.className = "gm-status";
+      statusText.textContent = "Processing…";
+
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const text = event.target.result;
+          const { headers, rows } = parseCsv(text);
+
+          const outputCsv = buildOutputCsv(rows, headers);
+          const blob = new Blob([outputCsv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+
+          downloadLink.href = url;
+          downloadLink.download = "forward_bulk_order.csv";
+          downloadSec.style.display = "inline-flex";
+
+          statusText.className = "gm-status ok";
+          statusText.textContent = "Done! You can now download forward_bulk_order.csv.";
+          convertBtn.disabled = false;
+        } catch (err) {
+          console.error(err);
+          statusText.className = "gm-status error";
+          statusText.textContent = "Error while processing CSV. Check console for details.";
+          convertBtn.disabled = false;
+        }
+      };
+
+      reader.onerror = () => {
+        statusText.className = "gm-status error";
+        statusText.textContent = "Failed to read file.";
+        convertBtn.disabled = false;
+      };
+
+      reader.readAsText(uploadedFile);
+    });
+
+    // ===== CSV helpers =====
+    function parseCsv(text) {
+      const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+
+      // remove empty trailing lines
+      while (lines.length && lines[lines.length - 1].trim() === "") {
+        lines.pop();
+      }
+
+      if (!lines.length) {
+        return { headers: [], rows: [] };
+      }
+
+      const headers = splitCsvLine(lines[0]);
+      const rows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const cols = splitCsvLine(lines[i]);
+        rows.push(cols);
+      }
+      return { headers, rows };
+    }
+
+    function splitCsvLine(line) {
+      const result = [];
+      let current = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        const next = line[i + 1];
+
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            // escaped double quote
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === "," && !inQuotes) {
+          result.push(current);
+          current = "";
+        } else {
+          current += ch;
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
+    function buildOutputCsv(rows, headers) {
+      const idxRef    = headers.indexOf(COL_REF_ID);
+      const idxFName  = headers.indexOf(COL_FIRST_NAME);
+      const idxLName  = headers.indexOf(COL_LAST_NAME);
+      const idxEmail  = headers.indexOf(COL_EMAIL);
+      const idxMobile = headers.indexOf(COL_MOBILE);
+      const idxAddr1  = headers.indexOf(COL_ADDR1);
+      const idxZip    = headers.indexOf(COL_ZIP);
+      const idxPrice  = headers.indexOf(COL_PRICE);
+
+      const outRows = [];
+      // header row - always added, all 34 columns
+      outRows.push([
+        "*Reference Id",
+        "Order Date as dd/mm/yyyy (Default Today Date)",
+        "company Name",
+        "*Payment Method(COD/Prepaid)",
+        "*Customer Name",
+        "Email",
+        "*Customer Mobile",
+        "Customer Alternate Mobile",
+        "*Shipping Address Line 1",
+        "Shipping Address Line 2",
+        "*Shipping Address Postcode",
+        "Billing Address Line 1",
+        "Billing Address Line 2",
+        "Billing Name",
+        "Billing Email",
+        "Billing Phone Number",
+        "Billing Alt Phone Number",
+        "Billing Address Postcode",
+        "*Product Name",
+        "Sku Number",
+        "*Product Quantity",
+        "*Unit Price per item",
+        "Hsn Code",
+        "Discount",
+        "Product category",
+        "*Length (cm)",
+        "*Breadth (cm)",
+        "*Height (cm)",
+        "*Weight Of Shipment(kg)",
+        "Gst E-way Bill number(if total amount 50000 > ",
+        "Gst Number",
+        "Added by User Email",
+        "Cod Amount(required if payment type is cod)",
+        "Pickup Location Id (get from panel warehouse list section)"
+      ].map(csvEscape));
+
+      for (const row of rows) {
+        const refId    = safeGet(row, idxRef);
+        const fName    = safeGet(row, idxFName);
+        const lName    = safeGet(row, idxLName);
+        const email    = safeGet(row, idxEmail);
+        const mobile   = safeGet(row, idxMobile);
+        const addr1    = safeGet(row, idxAddr1);
+        const zip      = safeGet(row, idxZip);
+        const priceRaw = safeGet(row, idxPrice);
+
+        const fullName = (fName + " " + lName).trim();
+        const priceNum = parseFloat(priceRaw || "0");
+        const unitPrice = (!priceRaw || isNaN(priceNum)) ? "" : (2 * priceNum).toFixed(2);
+
+        const outRow = [
+          refId,          // *Reference Id
+          ORDER_DATE,     // Order Date as dd/mm/yyyy (Default Today Date)
+          "",             // company Name
+          PAYMENT_METHOD, // *Payment Method(COD/Prepaid)
+          fullName,       // *Customer Name
+          email,          // Email
+          mobile,         // *Customer Mobile
+          "",             // Customer Alternate Mobile
+          addr1,          // *Shipping Address Line 1
+          "",             // Shipping Address Line 2
+          zip,            // *Shipping Address Postcode
+          "",             // Billing Address Line 1
+          "",             // Billing Address Line 2
+          "",             // Billing Name
+          "",             // Billing Email
+          "",             // Billing Phone Number
+          "",             // Billing Alt Phone Number
+          "",             // Billing Address Postcode
+          PRODUCT_NAME,   // *Product Name
+          "",             // Sku Number
+          PRODUCT_QTY,    // *Product Quantity
+          unitPrice,      // *Unit Price per item
+          "",             // Hsn Code
+          "",             // Discount
+          "",             // Product category
+          LENGTH_CM,      // *Length (cm)
+          BREADTH_CM,     // *Breadth (cm)
+          HEIGHT_CM,      // *Height (cm)
+          WEIGHT_KG,      // *Weight Of Shipment(kg)
+          "",             // Gst E-way Bill number(if total amount 50000 >
+          "",             // Gst Number
+          "",             // Added by User Email
+          "",             // Cod Amount(required if payment type is cod)
+          ""              // Pickup Location Id (get from panel warehouse list section)
+        ].map(csvEscape);
+
+        outRows.push(outRow);
+      }
+
+      return outRows.map(cols => cols.join(",")).join("\n");
+    }
+
+    function safeGet(arr, idx) {
+      if (idx < 0 || idx >= arr.length) return "";
+      return String(arr[idx]).trim();
+    }
+
+    function csvEscape(value) {
+      const v = String(value ?? "");
+      if (v.includes('"') || v.includes(",") || v.includes("\n")) {
+        return '"' + v.replace(/"/g, '""') + '"';
+      }
+      return v;
+    }
+</script>
+
+</body>
+</html>

@@ -3,11 +3,13 @@ package com.gkmonk.pos.services.courier.impl;
 import com.gkmonk.pos.model.courier.CourierQuotationRequest;
 import com.gkmonk.pos.model.order.CourierOption;
 import com.gkmonk.pos.model.pod.PackedOrder;
+import com.gkmonk.pos.services.token.AllCredentialsService;
 import com.gkmonk.pos.utils.POSConstants;
 import com.google.gson.JsonObject;
 import com.mashape.unirest.http.HttpResponse;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -23,8 +25,12 @@ public class ShipcluesServiceImpl  extends AbstractServiceImpl {
     @Value("${shipclues.api.url}")
     private String apiUrl;
 
-    @Value("${shipclues.api.key}")
+    @Autowired
+    private AllCredentialsService credentialsService;
+
+   // @Value("${shipclues.api.key}")
     private String apiKey;
+
 
 
     @Override
@@ -44,6 +50,14 @@ public class ShipcluesServiceImpl  extends AbstractServiceImpl {
 
     @Override
     public JsonObject createRequestBody(String awb) {
+        if(apiKey == null){
+           List<Map> credentialsList = credentialsService.getCredentials();
+            for ( Map credMap : credentialsList ) {
+                if("shipmozo".equalsIgnoreCase((String) credMap.get("_id"))){
+                    apiKey = credMap.get("shipclues.api.key").toString();
+                }
+            }
+        }
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("ApiKey", apiKey);
         requestBody.addProperty("AWBNumber", awb);

@@ -15,7 +15,7 @@
           --font: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
 
-        *,
+        * ,
         *::before,
         *::after {
           box-sizing: border-box;
@@ -414,11 +414,18 @@
 
     <!-- DETAILS -->
     <div class="details">
+        <!-- NEW: Outward ID field -->
+        <div class="field">
+            <label>Outward ID</label>
+            <input type="text" id="outwardId" placeholder="Auto or manual ID" />
+        </div>
+
         <div class="field" style="grid-column: span 2;">
             <label>Vendor Name</label>
             <input type="text" id="vendor" placeholder="Type 3+ letters to search" autocomplete="off" />
             <div class="suggestions" id="vendorSuggestions"></div>
         </div>
+
         <div class="field">
             <label>Inward Date</label>
             <input type="date" id="inwardDate" />
@@ -431,13 +438,30 @@
 
     <!-- BUTTON ROW: sits just above table -->
     <div class="toolbar no-print">
+        <!-- Label Offset control -->
+        <div style="display:flex;align-items:center;gap:6px;margin-right:auto;">
+            <label for="labelOffset">Label Offset</label>
+            <input
+                    type="number"
+                    id="labelOffset"
+                    min="0"
+                    max="200"
+                    value="0"
+                    style="width:80px;padding:6px 8px;border-radius:8px;border:1px solid var(--stroke);font-size:0.8rem;"
+            />
+        </div>
+
         <button class="btn" id="addRowBtn">+ Add Row</button>
         <button class="btn" id="generateLabelsBtn">Generate A4 Labels</button>
         <button class="btn" id="generateBarcodeLabelsBtn">Generate Barcode Labels (2/row)</button>
         <button class="btn" id="generateBarcodeA4Btn">Generate Barcode A4 (40/Sheet)</button>
-        <button class="btn" id="saveOutwardBtn">Save Outward</button>
+
+        <!-- NEW: Save as Draft & Submit -->
+        <button class="btn" id="saveDraftBtn">💾 Save as Draft</button>
+        <button class="btn primary" id="submitOutwardBtn">✅ Submit</button>
+
         <button class="btn" id="exportFlxyBtn">Export to Flxy Format</button>
-        <button class="btn primary" id="exportBtn">Export (PDF/Print)</button>
+        <button class="btn" id="exportBtn">Export (PDF/Print)</button>
     </div>
 
     <!-- TABLE -->
@@ -501,6 +525,7 @@
     const vendorInp = document.getElementById('vendor');
     const vendorSug = document.getElementById('vendorSuggestions');
     const inwardDate = document.getElementById('inwardDate');
+    const outwardIdInput = document.getElementById('outwardId');
 
     function pad(n){ return n.toString().padStart(2,'0'); }
     function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
@@ -874,13 +899,22 @@
       "https://bwipjs-api.metafloor.com/?bcid=code128&text=" +
       encodeURIComponent(id || '')+"&includetext&scale=2";
 
-    // === Helper: product name limited to 15 chars ===
+    // === Helper: product name limited to 25 chars ===
     function shortName15(name){
       const s = (name || '').trim();
       return s.length <= 25 ? s : s.slice(0, 25);
     }
 
-    // ========== A4 QR labels (4 x 10 grid) ==========
+    // === NEW: get label offset (blank labels at start) ===
+    function getLabelOffset(){
+      const el = document.getElementById('labelOffset');
+      if (!el) return 0;
+      const v = parseInt(el.value, 10);
+      if (isNaN(v) || v < 0) return 0;
+      return v;
+    }
+
+    // ========== A4 QR labels (4 x 10 grid) with OFFSET ==========
     function generateLabels(){
       const rows = [...tbody.querySelectorAll('tr')];
       const labelsData = [];
@@ -902,30 +936,46 @@
         return;
       }
 
+      const offset = getLabelOffset();
+      const slots = [];
+
+      // push empty slots for offset
+      for(let i = 0; i < offset; i++){
+        slots.push(null);
+      }
+      // then actual labels
+      labelsData.forEach(ld => slots.push(ld));
+
       const popup=window.open('','_blank');
       if(!popup){ alert('Popup blocked. Please allow popups for this site.'); return; }
 
       let sheetsHtml = '';
 
-      for(let i=0;i<labelsData.length;i+=40){
-        const slice = labelsData.slice(i, i+40);
+      // 40 labels per sheet
+      for(let i=0;i<slots.length;i+=40){
+        const pageSlots = slots.slice(i, i+40);
         let labelsHtml = '';
 
-        slice.forEach(p=>{
-          labelsHtml += `
-            <div class="label">
-              <img class="qr" src="${generateQR(p.id)}" alt="QR">
-              <div class="info">
-                <div class="name">${p.name}</div>
-                <div class="mrp">MRP: ₹${p.mrp}</div>
-                <div class="pid">ID: ${p.id}</div>
-                <div class="mk">Marketed by Geekmonkey</div>
+        pageSlots.forEach(p=>{
+          if (p) {
+            labelsHtml += `
+              <div class="label">
+                <img class="qr" src="${generateQR(p.id)}" alt="QR">
+                <div class="info">
+                  <div class="name">${p.name}</div>
+                  <div class="mrp">MRP: ₹${p.mrp}</div>
+                  <div class="pid">ID: ${p.id}</div>
+                  <div class="mk">Marketed by Geekmonkey</div>
+                </div>
               </div>
-            </div>
-          `;
+            `;
+          } else {
+            // blank label (offset / padding)
+            labelsHtml += `<div class="label"><div class="placeholder"></div></div>`;
+          }
         });
 
-        const padCount = 40 - slice.length;
+        const padCount = 40 - pageSlots.length;
         for(let j=0;j<padCount;j++){
           labelsHtml += `<div class="label"><div class="placeholder"></div></div>`;
         }
@@ -1154,7 +1204,7 @@
       popup.document.close();
     }
 
-    // ===== NEW: Barcode A4 (4 x 10 grid, 40 labels, Code128 with fallback) =====
+    // ===== NEW: Barcode A4 (4 x 10 grid, 40 labels, Code128 with fallback) WITH OFFSET =====
     function batchDateDDMMYY(){
       const d = new Date();
       const dd = pad(d.getDate());
@@ -1192,6 +1242,16 @@
         return;
       }
 
+      const offset = getLabelOffset();
+      const slots = [];
+
+      // offset empty slots
+      for(let i=0;i<offset;i++){
+        slots.push(null);
+      }
+      // then actual labels
+      labelsData.forEach(ld => slots.push(ld));
+
       const popup = window.open('', '_blank');
       if(!popup){
         alert('Popup blocked. Please allow popups for this site.');
@@ -1201,26 +1261,31 @@
       let sheetsHtml = '';
 
       // 4 × 10 = 40 labels per sheet
-      for(let i = 0; i < labelsData.length; i += 40){
-        const slice = labelsData.slice(i, i+40);
+      for(let i = 0; i < slots.length; i += 40){
+        const pageSlots = slots.slice(i, i+40);
         let labelsHtml = '';
 
-        slice.forEach(p => {
-          const shortLabelName = truncateName(p.name, 25);
-          const bcUrl = generateBarcode(p.id);
-          const fbUrl = generateBarcodeFallback(p.id);
-          labelsHtml += `
-            <div class="bc-a4-label">
-              <img class="bc-a4-barcode" src="${bcUrl}" alt="${p.id}"
-                   onerror="this.onerror=null;this.src='${fbUrl}'">
-              <div class="bc-a4-mrp">MRP: ₹${p.mrp}</div>
-              <div class="bc-a4-name">${shortLabelName}</div>
-              <div class="bc-a4-mktd">Mktd by: Geekmonkey.in</div>
-            </div>
-          `;
+        pageSlots.forEach(p => {
+          if (p) {
+            const shortLabelName = truncateName(p.name, 25);
+            const bcUrl = generateBarcode(p.id);
+            const fbUrl = generateBarcodeFallback(p.id);
+            labelsHtml += `
+              <div class="bc-a4-label">
+                <img class="bc-a4-barcode" src="${bcUrl}" alt="${p.id}"
+                     onerror="this.onerror=null;this.src='${fbUrl}'">
+                <div class="bc-a4-mrp">MRP: ₹${p.mrp}</div>
+                <div class="bc-a4-name">${shortLabelName}</div>
+                <div class="bc-a4-mktd">Mktd by: Geekmonkey.in</div>
+              </div>
+            `;
+          } else {
+            // blank slot for offset / padding
+            labelsHtml += `<div class="bc-a4-label bc-a4-empty"></div>`;
+          }
         });
 
-        const padCount = 40 - slice.length;
+        const padCount = 40 - pageSlots.length;
         for(let j=0;j<padCount;j++){
           labelsHtml += `<div class="bc-a4-label bc-a4-empty"></div>`;
         }
@@ -1320,6 +1385,7 @@
       popup.document.close();
     }
 
+    // ===== Outward ID + payload / save logic =====
     function generateOutwardId(vendorId, inwardDateStr){
       const baseVendor = vendorId || 'NA';
       const dateStr = inwardDateStr && inwardDateStr.trim() ? inwardDateStr : todayStr();
@@ -1328,9 +1394,10 @@
       return btoa(raw).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
     }
 
-    function buildOutwardPayload(){
+    function buildOutwardPayload(status){
       const inwardLocation = document.getElementById('inwardLocation');
       const rows = [...tbody.querySelectorAll('tr')];
+
       const items = rows.map(tr => {
         return {
           productId: tr.querySelector('.product-id-input').value.trim(),
@@ -1346,19 +1413,27 @@
       const vendorId = vendorInp ? (vendorInp.dataset.vendorId || null) : null;
       const inwardDateVal = inwardDate ? inwardDate.value : '';
 
+      // Use manual outwardId if provided, else auto-generate
+      let outwardIdVal = outwardIdInput ? outwardIdInput.value.trim() : '';
+      if(!outwardIdVal){
+        outwardIdVal = generateOutwardId(vendorId, inwardDateVal);
+        if (outwardIdInput) outwardIdInput.value = outwardIdVal;
+      }
+
       return {
-        outwardId: generateOutwardId(vendorId, inwardDateVal),
+        outwardId: outwardIdVal,
+        status: status || 'DRAFT',
         vendorId: vendorId,
         vendorName: vendorInp ? vendorInp.value : '',
         inwardDate: inwardDateVal,
         inwardLocation: inwardLocation ? inwardLocation.value : '',
         totalInventoryCost: parseFloat(totalEl.textContent) || 0,
-        items
+        items: items
       };
     }
 
-    async function saveOutward(){
-      const payload = buildOutwardPayload();
+    async function saveOutward(status){
+      const payload = buildOutwardPayload(status);
       if(!payload.items.length){
         alert('No rows to save.');
         return;
@@ -1372,7 +1447,10 @@
         if(!res.ok){
           throw new Error('Failed to save outward');
         }
-        alert('Outward saved successfully. ID: ' + payload.outwardId);
+        const msg = status === 'SUBMITTED'
+          ? 'Outward submitted successfully. ID: '
+          : 'Outward saved as draft. ID: ';
+        alert(msg + payload.outwardId);
       }catch(err){
         console.error(err);
         alert('Error saving outward. Please try again.');
@@ -1489,7 +1567,7 @@
         'Stock': qty,
         'Category': categoryVal,
         'TaxCategory': taxCategoryVal,
-        'CostPrice': '',                         // <-- now always blank
+        'CostPrice': '',                         // always blank
         'StyleCode': categoryVal,
         'Season': 'SS 25',
         'UOM': 'Pieces',
@@ -1533,7 +1611,14 @@
 
       let csv = FLXY_COLUMNS.map(c => csvEscape(c)).join(',') + '\r\n';
       dataRows.forEach(rowObj => {
-        const line = FLXY_COLUMNS.map(col => csvEscape(rowObj[col] ?? '')).join(',');
+        const line = FLXY_COLUMNS.map(col => {
+          let val = rowObj[col] ?? '';
+          // add leading apostrophe ONLY for product id / barcode column
+          if (col === 'Barcode/EANCode' && val) {
+            val = "'" + val;
+          }
+          return csvEscape(val);
+        }).join(',');
         csv += line + '\r\n';
       });
 
@@ -1566,7 +1651,11 @@
     document.getElementById('generateLabelsBtn').addEventListener('click',generateLabels);
     document.getElementById('generateBarcodeLabelsBtn').addEventListener('click',generateBarcodeLabels);
     document.getElementById('generateBarcodeA4Btn').addEventListener('click',generateBarcodeA4);
-    document.getElementById('saveOutwardBtn').addEventListener('click',saveOutward);
+
+    // NEW buttons
+    document.getElementById('saveDraftBtn').addEventListener('click',()=>saveOutward('DRAFT'));
+    document.getElementById('submitOutwardBtn').addEventListener('click',()=>saveOutward('SUBMITTED'));
+
     document.getElementById('exportFlxyBtn').addEventListener('click', exportToFlxy);
 
     // Attach product search to initial row
