@@ -33,7 +33,13 @@ public class InteraktServiceImpl {
     }
 
 
-
+    public static void main(String[] args) {
+        InteraktServiceImpl interaktService = new InteraktServiceImpl();
+        interaktService.AUTH_TOKEN = "Basic TmIwOTRKQ1ZfUmFKNms2STNJbjNnMkthTVBQTWxWTmpwOEtZNW5HT1FwSTo=";
+        interaktService.API_URL = "https://api.interakt.ai/v1/public/track/events/";
+        System.out.println("Auth Token: " + interaktService.AUTH_TOKEN);
+        interaktService.sendOrderStatusUpdates("IN_TRANSIT","User","90324786355","919845192845", "", "BLUEDART", "Prepaid", "", "http://tracking.url");
+    }
     public boolean sendOrderStatusUpdates(String currentStatus,String name,String awb,String phoneno, String edd, String courier, String paymentMode, String productURL, String trackingURL) {
 
 

@@ -501,7 +501,7 @@
                     <li><strong>*Customer Mobile</strong> → <code>shipping_address.phone</code></li>
                     <li><strong>Customer Alternate Mobile</strong> → blank</li>
                     <li><strong>*Shipping Address Line 1</strong> → <code>shipping_address.address1</code></li>
-                    <li><strong>Shipping Address Line 2</strong> → blank</li>
+                    <li><strong>Shipping Address Line 2</strong> → <code>shipping_address.address2</code></li>
                     <li><strong>*Shipping Address Postcode</strong> → <code>shipping_address.zip</code></li>
                     <li><strong>Billing…</strong> fields → blank</li>
                     <li><strong>*Product Name</strong> → <code>not available</code> (hardcoded)</li>
@@ -518,7 +518,8 @@
                     <code>name</code>, <code>shipping_address.first_name</code>,
                     <code>shipping_address.last_name</code>, <code>customer.email</code>,
                     <code>shipping_address.phone</code>, <code>shipping_address.address1</code>,
-                    <code>shipping_address.zip</code>, <code>fulfillments[0].line_items[0].price</code>.<br><br>
+                    <code>shipping_address.address2</code>, <code>shipping_address.zip</code>,
+                    <code>fulfillments[0].line_items[0].price</code>.<br><br>
                     All 34 output headers are always included. Missing inputs → values left blank.
                 </div>
             </div>
@@ -534,6 +535,7 @@
     const COL_EMAIL         = "customer.email";
     const COL_MOBILE        = "shipping_address.phone";
     const COL_ADDR1         = "shipping_address.address1";
+    const COL_ADDR2         = "shipping_address.address2";
     const COL_ZIP           = "shipping_address.zip";
     const COL_PRICE         = "fulfillments[0].line_items[0].price";
 
@@ -681,6 +683,7 @@
       const idxEmail  = headers.indexOf(COL_EMAIL);
       const idxMobile = headers.indexOf(COL_MOBILE);
       const idxAddr1  = headers.indexOf(COL_ADDR1);
+      const idxAddr2  = headers.indexOf(COL_ADDR2);
       const idxZip    = headers.indexOf(COL_ZIP);
       const idxPrice  = headers.indexOf(COL_PRICE);
 
@@ -730,6 +733,7 @@
         const email    = safeGet(row, idxEmail);
         const mobile   = safeGet(row, idxMobile);
         const addr1    = safeGet(row, idxAddr1);
+        const addr2    = safeGet(row, idxAddr2);
         const zip      = safeGet(row, idxZip);
         const priceRaw = safeGet(row, idxPrice);
 
@@ -747,7 +751,7 @@
           mobile,         // *Customer Mobile
           "",             // Customer Alternate Mobile
           addr1,          // *Shipping Address Line 1
-          "",             // Shipping Address Line 2
+          addr2,          // Shipping Address Line 2
           zip,            // *Shipping Address Postcode
           "",             // Billing Address Line 1
           "",             // Billing Address Line 2
