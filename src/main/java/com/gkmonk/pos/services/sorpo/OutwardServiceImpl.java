@@ -16,6 +16,6 @@ public class OutwardServiceImpl {
     }
 
     public Outward findById(String id) {
-        return outwardRepo.findById(id).orElse(null);
+        return outwardRepo.findByOutwardId(id).orElse(null);
     }
 }

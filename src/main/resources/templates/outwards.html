@@ -414,10 +414,10 @@
 
     <!-- DETAILS -->
     <div class="details">
-        <!-- NEW: Outward ID field -->
+        <!-- Outward ID field (manual/auto) -->
         <div class="field">
             <label>Outward ID</label>
-            <input type="text" id="outwardId" placeholder="Auto or manual ID" />
+            <input type="text" id="outwardId" placeholder="Manual / Auto Outward ID" autocomplete="off" />
         </div>
 
         <div class="field" style="grid-column: span 2;">
@@ -456,7 +456,7 @@
         <button class="btn" id="generateBarcodeLabelsBtn">Generate Barcode Labels (2/row)</button>
         <button class="btn" id="generateBarcodeA4Btn">Generate Barcode A4 (40/Sheet)</button>
 
-        <!-- NEW: Save as Draft & Submit -->
+        <!-- Save as Draft & Submit -->
         <button class="btn" id="saveDraftBtn">💾 Save as Draft</button>
         <button class="btn primary" id="submitOutwardBtn">✅ Submit</button>
 
@@ -521,10 +521,11 @@
     const tbody = document.getElementById('tbody');
     const totalEl = document.getElementById('total');
 
-    // ==== Vendor search + inward defaults ====
+    // ==== Vendor + inward + outward ====
     const vendorInp = document.getElementById('vendor');
     const vendorSug = document.getElementById('vendorSuggestions');
     const inwardDate = document.getElementById('inwardDate');
+    const inwardLocation = document.getElementById('inwardLocation');
     const outwardIdInput = document.getElementById('outwardId');
 
     function pad(n){ return n.toString().padStart(2,'0'); }
@@ -534,6 +535,8 @@
 
     const debounce=(fn,ms=300)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
     const VENDOR_SEARCH_URL = '/v1/vendor/search/';
+    const PRODUCT_SEARCH_URL = '/v1/outward/search?query=';
+    const OUTWARD_SEARCH_URL = '/v1/outward/searchById/';
 
     async function fetchVendors(q){
       try{
@@ -576,8 +579,6 @@
     });
 
     // ========= Product search by Product ID (per row) =========
-    const PRODUCT_SEARCH_URL = '/v1/outward/search?query=';
-
     function escapeHtml(str){
       return String(str||'').replace(/[&<>"']/g, s => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -825,7 +826,7 @@
     });
 
     // ========= Rows & totals =========
-    function addRow(){
+    function addRow(item){
       const row=document.createElement('tr');
       row.innerHTML=`
         <td class="rownum"></td>
@@ -854,10 +855,39 @@
       tbody.appendChild(row);
       attachProductSearch(row);
       row.dataset.productMeta = '{}';
+
+      // If called with an OutwardItem, map it into the row
+      if (item) {
+        const pidInput = row.querySelector('.product-id-input');
+        const skuInput = row.querySelector('.sku-input');
+        const nameInput = row.querySelector('.product-name-input');
+        const mrpInput = row.querySelector('.mrp-input');
+        const costInput = row.querySelector('.cost-input');
+        const qtyInput = row.querySelector('.qty-input');
+        const pkgSelect = row.querySelector('select');
+
+        if (pidInput) pidInput.value = item.productId || '';
+        if (skuInput) skuInput.value = item.sku || '';
+        if (nameInput) nameInput.value = item.productName || '';
+        if (mrpInput && item.mrp != null) mrpInput.value = item.mrp;
+        if (costInput && item.cost != null) costInput.value = item.cost;
+        if (qtyInput && item.qty != null) qtyInput.value = item.qty;
+
+        if (pkgSelect && item.packagingType) {
+          const val = String(item.packagingType);
+          const match = [...pkgSelect.options].find(o => o.value === val || o.text === val);
+          if (match) {
+            pkgSelect.value = match.value;
+          } else {
+            pkgSelect.value = pkgSelect.options[0]?.value || '';
+          }
+        }
+      }
+
       updateRows();
 
       const pidInput = row.querySelector('.product-id-input');
-      if (pidInput) {
+      if (!item && pidInput) { // focus only for brand new empty row
         pidInput.focus();
       }
     }
@@ -1395,7 +1425,6 @@
     }
 
     function buildOutwardPayload(status){
-      const inwardLocation = document.getElementById('inwardLocation');
       const rows = [...tbody.querySelectorAll('tr')];
 
       const items = rows.map(tr => {
@@ -1455,6 +1484,93 @@
         console.error(err);
         alert('Error saving outward. Please try again.');
       }
+    }
+
+    // ===== Load existing Outward by outwardId and map to form + table =====
+    function applyOutwardToForm(outward){
+      if (!outward) return;
+
+      // header fields
+      if (outwardIdInput && outward.outwardId) {
+        outwardIdInput.value = outward.outwardId;
+      }
+      if (vendorInp) {
+        vendorInp.value = outward.vendorName || '';
+        if (outward.vendorId) {
+          vendorInp.dataset.vendorId = outward.vendorId;
+        } else {
+          delete vendorInp.dataset.vendorId;
+        }
+      }
+      if (inwardDate && outward.inwardDate) {
+        inwardDate.value = outward.inwardDate; // assuming yyyy-MM-dd
+      }
+      if (inwardLocation) {
+        inwardLocation.value = outward.inwardLocation || '';
+      }
+
+      // items -> table
+      tbody.innerHTML = '';
+      const items = Array.isArray(outward.items) ? outward.items : [];
+
+      if (items.length) {
+        items.forEach(it => addRow(it));
+        // always add one empty editable row at the end
+        addRow();
+      } else {
+        addRow();
+      }
+
+      // total cost
+      if (outward.totalInventoryCost != null) {
+        const t = parseFloat(outward.totalInventoryCost);
+        if (!isNaN(t)) {
+          totalEl.textContent = t.toFixed(2);
+        } else {
+          calcTotal();
+        }
+      } else {
+        calcTotal();
+      }
+    }
+
+    async function loadOutwardById(outwardId){
+      if (!outwardId) return;
+      try {
+        const res = await fetch(OUTWARD_SEARCH_URL + encodeURIComponent(outwardId));
+        if (!res.ok) {
+          if (res.status === 404) {
+            alert('No outward found for ID: ' + outwardId);
+          } else {
+            alert('Failed to load outward for ID: ' + outwardId);
+          }
+          return;
+        }
+        const outward = await res.json();
+        applyOutwardToForm(outward);
+      } catch (e) {
+        console.error(e);
+        alert('Error calling outward search API.');
+      }
+    }
+
+    // Call controller on typing manual outwardId (debounced)
+    if (outwardIdInput) {
+      const onOutwardType = debounce((e) => {
+        const val = e.target.value.trim();
+        if (val.length >= 3) { // small guard to avoid noise
+          loadOutwardById(val);
+        }
+      }, 600);
+      outwardIdInput.addEventListener('input', onOutwardType);
+
+      // Also support Enter on the field
+      outwardIdInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          const val = outwardIdInput.value.trim();
+          if (val) loadOutwardById(val);
+        }
+      });
     }
 
     // ===== Flxy export =====
@@ -1634,7 +1750,7 @@
     }
 
     // === Event wiring ===
-    document.getElementById('addRowBtn').addEventListener('click',addRow);
+    document.getElementById('addRowBtn').addEventListener('click', ()=>addRow());
 
     tbody.addEventListener('input', (e)=>{
       if (e.target.classList.contains('mrp-input')) {
@@ -1652,7 +1768,6 @@
     document.getElementById('generateBarcodeLabelsBtn').addEventListener('click',generateBarcodeLabels);
     document.getElementById('generateBarcodeA4Btn').addEventListener('click',generateBarcodeA4);
 
-    // NEW buttons
     document.getElementById('saveDraftBtn').addEventListener('click',()=>saveOutward('DRAFT'));
     document.getElementById('submitOutwardBtn').addEventListener('click',()=>saveOutward('SUBMITTED'));
 

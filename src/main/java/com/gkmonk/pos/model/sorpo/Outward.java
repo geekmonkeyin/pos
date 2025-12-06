@@ -13,8 +13,8 @@ import java.util.List;
 @Document(collection = "outward")
 public class Outward {
 
-    @Id
-    private String id;              // Mongo _id
+
+    @Id// Mongo _id
     private String outwardId;       // business ID (also shown in UI)
     private String vendorId;
     private String vendorName;

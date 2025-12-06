@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface OutwardRepo extends MongoRepository<Outward, String> {
 
-    @Query("{ '_id' : ?0 }")
+    @Query("{ 'outwardId' : ?0 }")
     Optional<Outward> findByOutwardId(String outwardId);
 }
