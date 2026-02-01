@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -21,5 +22,9 @@ public class EmployeeDetailsService {
 
     public void saveEmployeeDetails(EmployeeDetails emp) {
         employeeDetailsRepo.save(emp);
+    }
+
+    public List<EmployeeDetails> getAllUsers() {
+        return employeeDetailsRepo.findAll();
     }
 }

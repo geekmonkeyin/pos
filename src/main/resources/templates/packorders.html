@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Scan Order</title>
@@ -172,5 +172,7 @@
         table.innerHTML = html;
     }
 </script>
+<div th:replace="~{fragments/chatbot :: chatbot}"></div>
+
 </body>
 </html>

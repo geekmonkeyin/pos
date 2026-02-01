@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
   <meta charset="UTF-8" />
   <title>Scan Orders — Geekmonkey</title>
@@ -104,6 +105,9 @@
     <div class="col-md-4">
       <a href="/v1/order/picklist" class="gm-tile">Shopify Summary</a>
     </div>
+    <div class="col-md-4">
+      <a href="/v1/order/abandoncart" class="gm-tile">Abandon cart</a>
+    </div>
   </div>
 
   <div class="gm-section-title d-flex align-items-center gap-2">
@@ -166,5 +170,7 @@
     setTimeout(() => toast.remove(), 2500);
   }
 </script>
+<div th:replace="~{fragments/chatbot :: chatbot}"></div>
+
 </body>
 </html>

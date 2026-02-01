@@ -1,0 +1,304 @@
+<div th:fragment="chatbot">
+    <!-- Floating Toggle Button -->
+    <button id="gm-chat-toggle" class="gm-chat-toggle" type="button" aria-label="Open chat">
+        <span class="gm-chat-toggle-icon">🍊</span>
+    </button>
+
+    <!-- Chat Window -->
+    <div id="gm-chat" class="gm-chat hidden" role="dialog" aria-label="Geekmonkey Chatbot">
+        <div class="gm-chat-header">
+            <div class="gm-chat-brand">
+                <div class="gm-chat-avatar" aria-hidden="true">🐵</div>
+                <div class="gm-chat-brand-text">
+                    <div class="gm-chat-title">Geekmonkey Sensei</div>
+                    <div class="gm-chat-subtitle">Anime help • Orders • Gifts</div>
+                </div>
+            </div>
+            <button id="gm-chat-close" class="gm-chat-close" type="button" aria-label="Close chat">✕</button>
+        </div>
+
+        <!-- Quick Replies -->
+        <div class="gm-quick">
+            <button class="gm-chip" data-msg="Show new arrivals">New Arrivals ✨</button>
+            <button class="gm-chip" data-msg="Recommend a gift under ₹999">Gifts under ₹999 🎁</button>
+            <button class="gm-chip" data-msg="Track my order">Track Order 📦</button>
+            <button class="gm-chip" data-msg="Suggest anime figurines">Anime Figurines 🧸</button>
+        </div>
+
+        <div id="gm-chat-messages" class="gm-chat-messages"></div>
+
+        <div class="gm-chat-input">
+            <input id="gm-chat-text" type="text" placeholder="Type… (Try: ‘One Piece gifts’) " autocomplete="off"/>
+            <button id="gm-chat-send" class="gm-chat-send" type="button">Send</button>
+        </div>
+
+        <div class="gm-chat-footer">
+            <span class="gm-dot"></span>
+            <span class="gm-footer-text">Powered by Geekmonkey AI • “Dattebayo!”</span>
+        </div>
+    </div>
+
+    <style>
+        :root{
+          --gm-orange:#FF7A00;
+          --gm-black:#0B0B0D;
+          --gm-ink:#15161A;
+          --gm-card:#0F1014;
+          --gm-line:rgba(255,255,255,.10);
+          --gm-text:rgba(255,255,255,.92);
+          --gm-muted:rgba(255,255,255,.68);
+          --gm-bubble:rgba(255,255,255,.06);
+          --gm-shadow:0 22px 60px rgba(0,0,0,.45);
+          --gm-radius:18px;
+          --gm-font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        }
+
+        /* Toggle Button */
+        .gm-chat-toggle{
+          position: fixed; right: 18px; bottom: 18px; z-index: 9999;
+          width: 56px; height: 56px; border-radius: 999px; border: 0;
+          background: radial-gradient(100% 100% at 30% 20%, rgba(255,122,0,.95), rgba(255,122,0,.65));
+          box-shadow: 0 16px 40px rgba(255,122,0,.25), 0 10px 25px rgba(0,0,0,.25);
+          cursor: pointer;
+          display:flex; align-items:center; justify-content:center;
+          transition: transform .15s ease;
+        }
+        .gm-chat-toggle:hover{ transform: translateY(-2px); }
+        .gm-chat-toggle-icon{ font-size: 22px; filter: drop-shadow(0 4px 10px rgba(0,0,0,.25)); }
+
+        /* Window */
+        .gm-chat{
+          position: fixed; right: 18px; bottom: 84px; z-index: 9999;
+          width: 360px; max-width: calc(100vw - 36px);
+          height: 520px; max-height: calc(100vh - 140px);
+          background: linear-gradient(180deg, #111218, #0B0B0D);
+          border-radius: var(--gm-radius);
+          box-shadow: var(--gm-shadow);
+          overflow: hidden;
+          display:flex; flex-direction:column;
+          border: 1px solid rgba(255,255,255,.08);
+          font-family: var(--gm-font);
+        }
+        .hidden{ display:none; }
+
+        /* Header */
+        .gm-chat-header{
+          padding: 12px 12px;
+          display:flex; align-items:center; justify-content:space-between;
+          border-bottom: 1px solid var(--gm-line);
+          background:
+            radial-gradient(120% 120% at 0% 0%, rgba(255,122,0,.22), rgba(255,122,0,0)),
+            linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0));
+        }
+        .gm-chat-brand{ display:flex; gap:10px; align-items:center; }
+        .gm-chat-avatar{
+          width: 40px; height: 40px; border-radius: 12px;
+          display:flex; align-items:center; justify-content:center;
+          background: rgba(255,122,0,.14);
+          border: 1px solid rgba(255,122,0,.25);
+          box-shadow: 0 10px 25px rgba(255,122,0,.12);
+          font-size: 20px;
+        }
+        .gm-chat-title{ color: var(--gm-text); font-weight: 800; letter-spacing:.2px; }
+        .gm-chat-subtitle{ color: var(--gm-muted); font-size: 12px; margin-top: 2px; }
+        .gm-chat-close{
+          width: 34px; height: 34px;
+          border-radius: 12px; border: 1px solid rgba(255,255,255,.10);
+          background: rgba(255,255,255,.04);
+          color: var(--gm-text); cursor: pointer;
+        }
+
+        /* Quick chips */
+        .gm-quick{
+          padding: 10px 12px;
+          display:flex; gap: 8px; flex-wrap: wrap;
+          border-bottom: 1px solid var(--gm-line);
+          background: rgba(255,255,255,.02);
+        }
+        .gm-chip{
+          border: 1px solid rgba(255,255,255,.10);
+          background: rgba(255,255,255,.04);
+          color: var(--gm-text);
+          font-size: 12px;
+          padding: 8px 10px;
+          border-radius: 999px;
+          cursor:pointer;
+          transition: transform .12s ease, border-color .12s ease;
+          white-space: nowrap;
+        }
+        .gm-chip:hover{
+          transform: translateY(-1px);
+          border-color: rgba(255,122,0,.35);
+        }
+
+        /* Messages */
+        .gm-chat-messages{
+          padding: 12px; flex:1; overflow:auto;
+          background:
+            radial-gradient(90% 60% at 80% 10%, rgba(255,122,0,.10), rgba(255,122,0,0)),
+            radial-gradient(60% 60% at 10% 90%, rgba(255,255,255,.04), rgba(255,255,255,0));
+        }
+        .gm-msg{ margin: 10px 0; display:flex; }
+        .gm-msg.user{ justify-content:flex-end; }
+        .gm-bubble{
+          max-width: 84%;
+          padding: 10px 12px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.10);
+          line-height: 1.35;
+          white-space: pre-wrap;
+          color: var(--gm-text);
+          background: rgba(255,255,255,.04);
+          backdrop-filter: blur(6px);
+        }
+        .gm-msg.user .gm-bubble{
+          background: rgba(255,122,0,.14);
+          border-color: rgba(255,122,0,.25);
+        }
+        .gm-meta{
+          margin-top: 4px; font-size: 11px; color: var(--gm-muted);
+        }
+
+        /* Input */
+        .gm-chat-input{
+          display:flex; gap: 8px; padding: 10px;
+          border-top: 1px solid var(--gm-line);
+          background: rgba(0,0,0,.25);
+        }
+        #gm-chat-text{
+          flex:1;
+          padding: 11px 12px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,.12);
+          background: rgba(255,255,255,.04);
+          color: var(--gm-text);
+          outline: none;
+        }
+        #gm-chat-text::placeholder{ color: rgba(255,255,255,.45); }
+        .gm-chat-send{
+          padding: 11px 14px;
+          border-radius: 14px;
+          border: 0;
+          cursor: pointer;
+          background: linear-gradient(180deg, rgba(255,122,0,.95), rgba(255,122,0,.70));
+          color: #111;
+          font-weight: 800;
+        }
+
+        /* Footer */
+        .gm-chat-footer{
+          padding: 8px 12px;
+          border-top: 1px solid rgba(255,255,255,.06);
+          display:flex; align-items:center; gap: 8px;
+          background: rgba(255,255,255,.02);
+        }
+        .gm-dot{
+          width: 8px; height: 8px; border-radius: 999px;
+          background: rgba(255,122,0,.95);
+          box-shadow: 0 0 0 6px rgba(255,122,0,.10);
+        }
+        .gm-footer-text{ font-size: 11px; color: var(--gm-muted); }
+    </style>
+
+    <script>
+        (function(){
+          const chat = document.getElementById("gm-chat");
+          const toggle = document.getElementById("gm-chat-toggle");
+          const closeBtn = document.getElementById("gm-chat-close");
+          const sendBtn = document.getElementById("gm-chat-send");
+          const input = document.getElementById("gm-chat-text");
+          const messages = document.getElementById("gm-chat-messages");
+          const chips = document.querySelectorAll(".gm-chip");
+
+          const storageKey = "gm_chat_open";
+          const threadKey = "gm_chat_thread_id";
+
+          function bubble(role, text, meta){
+            const row = document.createElement("div");
+            row.className = "gm-msg " + (role === "user" ? "user" : "bot");
+
+            const wrap = document.createElement("div");
+
+            const b = document.createElement("div");
+            b.className = "gm-bubble";
+            b.textContent = text;
+
+            wrap.appendChild(b);
+
+            if(meta){
+              const m = document.createElement("div");
+              m.className = "gm-meta";
+              m.textContent = meta;
+              wrap.appendChild(m);
+            }
+
+            row.appendChild(wrap);
+            messages.appendChild(row);
+            messages.scrollTop = messages.scrollHeight;
+          }
+
+          function setOpen(isOpen){
+            chat.classList.toggle("hidden", !isOpen);
+            localStorage.setItem(storageKey, isOpen ? "1" : "0");
+            if(isOpen) input.focus();
+          }
+
+          // restore state
+          setOpen(localStorage.getItem(storageKey) === "1");
+
+          toggle.addEventListener("click", () => setOpen(chat.classList.contains("hidden")));
+          closeBtn.addEventListener("click", () => setOpen(false));
+
+          chips.forEach(c => c.addEventListener("click", () => {
+            input.value = c.getAttribute("data-msg") || "";
+            send();
+          }));
+
+          async function send(){
+            const text = (input.value || "").trim();
+            if(!text) return;
+            input.value = "";
+            bubble("user", text);
+
+            // typing indicator
+            bubble("bot", "⚡ Summoning jutsu…");
+
+            const threadId = localStorage.getItem(threadKey) || null;
+
+            try{
+              const res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text, threadId })
+              });
+
+              const data = await res.json();
+
+              // remove typing line
+              messages.lastChild && messages.lastChild.remove();
+
+              if(data.threadId) localStorage.setItem(threadKey, data.threadId);
+              bubble("bot", data.reply || "I couldn’t respond. Try again?");
+            }catch(e){
+              messages.lastChild && messages.lastChild.remove();
+              bubble("bot", "Network error. Try again in a bit.");
+            }
+          }
+
+          sendBtn.addEventListener("click", send);
+          input.addEventListener("keydown", (e) => {
+            if(e.key === "Enter") send();
+            if(e.key === "Escape") setOpen(false);
+          });
+
+          // greeting once
+          if(!localStorage.getItem("gm_chat_greeted")){
+            bubble("bot",
+              "Yo! I’m Geekmonkey Sensei 🐵🍊\\nTell me what you need — anime gifts, order help, or recommendations!",
+              "Tip: Try “Gift for Naruto fan under ₹1500”"
+            );
+            localStorage.setItem("gm_chat_greeted","1");
+          }
+        })();
+    </script>
+</div>

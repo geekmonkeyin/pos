@@ -391,5 +391,6 @@
     function escapeAttr(str){ return String(str ?? '').replace(/"/g, '&quot;'); }
     function escapeJs(str){ return String(str ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
 </script>
+<div th:replace="~{fragments/chatbot :: chatbot}"></div>
 </body>
 </html>

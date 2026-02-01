@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geekmonkey – AI Task Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root{
+          --orange:#FF7A00;
+          --orange2:#FF9A3D;
+          --bg:#0B0B10;
+          --card:#12121A;
+          --border:rgba(255,255,255,.08);
+          --text:#fff;
+          --muted:rgba(255,255,255,.65);
+          --danger:#FF4D4D;
+          --success:#2ECC71;
+          --warn:#FFB020;
+        }
+
+        *{box-sizing:border-box}
+        body{
+          margin:0;
+          font-family:Inter,system-ui;
+          background:radial-gradient(1000px 500px at 20% -10%,rgba(255,122,0,.2),transparent 55%),var(--bg);
+          color:var(--text);
+        }
+
+        header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          padding:14px 20px;
+          border-bottom:1px solid var(--border);
+          background:rgba(11,11,16,.85);
+        }
+
+        .brand{
+          display:flex;
+          align-items:center;
+          gap:12px;
+        }
+
+        .brand img{
+          width:44px;
+          height:44px;
+          border-radius:10px;
+        }
+
+        .brand-title{
+          font-weight:900;
+        }
+
+        .brand-sub{
+          font-size:12px;
+          color:var(--muted);
+        }
+
+        .header-right{
+          display:flex;
+          align-items:center;
+          gap:14px;
+        }
+
+        .btn{
+          padding:10px 14px;
+          border-radius:12px;
+          background:rgba(255,255,255,.05);
+          border:1px solid var(--border);
+          color:white;
+          font-weight:700;
+          cursor:pointer;
+        }
+
+        .btn-ai{
+          background:linear-gradient(135deg,rgba(255,122,0,.3),rgba(255,154,61,.1));
+          border-color:rgba(255,122,0,.5);
+        }
+
+        .container{
+          max-width:1180px;
+          margin:20px auto;
+          padding:0 16px;
+        }
+
+        .kpis{
+          display:grid;
+          grid-template-columns:repeat(4,1fr);
+          gap:12px;
+        }
+
+        .kpi{
+          background:var(--card);
+          border:1px solid var(--border);
+          border-radius:16px;
+          padding:14px;
+        }
+
+        .kpi-label{
+          font-size:12px;
+          color:var(--muted);
+        }
+
+        .kpi-value{
+          font-size:32px;
+          font-weight:900;
+          margin:6px 0;
+        }
+
+        .primary{color:var(--orange)}
+        .danger{color:var(--danger)}
+        .success{color:var(--success)}
+        .warn{color:var(--warn)}
+
+        .grid{
+          display:grid;
+          grid-template-columns:1.1fr .9fr;
+          gap:12px;
+          margin-top:14px;
+        }
+
+        .card{
+          background:var(--card);
+          border:1px solid var(--border);
+          border-radius:16px;
+          padding:14px;
+        }
+
+        .card h3{
+          margin:0 0 10px;
+        }
+
+        .insight{
+          display:flex;
+          gap:10px;
+          padding:12px;
+          border-radius:12px;
+          background:#0f0f18;
+          margin-bottom:10px;
+          border-left:4px solid;
+        }
+
+        .insight.danger{border-color:var(--danger)}
+        .insight.warn{border-color:var(--warn)}
+        .insight.success{border-color:var(--success)}
+
+        .chart{
+          height:220px;
+          background:linear-gradient(180deg,rgba(255,122,0,.15),transparent);
+          border-radius:12px;
+          display:flex;
+          align-items:flex-end;
+          padding:16px;
+          gap:12px;
+        }
+
+        .bar{
+          width:100%;
+          background:var(--orange);
+          border-radius:6px;
+        }
+
+        .next{
+          margin-top:14px;
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+        }
+
+        @media(max-width:900px){
+          .kpis{grid-template-columns:repeat(2,1fr)}
+          .grid{grid-template-columns:1fr}
+          .next{flex-direction:column;align-items:flex-start;gap:12px}
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="brand">
+        <img src="geekmonkey-logo.png" alt="Geekmonkey">
+        <div>
+            <div class="brand-title">Geekmonkey Task Manager</div>
+            <div class="brand-sub">AI Command Center</div>
+        </div>
+    </div>
+
+    <div class="header-right">
+        <strong>Hello, Anil</strong>
+        <button class="btn">🔔 3</button>
+        <button class="btn btn-ai">✨ AI Insights</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="kpis">
+        <div class="kpi">
+            <div class="kpi-label">Total Tasks</div>
+            <div class="kpi-value primary">24</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Overdue</div>
+            <div class="kpi-value danger">5</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Today</div>
+            <div class="kpi-value success">8</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Blocked</div>
+            <div class="kpi-value warn">2</div>
+        </div>
+    </div>
+
+    <div class="grid">
+
+        <div class="card">
+            <h3>AI Insights</h3>
+
+            <div class="insight danger">
+                ⚠️ <div>
+                <strong>Update Client Proposal</strong><br>
+                <small>High risk of delay</small>
+            </div>
+            </div>
+
+            <div class="insight warn">
+                ⏳ <div>
+                <strong>Review Bug Report</strong><br>
+                <small>Deadline approaching</small>
+            </div>
+            </div>
+
+            <div class="insight success">
+                🔥 <div>
+                <strong>Complete Monthly Report</strong><br>
+                <small>Highest impact task</small>
+            </div>
+            </div>
+
+            <button class="btn btn-ai">Open AI Sorted Tasks</button>
+        </div>
+
+        <div class="card">
+            <h3>Productivity Overview</h3>
+
+            <div class="chart">
+                <div class="bar" style="height:40%"></div>
+                <div class="bar" style="height:55%"></div>
+                <div class="bar" style="height:70%"></div>
+                <div class="bar" style="height:60%"></div>
+                <div class="bar" style="height:80%"></div>
+                <div class="bar" style="height:65%"></div>
+                <div class="bar" style="height:90%"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card next">
+        <div>
+            <h3>What should I do next?</h3>
+            <p><strong>Complete Monthly Report</strong> — based on impact + deadlines</p>
+        </div>
+        <button class="btn btn-ai">Start Task →</button>
+    </div>
+
+</div>
+
+</body>
+</html>

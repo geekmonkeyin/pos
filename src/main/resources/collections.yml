@@ -1,0 +1,23 @@
+collections:
+  - name: attendance_sessions
+    description: Attendance marked by employees
+    fields:
+      _id: ObjectId
+      employeeId: string
+      employeeName: string
+      checkinAt: date
+      checkoutAt: date
+      durationMs: Int64
+      _class: string
+  - name: outward
+    description: Products transferred to different locations from main Geekmonkey warehouse to Unhu,westin,flexy,eva etc.
+    fields:
+      _id: ObjectId
+      outwardId: string
+      vendorId: string
+      vendorName: string
+      inwardDate: date
+      inwardLocation: string
+      totalInventoryCost: string
+      status: string
+      _class: string

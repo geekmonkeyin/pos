@@ -126,6 +126,9 @@
         <div class="col-md-4">
             <a href="/v1/stores" class="gm-tile">Stores</a>
         </div>
+        <div class="col-md-4">
+            <a href="/v1/taskmgt" class="gm-tile">Task Management</a>
+        </div>
     </div>
 
     <div class="gm-section-title d-flex align-items-center gap-2">
@@ -188,5 +191,6 @@
       setTimeout(() => toast.remove(), 2500);
     }
 </script>
+<div th:replace="~{fragments/chatbot :: chatbot}"></div>
 </body>
 </html>

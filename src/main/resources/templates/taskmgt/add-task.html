@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Add Task — Geekmonkey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Optional chat widget assets -->
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        :root{
+          --bg:#F9FAFB; --card:#FFFFFF; --stroke:#E5E7EB; --text:#111827; --muted:#6B7280;
+          --accent:#FF7A00; --accent-ink:#9A4D00; --accent-weak:#FFE5D0; --radius:14px;
+          --shadow:0 8px 24px rgba(17,24,39,0.06);
+        }
+        html, body { height:100%; background:var(--bg); color:var(--text); }
+
+        /* Top bar (Geekmonkey gradient) */
+        .gm-topbar{
+          position:sticky; top:0; z-index:1030;
+          background:linear-gradient(90deg, var(--accent), #FF9A3D);
+          color:#fff; box-shadow:0 8px 18px rgba(0,0,0,0.08);
+        }
+        .gm-topbar .brand{
+          font-weight:800; letter-spacing:.3px; display:flex; align-items:center; gap:.6rem;
+        }
+        .gm-logo{
+          width:34px; height:34px; border-radius:10px; object-fit:cover;
+          background:#fff; padding:3px;
+        }
+        .gm-btn{ border-radius:12px; border:none; padding:.5rem .9rem; font-weight:700; }
+        .gm-btn-accent{ background:#fff; color:var(--accent-ink); }
+        .gm-btn-accent:hover{ background:var(--accent-weak); color:var(--accent-ink); }
+        .gm-btn-ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.55); }
+        .gm-btn-ghost:hover{ background:rgba(255,255,255,0.12); }
+
+        .badge-gm{ background:var(--accent-weak); color:var(--accent-ink); font-weight:800; }
+
+        /* Page blocks */
+        .gm-card{
+          background:var(--card);
+          border:1px solid var(--stroke);
+          border-radius:var(--radius);
+          box-shadow:var(--shadow);
+        }
+        .gm-section-title{ font-weight:900; font-size:1.25rem; margin:0; }
+        .gm-subtitle{ color:var(--muted); margin-top:.2rem; }
+
+        /* Form styling */
+        .form-label{ font-weight:800; }
+        .form-control, .form-select{
+          border-radius:12px;
+          border:1px solid var(--stroke);
+          padding:.65rem .8rem;
+        }
+        .form-control:focus, .form-select:focus{
+          border-color: rgba(255,122,0,.55);
+          box-shadow: 0 0 0 .2rem rgba(255,122,0,.15);
+        }
+
+        .gm-required::after{ content:" *"; color:var(--accent); font-weight:900; }
+
+        .gm-cta{
+          border-radius:12px;
+          font-weight:900;
+          padding:.7rem 1rem;
+        }
+        .gm-cta-primary{
+          background:var(--accent);
+          color:#fff;
+          border:none;
+        }
+        .gm-cta-primary:hover{ background:#f17200; }
+        .gm-cta-secondary{
+          background:#fff;
+          border:1px solid var(--stroke);
+          color:var(--text);
+        }
+        .gm-cta-secondary:hover{ background:#FFF8F2; border-color:rgba(255,122,0,.45); }
+
+        /* Attachment drop */
+        .drop{
+          border:2px dashed rgba(255,122,0,.35);
+          background:#FFF8F2;
+          border-radius:14px;
+          padding:14px;
+        }
+        .helper{ color:var(--muted); font-size:.9rem; }
+        .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+        /* Priority chips */
+        .prio-chip{
+          display:inline-flex; align-items:center; gap:8px;
+          padding:8px 10px;
+          border-radius:999px;
+          border:1px solid var(--stroke);
+          font-weight:900;
+          font-size:.85rem;
+          background:#fff;
+        }
+        .prio-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+        .dot-low{ background:#22c55e; }
+        .dot-med{ background:#f59e0b; }
+        .dot-high{ background:#ef4444; }
+        .dot-urgent{ background:#a855f7; }
+    </style>
+</head>
+
+<body>
+
+<!-- Top bar -->
+<div class="gm-topbar">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+        <div class="d-flex gap-2">
+            <button type="button" class="gm-btn gm-btn-ghost" id="backBtn" title="Back">← Back</button>
+            <button type="button" class="gm-btn gm-btn-accent" id="homeBtn" title="Home">⌂ Home</button>
+        </div>
+
+        <div class="brand">
+            <span>Geekmonkey • Task Management</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge rounded-pill badge-gm">Add Task</span>
+        </div>
+    </div>
+</div>
+
+<main class="container my-4">
+    <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="gm-section-title">Create New Task</h1>
+            <div class="gm-subtitle">Capture all Jira-like fields: title, workflow status, owner, comments, attachments.</div>
+        </div>
+        <div class="text-muted small">
+            <span class="badge rounded-pill badge-gm">Tip</span>
+            Keep title action-based, like <b>“Update Product Images — Real Images”</b>.
+        </div>
+    </div>
+
+    <!-- FORM CARD -->
+    <div class="gm-card p-3 p-md-4">
+        <!-- Spring Boot/Thymeleaf:
+             th:action points to your controller endpoint, e.g. POST /v1/taskmgt/tasks
+             th:object binds to a TaskCreateRequest model -->
+        <form th:action="@{/v1/taskmgt/tasks}" method="post" enctype="multipart/form-data"
+              th:object="${task}" novalidate>
+
+            <!-- Row 1: Title + Task Id + Priority -->
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <label class="form-label gm-required" for="title">Title</label>
+                    <input class="form-control" id="title" name="title" th:field="*{title}"
+                           placeholder="e.g., Update Product Images — Real Images" required />
+                    <div class="helper mt-1">Start with a verb. Keep it specific.</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="taskId">Task ID</label>
+                    <input class="form-control mono" id="taskId" name="taskId" th:field="*{taskId}"
+                           placeholder="AUTO (e.g., GM-1024)" readonly />
+                    <div class="helper mt-1">Auto-generated on save.</div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label gm-required" for="priority">Priority</label>
+                    <select class="form-select" id="priority" name="priority" th:field="*{priority}" required>
+                        <option value="" disabled selected>Select</option>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="URGENT">Urgent</option>
+                    </select>
+                    <div class="helper mt-1">
+                        <span class="prio-chip"><span class="prio-dot dot-low"></span>Low</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Description -->
+            <div class="row g-3 mt-1">
+                <div class="col-12">
+                    <label class="form-label gm-required" for="description">Description</label>
+                    <textarea class="form-control" id="description" name="description" th:field="*{description}"
+                              rows="5" placeholder="Write task details, acceptance criteria, and constraints..." required></textarea>
+                    <div class="helper mt-1">
+                        Add checklist + acceptance criteria. Example: “1080×1080, 1:1, centered, real image only”.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Status (Workflow) + Team + Reporter + Assignee -->
+            <div class="row g-3 mt-1">
+                <div class="col-md-3">
+                    <label class="form-label gm-required" for="status">Status (Workflow)</label>
+                    <select class="form-select" id="status" name="status" th:field="*{status}" required>
+                        <option value="BACKLOG">Backlog</option>
+                        <option value="TODO">To Do</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="BLOCKED">Blocked</option>
+                        <option value="IN_REVIEW">In Review</option>
+                        <option value="DONE">Done</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label gm-required" for="team">Team</label>
+                    <select class="form-select" id="team" name="team" th:field="*{team}" required>
+                        <option value="" disabled selected>Select Team</option>
+                        <option value="OPS_AKATSUKI">Ops Akatsuki</option>
+                        <option value="GM_COMMAND">GM Command Squad</option>
+                        <option value="SHADOW_OPS">Shadow Ops Guild</option>
+                        <option value="WAREHOUSE">Warehouse</option>
+                        <option value="CUSTOMER_SUPPORT">Customer Support</option>
+                        <option value="TECH">Tech</option>
+                    </select>
+                    <div class="helper mt-1">Used for dashboards & auto-routing.</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label gm-required" for="reporter">Reporter</label>
+                    <select class="form-select" id="reporter" name="reporter" th:field="*{reporter}" required>
+                        <option value="" disabled selected>Select Reporter</option>
+                        <option th:each="u : ${users}" th:value="${u.empId}" th:text="${u.empName}">User</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="assignee">Assignee</label>
+                    <select class="form-select" id="assignee" name="assignee" th:field="*{assignee}">
+                        <option value="">Unassigned</option>
+                        <option th:each="u : ${users}" th:value="${u.empId}" th:text="${u.empName}">User</option>
+                    </select>
+                    <div class="helper mt-1">Optional. Can be assigned later.</div>
+                </div>
+            </div>
+
+            <!-- Row 4: Comments + Attachments -->
+            <div class="row g-3 mt-1">
+                <div class="col-md-7">
+                    <label class="form-label" for="comments">Comments</label>
+                    <textarea class="form-control" id="comments" name="comments" th:field="*{comments}"
+                              rows="4" placeholder="Add any extra notes or context..."></textarea>
+                    <div class="helper mt-1">Initial comment will be saved in activity trail.</div>
+                </div>
+
+                <div class="col-md-5">
+                    <label class="form-label" for="attachments">Attachments</label>
+                    <div class="drop">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <div class="fw-bold">Upload files</div>
+                                <div class="helper">Images, PDFs, screenshots, etc. (multiple allowed)</div>
+                            </div>
+                            <span class="badge rounded-pill badge-gm">Drag & Drop</span>
+                        </div>
+                        <input class="form-control mt-2" id="attachments" name="attachments" type="file" multiple />
+                        <div class="helper mt-2">Tip: add “before/after” images for faster approvals.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer buttons -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4">
+                <div class="helper">
+                    <span class="badge rounded-pill badge-gm">Workflow</span>
+                    Default is <b>To Do</b>. You can change later in Kanban.
+                </div>
+                <div class="d-flex gap-2">
+                    <a class="btn gm-cta gm-cta-secondary" th:href="@{/v1/taskmgt/tasks}" href="/v1/taskmgt/tasks">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn gm-cta gm-cta-primary">
+                        Create Task →
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+</main>
+
+<script>
+    // Header buttons
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      window.location.href = '/v1/home';
+    });
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (history.length > 1) { history.back(); }
+      else { window.location.href = '/v1/taskmgt'; }
+    });
+
+    // Priority chip helper preview (optional tiny UX)
+    const prio = document.getElementById('priority');
+    const chip = document.querySelector('.prio-chip');
+    const dot  = document.querySelector('.prio-dot');
+    function setChip(){
+      const v = prio.value || 'LOW';
+      chip.innerHTML = '';
+      const d = document.createElement('span');
+      d.className = 'prio-dot ' + (
+        v==='LOW' ? 'dot-low' : v==='MEDIUM' ? 'dot-med' : v==='HIGH' ? 'dot-high' : 'dot-urgent'
+      );
+      const t = document.createElement('span');
+      t.textContent = v.charAt(0) + v.slice(1).toLowerCase();
+      chip.appendChild(d);
+      chip.appendChild(t);
+    }
+    prio.addEventListener('change', setChip);
+    setChip();
+</script>
+
+<!-- Chatbot fragment (optional) -->
+
+</body>
+</html>

@@ -28,7 +28,7 @@ public class ShipcluesServiceImpl  extends AbstractServiceImpl {
     @Autowired
     private AllCredentialsService credentialsService;
 
-   // @Value("${shipclues.api.key}")
+    @Value("${shipclues.api.key}")
     private String apiKey;
 
 
@@ -54,7 +54,7 @@ public class ShipcluesServiceImpl  extends AbstractServiceImpl {
            List<Map> credentialsList = credentialsService.getCredentials();
             for ( Map credMap : credentialsList ) {
                 if("shipmozo".equalsIgnoreCase((String) credMap.get("_id"))){
-                    apiKey = credMap.get("shipclues.api.key").toString();
+                    apiKey = credMap.get("shipclues.api.publickey").toString();
                 }
             }
         }
