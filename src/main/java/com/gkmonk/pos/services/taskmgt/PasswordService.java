@@ -29,4 +29,14 @@ public class PasswordService {
     public boolean verify(String plain, String hashed) {
         return enc.matches(prehash(plain), hashed);
     }
+
+    public static void main(String[] args) {
+        String raw = "adminf";
+        String hash = "$2a$10$DFhtEOQ1KIiHG7mQqTGRwuFaiJPO6fCdX9xOk5IfhYI86rdBJo16i";
+
+
+        PasswordService service = new PasswordService();
+        BCryptPasswordEncoder enc = new BCryptPasswordEncoder();
+        System.out.println(service.prehash(raw)); // true/false
+    }
 }

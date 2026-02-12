@@ -36,4 +36,6 @@ public class HomeController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unable to fetch local IP address");
         }
     }
+
+
 }

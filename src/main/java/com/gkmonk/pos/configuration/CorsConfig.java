@@ -20,7 +20,7 @@ public class CorsConfig {
         cfg.setAllowedOriginPatterns(List.of("*"));
 
         // ✅ if you don't need cookies, keep false (simplest)
-        cfg.setAllowCredentials(false);
+        cfg.setAllowCredentials(true);
 
         cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS","PATCH"));
         cfg.setAllowedHeaders(List.of("*"));

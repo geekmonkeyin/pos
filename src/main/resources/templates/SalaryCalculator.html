@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Attendance → Monthly Salary Calculator (Geekmonkey)</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- PapaParse (CSV parsing) -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <!-- jsPDF + AutoTable (PDF generation) -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root{
+          --accent:#FF7A00;
+          --bg:#F9FAFB;
+          --card:#FFFFFF;
+          --stroke:#E5E7EB;
+          --text:#111827;
+          --muted:#6B7280;
+          --radius:14px;
+        }
+        body{ background:var(--bg); color:var(--text); }
+        .brand-badge{
+          background: rgba(255,122,0,.12);
+          color:#9A4D00;
+          border: 1px solid rgba(255,122,0,.25);
+          padding:.25rem .6rem;
+          border-radius:999px;
+          font-weight:600;
+          font-size:.85rem;
+        }
+        .cardx{
+          background:var(--card);
+          border:1px solid var(--stroke);
+          border-radius:var(--radius);
+          box-shadow:0 8px 24px rgba(17,24,39,.06);
+        }
+        .btn-accent{
+          background:var(--accent);
+          border-color:var(--accent);
+          color:white;
+          font-weight:700;
+        }
+        .btn-accent:hover{ filter: brightness(.95); }
+        .small-muted{ color:var(--muted); font-size:.9rem; }
+        .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .table thead th{ white-space:nowrap; }
+        .sticky-actions{
+          position: sticky;
+          bottom: 0;
+          background: linear-gradient(180deg, rgba(249,250,251,0), rgba(249,250,251,1) 40%);
+          padding-top: 12px;
+        }
+        .pill{
+          display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--stroke);
+          background:#fff; font-size:.85rem;
+        }
+
+        /* Date picker modal: small calendar grid */
+        .cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
+        .cal-dow{ font-size:.75rem; color:var(--muted); text-align:center; padding:4px 0; user-select:none; }
+        .cal-day{
+          border:1px solid var(--stroke);
+          border-radius:10px;
+          padding:8px 0;
+          text-align:center;
+          cursor:pointer;
+          user-select:none;
+          background:#fff;
+          font-size:.9rem;
+        }
+        .cal-day:hover{ filter: brightness(.98); }
+        .cal-day.disabled{ opacity:.35; cursor:not-allowed; background:#f3f4f6; }
+        .cal-day.selected{
+          background: rgba(255,122,0,.15);
+          border-color: rgba(255,122,0,.45);
+          font-weight:700;
+          color:#9A4D00;
+        }
+        .cal-legend{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:.85rem; color:var(--muted); }
+        .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
+        .dot-wfh{ background: rgba(255,122,0,.8); }
+        .dot-ph{ background: rgba(17,24,39,.55); }
+        .chip{
+          display:inline-flex; align-items:center; gap:6px;
+          border:1px solid var(--stroke); border-radius:999px;
+          padding:4px 10px; background:#fff; font-size:.85rem;
+        }
+        .linkish{ color:#0d6efd; text-decoration: underline; cursor:pointer; }
+    </style>
+</head>
+
+<body>
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h3 class="mb-1">Attendance → Monthly Salary Calculator</h3>
+            <div class="small-muted">
+                Rule: <b>&lt;4 hours worked = Absent</b> (no salary for that day)
+                • PDF shows <b>per-hour rate</b> and <b>earned-by-hours</b> for Present days
+                • Approve <b>WFH/PH dates</b> using calendar
+                <span class="brand-badge ms-2">Geekmonkey</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload + Filters -->
+    <div class="cardx p-3 mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-4">
+                <label class="form-label fw-semibold">Upload Attendance CSV</label>
+                <input type="file" id="csvFile" accept=".csv" class="form-control"/>
+                <div class="small-muted mt-1">
+                    Required columns: <span class="mono">employeeId, employeeName, checkinAt</span>.<br/>
+                    For checkout: <span class="mono">checkoutAt</span> (or <span class="mono">checkOutAt</span> / <span class="mono">checkout_at</span> / <span class="mono">checkOut</span>).
+                </div>
+            </div>
+
+            <div class="col-lg-2">
+                <label class="form-label fw-semibold">Mode</label>
+                <select id="filterMode" class="form-select">
+                    <option value="month" selected>Month</option>
+                    <option value="range">Date Range</option>
+                </select>
+            </div>
+
+            <div class="col-lg-2" id="monthWrap">
+                <label class="form-label fw-semibold">Select Month</label>
+                <input type="month" id="monthInput" class="form-control"/>
+            </div>
+
+            <div class="col-lg-2 d-none" id="fromWrap">
+                <label class="form-label fw-semibold">From</label>
+                <input type="date" id="fromDate" class="form-control"/>
+            </div>
+
+            <div class="col-lg-2 d-none" id="toWrap">
+                <label class="form-label fw-semibold">To</label>
+                <input type="date" id="toDate" class="form-control"/>
+            </div>
+
+            <div class="col-lg-2">
+                <label class="form-label fw-semibold">Employee</label>
+                <select id="employeeFilter" class="form-select" disabled>
+                    <option value="__all__">All Employees</option>
+                </select>
+            </div>
+
+            <div class="col-lg-2">
+                <button class="btn btn-accent w-100" id="btnCompute" disabled>Compute</button>
+            </div>
+        </div>
+
+        <hr class="my-3"/>
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="small-muted">
+                Sundays excluded from working days.
+                <span class="pill ms-2">Expected hours/day = <b>9</b></span>
+                <span class="pill ms-2">Absent if <b>&lt;4h</b></span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="calcHours" checked>
+                    <label class="form-check-label fw-semibold" for="calcHours">
+                        Calculate Hours (checkoutAt - checkinAt)
+                    </label>
+                </div>
+
+                <div class="cal-legend">
+                    <span class="chip"><span class="dot dot-wfh"></span>WFH</span>
+                    <span class="chip"><span class="dot dot-ph"></span>Public Holiday</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Salary Inputs -->
+    <div class="cardx p-3 mb-3">
+        <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+            <div>
+                <h5 class="mb-1">Salary Settings</h5>
+                <div class="small-muted">
+                    Per-day salary = <span class="mono">monthlySalary / workingDays</span>.<br/>
+                    PDF daily earnings:
+                    <span class="mono">hourlyRate = perDay / 9</span>,
+                    <span class="mono">earnedToday = hourlyRate × workedHours</span> (for Present days).<br/>
+                    <b>WFH / PH</b> = full per-day pay (no hours).
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-3"/>
+
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-3">
+                <label class="form-label fw-semibold">Default Monthly Salary (₹)</label>
+                <input type="number" id="defaultMonthlySalary" class="form-control" placeholder="e.g. 18000" min="0" step="1" value="0">
+            </div>
+
+            <div class="col-lg-3">
+                <label class="form-label fw-semibold">Default Bonus (₹)</label>
+                <input type="number" id="defaultBonus" class="form-control" placeholder="e.g. 500" min="0" step="1" value="0">
+            </div>
+
+            <div class="col-lg-3">
+                <label class="form-label fw-semibold">Notes (optional, shown in PDF)</label>
+                <input type="text" id="notes" class="form-control" placeholder="e.g. Incentive for IIT Fest week">
+            </div>
+
+            <div class="col-lg-3">
+                <div class="small-muted">
+                    Tip: In results table click <b>WFH Dates</b> / <b>PH Dates</b> to select multiple dates.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="cardx p-3 mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h5 class="mb-1">Results</h5>
+                <div class="small-muted" id="resultMeta">Upload a CSV and click Compute.</div>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-dark" id="btnPdfSelected" disabled>PDF: Selected Employee</button>
+                <button class="btn btn-accent" id="btnPdfAll" disabled>PDF: All Employees</button>
+            </div>
+        </div>
+
+        <hr class="my-3"/>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle" id="resultTable">
+                <thead class="table-light">
+                <tr>
+                    <th>Employee</th>
+                    <th class="text-end">Working Days<br/><span class="small-muted">(No Sundays)</span></th>
+
+                    <th class="text-end">Present (Raw)</th>
+                    <th class="text-end">Valid Present<br/><span class="small-muted">(≥4h)</span></th>
+                    <th class="text-end">Absent by Rule<br/><span class="small-muted">(&lt;4h)</span></th>
+
+                    <th class="text-end">WFH Dates</th>
+                    <th class="text-end">PH Dates</th>
+
+                    <th class="text-end">Payable Days</th>
+                    <th class="text-end">Leaves</th>
+
+                    <th class="text-end">Monthly Salary (₹)</th>
+                    <th class="text-end">Per-Day (₹)</th>
+                    <th class="text-end">Earned Salary (₹)</th>
+                    <th class="text-end">Bonus (₹)</th>
+                    <th class="text-end">Total Pay (₹)</th>
+
+                    <th class="text-end col-hours">Avg Daily Hours</th>
+                    <th class="text-end col-hours">Worked Hours</th>
+                    <th class="text-end col-hours">Expected Hours</th>
+                    <th class="text-end col-hours">Short Hours</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td colspan="18" class="text-center small-muted py-4">No data yet.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="sticky-actions">
+            <div class="small-muted">
+                💡 Tip: Edit salary/bonus directly in the table → totals update instantly. Click WFH/PH to pick dates.
+                <span class="ms-2">PDF earns per-day using <span class="mono">(perDay/9)×workedHours</span> for Present days.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help -->
+    <div class="cardx p-3">
+        <h6 class="mb-2">Rules applied</h6>
+        <ul class="small-muted mb-0">
+            <li>Only days with <b>Worked Hours ≥ 4</b> count as <b>Present</b> for salary.</li>
+            <li>If <b>Worked Hours &lt; 4</b> → treated as <b>Absent</b> and <b>Earned (₹) = 0</b>.</li>
+            <li><b>Present</b> earns proportional pay: <span class="mono">(Per-Day ÷ 9) × WorkedHours</span>.</li>
+            <li><b>WFH</b> and <b>PH</b> earn full <b>Per-Day</b> pay (no hours required).</li>
+            <li>Sundays are ignored.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- WFH/PH Date Picker Modal -->
+<div class="modal fade" id="datePickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0" id="dpTitle">Select Dates</h5>
+                    <div class="small-muted" id="dpSubtitle">Click dates to toggle. Only working dates are selectable.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-dark btn-sm" id="dpPrev">←</button>
+                        <div class="fw-semibold" id="dpMonthLabel">Month</div>
+                        <button class="btn btn-outline-dark btn-sm" id="dpNext">→</button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button class="btn btn-outline-secondary btn-sm" id="dpClear">Clear</button>
+                        <button class="btn btn-accent btn-sm" id="dpApply">Apply</button>
+                    </div>
+                </div>
+
+                <div class="cal-grid mb-2" id="dpDow"></div>
+                <div class="cal-grid" id="dpGrid"></div>
+
+                <hr class="my-3"/>
+
+                <div class="small-muted">
+                    Selected: <span class="mono" id="dpSelectedText">None</span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="small-muted me-auto" id="dpFooterHint">Dates outside the computed period are disabled.</div>
+                <button class="btn btn-outline-dark" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-accent" id="dpApply2">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="none">
+    // ===== Constants =====
+    const EXPECTED_HOURS_PER_DAY = 9;
+    const MIN_HOURS_FOR_PRESENT = 4;
+    const IST_TZ = "Asia/Kolkata";
+
+    // ===== Utilities =====
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const toISODate = (d) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+
+    function safeNum(v){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function money(n){
+      return Math.round(n).toLocaleString("en-IN");
+    }
+    function round2(n){
+      return Math.round(n * 100) / 100;
+    }
+    function round2Str(n){
+      const x = round2(n);
+      return String(x);
+    }
+
+    function parseISODateFromAny(dt){
+      if(!dt) return null;
+      const s = String(dt);
+      if(s.length >= 10 && s[4]==="-" && s[7]==="-") return s.substring(0,10);
+      const d = new Date(s);
+      if(isNaN(d.getTime())) return null;
+      return toISODate(d);
+    }
+
+    function parseDateTime(dt){
+      if(!dt) return null;
+      const d = new Date(String(dt));
+      if(isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function withinRange(isoDate, startISO, endISO){
+      if(!isoDate) return false;
+      if(startISO && isoDate < startISO) return false;
+      if(endISO && isoDate > endISO) return false;
+      return true;
+    }
+
+    function isSundayISO(isoDate){
+      const d = new Date(isoDate + "T00:00:00");
+      return d.getDay() === 0;
+    }
+
+    function listWorkingDates(startISO, endISO){
+      const out = [];
+      const start = new Date(startISO + "T00:00:00");
+      const end = new Date(endISO + "T00:00:00");
+      if(isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return out;
+
+      for(let d = new Date(start); d <= end; d.setDate(d.getDate()+1)){
+        if(d.getDay() !== 0) out.push(toISODate(d)); // exclude Sundays
+      }
+      return out;
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function fmtTimeIST(dateObj){
+      if(!dateObj) return "";
+      try{
+        return new Intl.DateTimeFormat("en-IN", {
+          timeZone: IST_TZ,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        }).format(dateObj);
+      }catch(e){
+        return dateObj.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+      }
+    }
+
+    function fmtDateTimeIST(dateObj){
+      if(!dateObj) return "";
+      try{
+        return new Intl.DateTimeFormat("en-IN", {
+          timeZone: IST_TZ,
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        }).format(dateObj);
+      }catch(e){
+        return dateObj.toLocaleString("en-IN");
+      }
+    }
+
+    function isoListToText(setLike){
+      const arr = Array.from(setLike || []).sort();
+      return arr.length ? arr.join(", ") : "None";
+    }
+
+    // Earned-by-hours for Present days:
+    // hourlyRate = perDay / 9
+    // earned = hourlyRate * workedHours (capped at 9 by default, to avoid paying > perDay if logs exceed 9h)
+    function hourlyRate(perDay){
+      return Math.max(0, (Number(perDay)||0) / EXPECTED_HOURS_PER_DAY);
+    }
+    function earnedForDay({status, perDay, workedHrs}){
+      const pd = Math.max(0, Number(perDay)||0);
+      const wh = Math.max(0, Number(workedHrs)||0);
+
+      if(status === "Present"){
+        const hr = hourlyRate(pd);
+        const capHrs = Math.min(EXPECTED_HOURS_PER_DAY, wh);
+        return hr * capHrs;
+      }
+      if(status === "WFH" || status === "PH"){
+        return pd;
+      }
+      return 0; // Leave / Absent
+    }
+
+    // ===== State =====
+    let rawRows = [];
+    let employees = [];
+    let computed = [];
+    let globalPH = new Set();
+
+    // ===== DOM =====
+    const csvFile = document.getElementById("csvFile");
+    const employeeFilter = document.getElementById("employeeFilter");
+    const btnCompute = document.getElementById("btnCompute");
+    const filterMode = document.getElementById("filterMode");
+    const monthWrap = document.getElementById("monthWrap");
+    const fromWrap = document.getElementById("fromWrap");
+    const toWrap = document.getElementById("toWrap");
+    const monthInput = document.getElementById("monthInput");
+    const fromDate = document.getElementById("fromDate");
+    const toDate = document.getElementById("toDate");
+    const resultMeta = document.getElementById("resultMeta");
+    const resultTableBody = document.querySelector("#resultTable tbody");
+    const btnPdfSelected = document.getElementById("btnPdfSelected");
+    const btnPdfAll = document.getElementById("btnPdfAll");
+
+    const defaultMonthlySalary = document.getElementById("defaultMonthlySalary");
+    const defaultBonus = document.getElementById("defaultBonus");
+    const notes = document.getElementById("notes");
+    const calcHours = document.getElementById("calcHours");
+
+    // ===== Date Picker Modal DOM =====
+    const dpModalEl = document.getElementById("datePickerModal");
+    const dpModal = new bootstrap.Modal(dpModalEl, { backdrop: "static" });
+
+    const dpTitle = document.getElementById("dpTitle");
+    const dpSubtitle = document.getElementById("dpSubtitle");
+    const dpMonthLabel = document.getElementById("dpMonthLabel");
+    const dpGrid = document.getElementById("dpGrid");
+    const dpDow = document.getElementById("dpDow");
+    const dpPrev = document.getElementById("dpPrev");
+    const dpNext = document.getElementById("dpNext");
+    const dpClear = document.getElementById("dpClear");
+    const dpApply = document.getElementById("dpApply");
+    const dpApply2 = document.getElementById("dpApply2");
+    const dpSelectedText = document.getElementById("dpSelectedText");
+    const dpFooterHint = document.getElementById("dpFooterHint");
+
+    let dpContext = {
+      kind: "WFH",          // "WFH" | "PH"
+      empIdx: null,
+      allowedDates: new Set(),
+      selected: new Set(),
+      viewYear: 0,
+      viewMonth: 0
+    };
+
+    (function initMonth(){
+      const now = new Date();
+      monthInput.value = `${now.getFullYear()}-${pad2(now.getMonth()+1)}`;
+    })();
+
+    filterMode.addEventListener("change", () => {
+      const mode = filterMode.value;
+      if(mode === "month"){
+        monthWrap.classList.remove("d-none");
+        fromWrap.classList.add("d-none");
+        toWrap.classList.add("d-none");
+      }else{
+        monthWrap.classList.add("d-none");
+        fromWrap.classList.remove("d-none");
+        toWrap.classList.remove("d-none");
+      }
+    });
+
+    function toggleHoursColumns(){
+      const on = !!calcHours.checked;
+      document.querySelectorAll(".col-hours").forEach(el => el.classList.toggle("d-none", !on));
+      if(!computed.length){
+        const colCount = on ? 18 : 14;
+        resultTableBody.innerHTML = `<tr><td colspan="${colCount}" class="text-center small-muted py-4">No data yet.</td></tr>`;
+      }
+    }
+    calcHours.addEventListener("change", () => {
+      toggleHoursColumns();
+      renderTable();
+    });
+    toggleHoursColumns();
+
+    // ===== CSV Upload =====
+    csvFile.addEventListener("change", async () => {
+      const file = csvFile.files?.[0];
+      if(!file){
+        rawRows = [];
+        employees = [];
+        employeeFilter.disabled = true;
+        btnCompute.disabled = true;
+        computed = [];
+        globalPH = new Set();
+        renderTable();
+        return;
+      }
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          rawRows = results.data || [];
+
+          const cols = (results.meta && results.meta.fields) ? results.meta.fields : [];
+          const hasEmployeeId = cols.includes("employeeId");
+          const hasEmployeeName = cols.includes("employeeName");
+          const hasCheckinAt = cols.includes("checkinAt");
+
+          if(!hasEmployeeId || !hasEmployeeName || !hasCheckinAt){
+            alert("CSV must include columns: employeeId, employeeName, checkinAt");
+            rawRows = [];
+            employees = [];
+            employeeFilter.disabled = true;
+            btnCompute.disabled = true;
+            computed = [];
+            globalPH = new Set();
+            renderTable();
+            return;
+          }
+
+          const map = new Map();
+          for(const r of rawRows){
+            const id = String(r.employeeId ?? "").trim();
+            const name = String(r.employeeName ?? "").trim();
+            if(id && name) map.set(id, name);
+          }
+
+          employees = Array.from(map.entries())
+            .map(([id,name]) => ({id, name}))
+            .sort((a,b) => a.name.localeCompare(b.name));
+
+          employeeFilter.innerHTML =
+            `<option value="__all__">All Employees</option>` +
+            employees.map(e => `<option value="${e.id}">${e.name} (ID: ${e.id})</option>`).join("");
+
+          employeeFilter.disabled = false;
+          btnCompute.disabled = false;
+
+          resultMeta.textContent = `Loaded ${rawRows.length} rows for ${employees.length} employees. Choose filters and click Compute.`;
+        }
+      });
+    });
+
+    // ===== Compute =====
+    btnCompute.addEventListener("click", () => {
+      if(!rawRows.length) return;
+
+      const mode = filterMode.value;
+      let startISO = null, endISO = null;
+      let periodLabel = "";
+
+      if(mode === "month"){
+        const m = monthInput.value;
+        if(!m){ alert("Please select a month."); return; }
+        const [Y, M] = m.split("-").map(Number);
+        const lastDay = new Date(Y, M, 0).getDate();
+        startISO = `${Y}-${pad2(M)}-01`;
+        endISO = `${Y}-${pad2(M)}-${pad2(lastDay)}`;
+        periodLabel = `${Y}-${pad2(M)}`;
+      }else{
+        startISO = fromDate.value || null;
+        endISO = toDate.value || null;
+        if(!startISO || !endISO){ alert("Please select both From and To dates."); return; }
+        if(endISO < startISO){ alert("To date cannot be before From date."); return; }
+        periodLabel = `${startISO} to ${endISO}`;
+      }
+
+      const workingDates = listWorkingDates(startISO, endISO);
+      const workingDays = workingDates.length;
+      const selectedEmp = employeeFilter.value;
+      const hoursEnabled = !!calcHours.checked;
+
+      const allowedSet = new Set(workingDates);
+      globalPH = new Set(Array.from(globalPH).filter(d => allowedSet.has(d)));
+
+      const rawPresentByEmp = new Map();
+      const dailyHoursByEmp = new Map();
+      const dailyTimesByEmp = new Map();
+
+      for(const r of rawRows){
+        const empId = String(r.employeeId ?? "").trim();
+        const empName = String(r.employeeName ?? "").trim();
+        if(!empId || !empName) continue;
+        if(selectedEmp !== "__all__" && empId !== selectedEmp) continue;
+
+        const isoDay = parseISODateFromAny(r.checkinAt);
+        if(!isoDay) continue;
+        if(!withinRange(isoDay, startISO, endISO)) continue;
+        if(isSundayISO(isoDay)) continue;
+
+        if(!rawPresentByEmp.has(empId)) rawPresentByEmp.set(empId, new Set());
+        rawPresentByEmp.get(empId).add(isoDay);
+
+        if(!dailyTimesByEmp.has(empId)) dailyTimesByEmp.set(empId, new Map());
+        const tMap = dailyTimesByEmp.get(empId);
+        if(!tMap.has(isoDay)) tMap.set(isoDay, { firstIn: null, lastOut: null });
+
+        const inDt = parseDateTime(r.checkinAt);
+        const outRaw = r.checkoutAt ?? r.checkOutAt ?? r.checkout_at ?? r.checkOut ?? null;
+        const outDt = parseDateTime(outRaw);
+
+        const tRec = tMap.get(isoDay);
+        if(inDt){
+          if(!tRec.firstIn || inDt < tRec.firstIn) tRec.firstIn = inDt;
+        }
+        if(outDt){
+          if(!tRec.lastOut || outDt > tRec.lastOut) tRec.lastOut = outDt;
+        }
+
+        if(hoursEnabled){
+          if(inDt && outDt){
+            let diff = (outDt.getTime() - inDt.getTime()) / (1000 * 60 * 60);
+            if(!Number.isFinite(diff)) diff = 0;
+            if(diff < 0) diff = 0;
+
+            if(!dailyHoursByEmp.has(empId)) dailyHoursByEmp.set(empId, new Map());
+            const hMap = dailyHoursByEmp.get(empId);
+            hMap.set(isoDay, (hMap.get(isoDay) || 0) + diff);
+          }
+        }
+      }
+
+      const defSalary = safeNum(defaultMonthlySalary.value);
+      const defBonus  = safeNum(defaultBonus.value);
+
+      const empList = (selectedEmp === "__all__") ? employees : employees.filter(e => e.id === selectedEmp);
+
+      computed = empList.map(e => {
+        const rawPresentSet = rawPresentByEmp.get(e.id) || new Set();
+        const dayHoursMap = dailyHoursByEmp.get(e.id) || new Map();
+        const dayTimesMap = dailyTimesByEmp.get(e.id) || new Map();
+
+        const validPresentSet = new Set();
+        const absentByRuleSet = new Set();
+
+        for(const d of rawPresentSet){
+          if(!hoursEnabled){
+            validPresentSet.add(d);
+            continue;
+          }
+          const h = Math.max(0, dayHoursMap.get(d) || 0);
+          if(h >= MIN_HOURS_FOR_PRESENT) validPresentSet.add(d);
+          else absentByRuleSet.add(d);
+        }
+
+        const wfhDates = new Set();
+        const prev = computed.find(x => x.empId === e.id);
+        if(prev && prev.wfhDates){
+          for(const d of prev.wfhDates){
+            if(allowedSet.has(d)) wfhDates.add(d);
+          }
+        }
+
+        const presentRawDays   = rawPresentSet.size;
+        const validPresentDays = validPresentSet.size;
+        const absentByRuleDays = absentByRuleSet.size;
+
+        const monthlySalary = defSalary;
+        const perDay = workingDays > 0 ? (monthlySalary / workingDays) : 0;
+        const perHour = hourlyRate(perDay);
+
+        const phDates = new Set(Array.from(globalPH).filter(d => allowedSet.has(d)));
+
+        const payableSet = new Set();
+        for(const d of validPresentSet) payableSet.add(d);
+
+        for(const d of phDates){
+          if(absentByRuleSet.has(d)) continue;
+          payableSet.add(d);
+        }
+
+        for(const d of wfhDates){
+          if(validPresentSet.has(d)) continue;
+          if(absentByRuleSet.has(d)) continue;
+          if(phDates.has(d)) continue;
+          payableSet.add(d);
+        }
+
+        const payableDays = Math.min(workingDays, payableSet.size);
+        const leaves = Math.max(0, workingDays - payableDays);
+
+        // NOTE: Monthly earnedSalary remains day-based (as earlier).
+        // The user's ask is specifically for PDF "Earned per day" to be hour-based.
+        // We keep overall totals logic intact, but PDF day rows will calculate earned by hours.
+        const earnedSalary = perDay * payableDays;
+        const bonus = defBonus;
+        const total = earnedSalary + bonus;
+
+        const validHoursValues = Array.from(validPresentSet).map(d => Math.max(0, dayHoursMap.get(d) || 0));
+        const workedHours = validHoursValues.reduce((a,b) => a + b, 0);
+        const avgDailyHours = validHoursValues.length ? (workedHours / validHoursValues.length) : 0;
+
+        const expectedHours = payableDays * EXPECTED_HOURS_PER_DAY;
+        const shortHours = Math.max(0, expectedHours - workedHours);
+
+        return {
+          empId: e.id,
+          empName: e.name,
+          periodLabel,
+          startISO, endISO,
+
+          workingDates,
+          workingDays,
+
+          rawPresentSet,
+          validPresentSet,
+          absentByRuleSet,
+
+          dailyHoursMap: dayHoursMap,
+          dailyTimesMap: dayTimesMap,
+
+          wfhDates,
+          phDates,
+          payableSet,
+
+          presentRawDays,
+          validPresentDays,
+          absentByRuleDays,
+
+          payableDays,
+          leaves,
+
+          monthlySalary,
+          perDay,
+          perHour,          // ✅ new
+          earnedSalary,
+          bonus,
+          total,
+
+          avgDailyHours,
+          workedHours,
+          expectedHours,
+          shortHours,
+
+          hoursEnabled
+        };
+      });
+
+      renderTable();
+      toggleHoursColumns();
+
+      resultMeta.textContent =
+        `Computed for ${computed.length} employee(s) • Period: ${periodLabel} • Date filter: ${startISO} → ${endISO} • Working days (no Sundays): ${workingDays}`;
+
+      btnPdfSelected.disabled = computed.length === 0;
+      btnPdfAll.disabled = computed.length === 0;
+
+      if(calcHours.checked){
+        const cols = (rawRows[0] ? Object.keys(rawRows[0]) : []);
+        const hasOut = cols.includes("checkoutAt") || cols.includes("checkOutAt") || cols.includes("checkout_at") || cols.includes("checkOut");
+        if(!hasOut){
+          alert("checkoutAt column not found. Rule (<4h = Absent) cannot be applied correctly. Add checkoutAt/checkOutAt in CSV.");
+        }
+      }
+    });
+
+    // ===== Render Table (unchanged totals UI) =====
+    function renderTable(){
+      const hoursOn = !!calcHours.checked;
+      const colCount = hoursOn ? 18 : 14;
+
+      if(!computed.length){
+        resultTableBody.innerHTML = `<tr><td colspan="${colCount}" class="text-center small-muted py-4">No data yet.</td></tr>`;
+        return;
+      }
+
+      resultTableBody.innerHTML = computed.map((r, idx) => {
+        const hoursCells = hoursOn ? `
+          <td class="text-end">${round2(r.avgDailyHours)}</td>
+          <td class="text-end">${round2(r.workedHours)}</td>
+          <td class="text-end">${round2(r.expectedHours)}</td>
+          <td class="text-end">${round2(r.shortHours)}</td>
+        ` : ``;
+
+        const wfhCount = r.wfhDates ? r.wfhDates.size : 0;
+        const phCount = globalPH ? globalPH.size : 0;
+
+        return `
+          <tr data-idx="${idx}">
+            <td>
+              <div class="fw-semibold">${escapeHtml(r.empName)}</div>
+              <div class="small-muted">ID: <span class="mono">${escapeHtml(r.empId)}</span></div>
+            </td>
+
+            <td class="text-end">${r.workingDays}</td>
+
+            <td class="text-end">${r.presentRawDays}</td>
+            <td class="text-end fw-semibold">${r.validPresentDays}</td>
+            <td class="text-end">${r.absentByRuleDays}</td>
+
+            <td class="text-end">
+              <span class="linkish btn-pick-wfh" title="Pick WFH dates">${wfhCount} day(s)</span>
+              <div class="small-muted">${wfhCount ? "Selected" : "None"}</div>
+            </td>
+
+            <td class="text-end">
+              <span class="linkish btn-pick-ph" title="Pick Public Holiday dates">${phCount} day(s)</span>
+              <div class="small-muted">${phCount ? "Selected" : "None"}</div>
+            </td>
+
+            <td class="text-end"><span class="mono">${r.payableDays}</span></td>
+            <td class="text-end"><span class="mono">${r.leaves}</span></td>
+
+            <td class="text-end">
+              <input type="number" class="form-control form-control-sm text-end input-salary" min="0" step="1"
+                value="${Math.round(r.monthlySalary)}" style="max-width:140px; margin-left:auto;">
+            </td>
+
+            <td class="text-end">${money(r.perDay)}</td>
+            <td class="text-end fw-semibold">${money(r.earnedSalary)}</td>
+
+            <td class="text-end">
+              <input type="number" class="form-control form-control-sm text-end input-bonus" min="0" step="1"
+                value="${Math.round(r.bonus)}" style="max-width:120px; margin-left:auto;">
+            </td>
+
+            <td class="text-end fw-bold">${money(r.total)}</td>
+            ${hoursCells}
+          </tr>
+        `;
+      }).join("");
+
+      for(const tr of resultTableBody.querySelectorAll("tr")){
+        const idx = Number(tr.getAttribute("data-idx"));
+        const salaryInp = tr.querySelector(".input-salary");
+        const bonusInp = tr.querySelector(".input-bonus");
+
+        const recalc = () => {
+          const row = computed[idx];
+
+          row.monthlySalary = safeNum(salaryInp.value);
+          row.bonus = safeNum(bonusInp.value);
+
+          row.perDay = row.workingDays > 0 ? (row.monthlySalary / row.workingDays) : 0;
+          row.perHour = hourlyRate(row.perDay);
+
+          const allowedSet = new Set(row.workingDates || []);
+          const phDates = new Set(Array.from(globalPH).filter(d => allowedSet.has(d)));
+          row.phDates = phDates;
+
+          const payableSet = new Set();
+          for(const d of row.validPresentSet) payableSet.add(d);
+
+          for(const d of phDates){
+            if(row.absentByRuleSet.has(d)) continue;
+            payableSet.add(d);
+          }
+
+          for(const d of row.wfhDates || []){
+            if(!allowedSet.has(d)) continue;
+            if(row.validPresentSet.has(d)) continue;
+            if(row.absentByRuleSet.has(d)) continue;
+            if(phDates.has(d)) continue;
+            payableSet.add(d);
+          }
+
+          row.payableSet = payableSet;
+          row.payableDays = Math.min(row.workingDays, payableSet.size);
+          row.leaves = Math.max(0, row.workingDays - row.payableDays);
+
+          row.earnedSalary = row.perDay * row.payableDays;
+          row.total = row.earnedSalary + row.bonus;
+
+          row.expectedHours = row.payableDays * EXPECTED_HOURS_PER_DAY;
+          row.shortHours = Math.max(0, row.expectedHours - row.workedHours);
+
+          renderTable();
+        };
+
+        salaryInp.addEventListener("input", recalc);
+        bonusInp.addEventListener("input", recalc);
+
+        const btnWFH = tr.querySelector(".btn-pick-wfh");
+        const btnPH  = tr.querySelector(".btn-pick-ph");
+        btnWFH.addEventListener("click", () => openDatePicker("WFH", idx));
+        btnPH.addEventListener("click", () => openDatePicker("PH", idx));
+      }
+    }
+
+    // ===== Date Picker Modal Logic =====
+    function openDatePicker(kind, empIdx){
+      if(!computed.length){ alert("Compute first."); return; }
+
+      const row = computed[empIdx];
+      const allowedDates = new Set(row.workingDates || []);
+      const [Y, M] = (row.periodLabel && row.periodLabel.includes("-") && row.periodLabel.length===7)
+        ? row.periodLabel.split("-").map(Number)
+        : [new Date().getFullYear(), new Date().getMonth()+1];
+
+      dpContext.kind = kind;
+      dpContext.empIdx = empIdx;
+      dpContext.allowedDates = allowedDates;
+      dpContext.viewYear = Y;
+      dpContext.viewMonth = M;
+
+      if(kind === "WFH"){
+        dpTitle.textContent = `Select WFH Dates — ${row.empName}`;
+        dpSubtitle.textContent = "Click dates to toggle WFH. WFH cannot overlap Present/Absent-by-rule/PH.";
+        dpContext.selected = new Set(row.wfhDates || []);
+      }else{
+        dpTitle.textContent = `Select Public Holiday Dates (Global)`;
+        dpSubtitle.textContent = "PH applies to all employees. Click dates to toggle.";
+        dpContext.selected = new Set(globalPH || []);
+      }
+
+      renderDatePicker();
+      dpModal.show();
+    }
+
+    const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+    function renderDatePicker(){
+      const y = dpContext.viewYear;
+      const m = dpContext.viewMonth;
+      dpMonthLabel.textContent = new Date(y, m-1, 1).toLocaleString("en-IN", { month: "long", year: "numeric" });
+
+      dpDow.innerHTML = DOW.map(d => `<div class="cal-dow">${d}</div>`).join("");
+
+      const first = new Date(y, m-1, 1);
+      const firstDowSun0 = first.getDay();
+      const firstDowMon0 = (firstDowSun0 + 6) % 7;
+
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const cells = [];
+
+      for(let i=0; i<firstDowMon0; i++) cells.push(`<div></div>`);
+
+      for(let day=1; day<=daysInMonth; day++){
+        const iso = `${y}-${pad2(m)}-${pad2(day)}`;
+        const allowed = dpContext.allowedDates.has(iso);
+        const isSelected = dpContext.selected.has(iso);
+
+        let cls = "cal-day";
+        if(!allowed) cls += " disabled";
+        if(allowed && isSelected) cls += " selected";
+
+        cells.push(`<div class="${cls}" data-iso="${iso}">${day}</div>`);
+      }
+
+      dpGrid.innerHTML = cells.join("");
+
+      dpSelectedText.textContent = isoListToText(dpContext.selected);
+      dpFooterHint.textContent = `Selectable working dates: ${dpContext.allowedDates.size}.`;
+
+      dpGrid.querySelectorAll(".cal-day").forEach(el => {
+        el.addEventListener("click", () => {
+          if(el.classList.contains("disabled")) return;
+          const iso = el.getAttribute("data-iso");
+          if(!iso) return;
+
+          if(dpContext.selected.has(iso)) dpContext.selected.delete(iso);
+          else dpContext.selected.add(iso);
+
+          el.classList.toggle("selected");
+          dpSelectedText.textContent = isoListToText(dpContext.selected);
+        });
+      });
+    }
+
+    dpPrev.addEventListener("click", () => {
+      dpContext.viewMonth -= 1;
+      if(dpContext.viewMonth <= 0){ dpContext.viewMonth = 12; dpContext.viewYear -= 1; }
+      renderDatePicker();
+    });
+    dpNext.addEventListener("click", () => {
+      dpContext.viewMonth += 1;
+      if(dpContext.viewMonth >= 13){ dpContext.viewMonth = 1; dpContext.viewYear += 1; }
+      renderDatePicker();
+    });
+    dpClear.addEventListener("click", () => {
+      dpContext.selected = new Set();
+      renderDatePicker();
+    });
+
+    function applyDatePicker(){
+      const row = computed[dpContext.empIdx];
+      const allowed = dpContext.allowedDates;
+      const cleaned = new Set(Array.from(dpContext.selected).filter(d => allowed.has(d)));
+
+      if(dpContext.kind === "PH"){
+        globalPH = cleaned;
+        recomputeAllPayables();
+      }else{
+        const phSet = globalPH;
+        const finalWFH = new Set();
+        for(const d of cleaned){
+          if(row.validPresentSet.has(d)) continue;
+          if(row.absentByRuleSet.has(d)) continue;
+          if(phSet.has(d)) continue;
+          finalWFH.add(d);
+        }
+        row.wfhDates = finalWFH;
+        recomputeRowPayables(dpContext.empIdx);
+      }
+
+      dpModal.hide();
+      renderTable();
+    }
+
+    dpApply.addEventListener("click", applyDatePicker);
+    dpApply2.addEventListener("click", applyDatePicker);
+
+    function recomputeRowPayables(idx){
+      const row = computed[idx];
+      const allowedSet = new Set(row.workingDates || []);
+      const phDates = new Set(Array.from(globalPH).filter(d => allowedSet.has(d)));
+      row.phDates = phDates;
+
+      const payableSet = new Set();
+      for(const d of row.validPresentSet) payableSet.add(d);
+
+      for(const d of phDates){
+        if(row.absentByRuleSet.has(d)) continue;
+        payableSet.add(d);
+      }
+
+      for(const d of row.wfhDates || []){
+        if(!allowedSet.has(d)) continue;
+        if(row.validPresentSet.has(d)) continue;
+        if(row.absentByRuleSet.has(d)) continue;
+        if(phDates.has(d)) continue;
+        payableSet.add(d);
+      }
+
+      row.payableSet = payableSet;
+      row.payableDays = Math.min(row.workingDays, payableSet.size);
+      row.leaves = Math.max(0, row.workingDays - row.payableDays);
+
+      row.earnedSalary = row.perDay * row.payableDays; // totals remain day-based
+      row.total = row.earnedSalary + row.bonus;
+
+      row.perHour = hourlyRate(row.perDay);
+
+      row.expectedHours = row.payableDays * EXPECTED_HOURS_PER_DAY;
+      row.shortHours = Math.max(0, row.expectedHours - row.workedHours);
+    }
+
+    function recomputeAllPayables(){
+      for(let i=0; i<computed.length; i++) recomputeRowPayables(i);
+    }
+
+    // ===== PDF =====
+    btnPdfSelected.addEventListener("click", () => {
+      const selectedEmp = employeeFilter.value;
+      if(selectedEmp === "__all__"){
+        alert("Select a single employee first.");
+        return;
+      }
+      const rows = computed.filter(r => r.empId === selectedEmp);
+      if(!rows.length){ alert("No computed data. Click Compute first."); return; }
+      generatePdf(rows, true);
+    });
+
+    btnPdfAll.addEventListener("click", () => {
+      if(!computed.length){ alert("No computed data. Click Compute first."); return; }
+      generatePdf(computed, false);
+    });
+
+    function generatePdf(rows, isSingle){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+      const title = "Monthly Salary Statement";
+      const period = rows[0]?.periodLabel || "";
+      const startISO = rows[0]?.startISO || "";
+      const endISO = rows[0]?.endISO || "";
+      const range = `${startISO} → ${endISO}`;
+      const noteText = (notes.value || "").trim();
+      const hoursOn = !!calcHours.checked;
+
+      const left = 40;
+      let y = 44;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(title, left, y);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      y += 18;
+      doc.text(`Period: ${period}`, left, y);
+      y += 14;
+      doc.text(`Date Filter: ${range}`, left, y);
+      y += 14;
+      doc.text(`Rule: Worked < 4h = Absent (Earned ₹0)`, left, y);
+      y += 14;
+      doc.text(`Earned (Present): (Per-Day ÷ 9) × WorkedHours  |  WFH/PH: full Per-Day`, left, y);
+      y += 14;
+      doc.text(`Generated On (IST): ${fmtDateTimeIST(new Date())}`, left, y);
+
+      const phText = isoListToText(globalPH);
+      y += 14;
+      doc.text(`Public Holidays (PH): ${phText}`, left, y);
+
+      if(noteText){
+        y += 14;
+        doc.text(`Notes: ${noteText}`, left, y);
+      }
+
+      y += 18;
+
+      const headRow = hoursOn
+        ? ["Employee","Working Days","Valid Present","Absent(<4h)","WFH (dates)","PH (dates)","Payable","Leaves","Monthly","Per-Day","Per-Hour","Earned*","Bonus","Total","Worked Hrs","Short Hrs"]
+        : ["Employee","Working Days","Valid Present","Absent(<4h)","WFH (dates)","PH (dates)","Payable","Leaves","Monthly","Per-Day","Per-Hour","Earned*","Bonus","Total"];
+
+      const body = rows.map(r => {
+        const wfhTxt = isoListToText(r.wfhDates);
+        const phTxt = isoListToText(r.phDates);
+
+        // "Earned*" in summary stays as day-based total (for month). Detail pages show per-day earned-by-hours.
+        // If you want the monthly Earned also hour-based, tell me and I’ll change it.
+        const perHour = hourlyRate(r.perDay);
+
+        if(!hoursOn){
+          return [
+            `${r.empName} (ID:${r.empId})`,
+            String(r.workingDays),
+            String(r.validPresentDays),
+            String(r.absentByRuleDays),
+            wfhTxt,
+            phTxt,
+            String(r.payableDays),
+            String(r.leaves),
+            money(r.monthlySalary),
+            money(r.perDay),
+            round2Str(perHour),
+            money(r.earnedSalary),
+            money(r.bonus),
+            money(r.total)
+          ];
+        }
+
+        return [
+          `${r.empName} (ID:${r.empId})`,
+          String(r.workingDays),
+          String(r.validPresentDays),
+          String(r.absentByRuleDays),
+          wfhTxt,
+          phTxt,
+          String(r.payableDays),
+          String(r.leaves),
+          money(r.monthlySalary),
+          money(r.perDay),
+          round2Str(perHour),
+          money(r.earnedSalary),
+          money(r.bonus),
+          money(r.total),
+          String(round2(r.workedHours)),
+          String(round2(r.shortHours))
+        ];
+      });
+
+      doc.autoTable({
+        startY: y,
+        head: [ headRow ],
+        body,
+        styles: { font: "helvetica", fontSize: 8.1, cellPadding: 3 },
+        headStyles: { fillColor: [240,240,240], textColor: 20 },
+        columnStyles: { 0: { cellWidth: 135 }, 4:{cellWidth:110}, 5:{cellWidth:110} }
+      });
+
+      // Date-wise pages (Earned per day uses hours)
+      for(let i=0; i<rows.length; i++){
+        const r = rows[i];
+        doc.addPage();
+        y = 44;
+
+        doc.setFont("helvetica","bold");
+        doc.setFontSize(12);
+        doc.text(`Attendance (Date-wise) — ${r.empName} (ID:${r.empId})`, left, y);
+        y += 14;
+
+        const perHour = hourlyRate(r.perDay);
+
+        doc.setFont("helvetica","normal");
+        doc.setFontSize(9);
+        doc.text(`IST times • Earned(Present)=(Per-Day/9)×WorkedHours • Per-Hour: ₹${round2Str(perHour)} • WFH/PH=full Per-Day`, left, y);
+        y += 12;
+
+        doc.text(`WFH Dates: ${isoListToText(r.wfhDates)}`, left, y);
+        y += 12;
+        doc.text(`PH Dates: ${isoListToText(r.phDates)}`, left, y);
+        y += 8;
+
+        const workDates = r.workingDates || listWorkingDates(r.startISO, r.endISO);
+        const phSet = r.phDates || new Set();
+        const wfhSet = r.wfhDates || new Set();
+
+        const dayRows = workDates.map(d => {
+          const dayObj = new Date(d + "T00:00:00");
+          const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dayObj.getDay()];
+
+          const tRec = (r.dailyTimesMap && r.dailyTimesMap.get(d)) ? r.dailyTimesMap.get(d) : { firstIn:null, lastOut:null };
+          const inTimeIST = tRec && tRec.firstIn ? fmtTimeIST(tRec.firstIn) : "";
+          const outTimeIST = tRec && tRec.lastOut ? fmtTimeIST(tRec.lastOut) : "";
+
+          const workedHrs = hoursOn ? round2((r.dailyHoursMap && r.dailyHoursMap.get(d)) ? r.dailyHoursMap.get(d) : 0) : 0;
+
+          let status = "Leave";
+          if(r.validPresentSet && r.validPresentSet.has(d)){
+            status = "Present";
+          }else if(r.absentByRuleSet && r.absentByRuleSet.has(d)){
+            status = "Absent (<4h)";
+          }else if(phSet.has(d)){
+            status = "PH";
+          }else if(wfhSet.has(d)){
+            status = "WFH";
+          }
+
+          const expectedHrs = (status === "Present" || status === "WFH" || status === "PH") ? EXPECTED_HOURS_PER_DAY : 0;
+
+          const earned = earnedForDay({
+            status,
+            perDay: r.perDay,
+            workedHrs
+          });
+
+          return hoursOn
+            ? [d, dayName, status, inTimeIST, outTimeIST, String(workedHrs), String(expectedHrs), money(r.perDay), round2Str(perHour), money(earned)]
+            : [d, dayName, status, inTimeIST, outTimeIST, money(r.perDay), round2Str(perHour), money(earned)];
+        });
+
+        const head = hoursOn
+          ? ["Date","Day","Status","Check-in (IST)","Check-out (IST)","Worked Hrs","Expected Hrs","Per-Day (₹)","Per-Hour (₹)","Earned (₹)"]
+          : ["Date","Day","Status","Check-in (IST)","Check-out (IST)","Per-Day (₹)","Per-Hour (₹)","Earned (₹)"];
+
+        doc.autoTable({
+          startY: y + 10,
+          head: [ head ],
+          body: dayRows,
+          styles: { font: "helvetica", fontSize: 8.1, cellPadding: 3 },
+          headStyles: { fillColor: [240,240,240], textColor: 20 },
+          columnStyles: hoursOn ? {
+            0: { cellWidth: 60 },
+            1: { cellWidth: 34 },
+            2: { cellWidth: 62 },
+            3: { cellWidth: 62 },
+            4: { cellWidth: 62 },
+            5: { halign: "right" },
+            6: { halign: "right" },
+            7: { halign: "right" },
+            8: { halign: "right" },
+            9: { halign: "right" }
+          } : {
+            0: { cellWidth: 65 },
+            1: { cellWidth: 36 },
+            2: { cellWidth: 65 },
+            3: { cellWidth: 70 },
+            4: { cellWidth: 70 },
+            5: { halign: "right" },
+            6: { halign: "right" },
+            7: { halign: "right" }
+          }
+        });
+
+        const endY = doc.lastAutoTable.finalY + 18;
+        doc.setFont("helvetica","bold");
+        doc.setFontSize(10);
+        doc.text(`Bonus: ₹ ${money(r.bonus)}   |   Total (summary): ₹ ${money(r.total)}`, left, endY);
+      }
+
+      const fileName = isSingle
+        ? `salary_${rows[0].empName}_${period}.pdf`.replaceAll(" ", "_")
+        : `salary_all_${period}.pdf`.replaceAll(" ", "_");
+      doc.save(fileName);
+    }
+</script>
+</body>
+</html>

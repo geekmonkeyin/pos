@@ -88,7 +88,7 @@ public class MarketinServiceImpl {
       private String getTrackingURL(String awb, String courierCompany) {
         switch (courierCompany.toUpperCase()) {
             case DELHIVERY_COURIER:
-                return "https://www.delhivery.com/track-v2/package" + awb;
+                return "https://www.delhivery.com/track-v2/package/" + awb;
             case XPRESSBEES_COURIER:
                 return "https://www.xpressbees.com/track/" + awb;
             case "ecom express":
