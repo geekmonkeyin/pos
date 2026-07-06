@@ -68,6 +68,8 @@ public class ReportDetails {
 
     private String stateCode;
 
+    private String zohoStateCode;
+
     private String hsnCode;
 
     private double igstPerc;

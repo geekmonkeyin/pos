@@ -21,14 +21,17 @@ public class StateServiceImpl {
                 for (State state : states) {
                     if(reportDetail.getShippingRegion() != null && reportDetail.getShippingRegion().equalsIgnoreCase(state.getState())) {
                         reportDetail.setStateCode(state.getCode());
+                        reportDetail.setZohoStateCode(state.getZoho_state_code());
                         break;
                     }
                     else if (reportDetail.getBillingRegion() != null && reportDetail.getBillingRegion().equalsIgnoreCase(state.getState())) {
                         reportDetail.setStateCode(state.getCode());
+                        reportDetail.setZohoStateCode(state.getZoho_state_code());
                         break;
                     }
                     else {
                         reportDetail.setStateCode("UK");
+                        reportDetail.setZohoStateCode("05-Uttarakhand");
                     }
                 }
             }

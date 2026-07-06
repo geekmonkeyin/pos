@@ -25,4 +25,10 @@ public class ReportServiceImpl {
     public List<ReportDetails> getReportDetailsByDate(String startDate,String endDate) {
         return reportDetailsRepo.findByDate(startDate,endDate).orElse(null);
     }
+
+    public List<ReportDetails> getReportDetailsByDate(String startDate,String endDate,String orderOrReturn) {
+        return orderOrReturn ==  null ? reportDetailsRepo.findByDate(startDate,endDate).orElse(null) :
+                ("order".equalsIgnoreCase(orderOrReturn) ? reportDetailsRepo.findByDateOrder(startDate,endDate).orElse(null)
+                        : reportDetailsRepo.findByDateRetun(startDate,endDate).orElse(null));
+    }
 }

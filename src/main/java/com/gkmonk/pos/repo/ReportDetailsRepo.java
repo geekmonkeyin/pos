@@ -13,4 +13,11 @@ public interface ReportDetailsRepo extends MongoRepository<ReportDetails, Long> 
 
     @Query(value = "{'day': { $gte: ?0, $lte: ?1 }}",sort = "{'day':1}")
     Optional<List<ReportDetails>> findByDate(String startDate,String endDate);
+
+    @Query(value = "{'day': { $gte: ?0, $lte: ?1 },'orderOrReturn':'order'}",sort = "{'day':1}")
+    Optional<List<ReportDetails>> findByDateOrder(String startDate,String endDate);
+
+    @Query(value = "{'day': { $gte: ?0, $lte: ?1 },'orderOrReturn':'return'}",sort = "{'day':1}")
+    Optional<List<ReportDetails>> findByDateRetun(String startDate,String endDate);
+
 }

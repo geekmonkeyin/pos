@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <title>Geekmonkey — Shopify Report</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <!-- Date range picker deps -->
-    <link href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" rel="stylesheet"/>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" rel="stylesheet"/>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         :root{
@@ -23,22 +22,21 @@
         html,body{height:100%}
         body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
 
-        /* Header (Geekmonkey theme) */
         .gm-header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--stroke)}
         .gm-header .inner{display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; max-width:1200px; margin:0 auto}
         .gm-brand{display:flex; align-items:center; gap:.55rem; font-weight:800; color:var(--text); text-decoration:none}
         .gm-dot{width:10px; height:10px; border-radius:50%; background:var(--accent)}
         .gm-actions{margin-left:auto; display:flex; gap:.5rem}
-        .gm-btn{display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--stroke);
-          background:#fff; color:var(--text); padding:.45rem .7rem; border-radius:12px; text-decoration:none}
+        .gm-btn{
+          display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--stroke);
+          background:#fff; color:var(--text); padding:.45rem .7rem; border-radius:12px; text-decoration:none
+        }
         .gm-btn:hover{background:#F3F4F6}
         .gm-btn-primary{border-color:transparent; background:var(--accent); color:#fff}
 
-        /* Layout */
         .gm-wrap{max-width:1200px; margin:18px auto; padding:0 12px}
         .gm-card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); box-shadow:0 6px 16px rgba(17,24,39,.06)}
 
-        /* Table */
         .table thead th{
           background:#111827; color:#fff; border-color:#111827; user-select:none; cursor:pointer; position:relative;
         }
@@ -47,75 +45,108 @@
         }
         .table-striped tbody tr:nth-of-type(odd){background-color:rgba(17,24,39,.03)}
         .table-hover tbody tr:hover{background-color:rgba(17,24,39,.06)}
-        .table-danger td{ background-color:#ffe5e5 !important; } /* vivid red rows for missing data */
+        .table-danger td{ background-color:#ffe5e5 !important; }
 
         .chart-wrap{min-height:300px}
+
+        .gm-toast{
+          position:fixed; right:14px; bottom:14px; z-index:2000;
+          background:#111827; color:#fff; padding:.65rem .8rem; border-radius:12px;
+          box-shadow:0 10px 30px rgba(0,0,0,.18); display:none; max-width:520px;
+          white-space:pre-line;
+        }
+
+        .gm-loading{
+          position:fixed; inset:0; background:rgba(249,250,251,.75);
+          display:none; align-items:center; justify-content:center; z-index:3000;
+          backdrop-filter: blur(2px);
+        }
+        .gm-loading .box{
+          background:#fff; border:1px solid var(--stroke); border-radius:16px;
+          padding:14px 16px; box-shadow:0 10px 30px rgba(0,0,0,.10);
+          display:flex; align-items:center; gap:10px;
+        }
     </style>
 </head>
 <body>
-<!-- Header -->
+
 <header class="gm-header">
     <div class="inner">
-        <span class="gm-dot" aria-hidden="true"></span>
-        <a class="gm-brand" href="/v1/home" aria-label="Geekmonkey Home">Geekmonkey</a>
+        <span aria-hidden="true" class="gm-dot"></span>
+        <a aria-label="Geekmonkey Home" class="gm-brand" href="/v1/home">Geekmonkey</a>
         <div class="gm-actions">
-            <button type="button" class="gm-btn" id="btnBack">← Back</button>
+            <button class="gm-btn" id="btnBack" type="button">← Back</button>
             <a class="gm-btn gm-btn-primary" href="/v1/home">🏠 Home</a>
         </div>
     </div>
 </header>
 
 <main class="gm-wrap">
-    <!-- Filters -->
     <section class="gm-card p-3 p-md-4 mb-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
             <h5 class="m-0">Shopify Report</h5>
             <div class="small text-muted">
                 Live filter by date, HSN Code, and Product Type • Click headers to sort •
-                <span class="badge text-bg-danger">Red rows = missing HSN/Product Type/State Code</span>
+                <span class="badge text-bg-danger">Red rows = missing / invalid field(s)</span>
             </div>
         </div>
 
         <div class="row g-2">
             <div class="col-12 col-md-3">
                 <label class="form-label mb-1">Start Date</label>
-                <input type="text" id="startDate" class="form-control" placeholder="Select start date">
+                <input class="form-control" id="startDate" placeholder="Select start date" type="text">
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label mb-1">End Date</label>
-                <input type="text" id="endDate" class="form-control" placeholder="Select end date">
+                <input class="form-control" id="endDate" placeholder="Select end date" type="text">
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label mb-1">HSN Code</label>
-                <select id="filterHsn" class="form-select">
+                <select class="form-select" id="filterHsn">
                     <option value="">All HSN Codes</option>
                 </select>
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label mb-1">Product Type</label>
-                <select id="filterType" class="form-select">
+                <select class="form-select" id="filterType">
                     <option value="">All Product Types</option>
                 </select>
             </div>
-            <div class="col-12 d-flex gap-2 mt-2">
-                <button id="resetFilters" class="btn btn-outline-secondary">Reset</button>
-                <button id="downloadCsv" class="btn btn-outline-dark ms-auto">Download CSV</button>
+
+            <div class="col-12 d-flex flex-wrap gap-2 mt-2">
+                <button class="btn btn-outline-secondary" id="resetFilters">Reset</button>
+
+                <div class="ms-auto d-flex flex-wrap gap-2">
+                    <button class="btn btn-danger" id="downloadZohoReturnReport">
+                        Zoho Return Report
+                    </button>
+                    <button class="btn btn-warning" id="downloadZohoWorkbook">Convert to Zoho Format</button>
+                    <button class="btn btn-outline-dark" id="downloadCsv">Download CSV</button>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="small text-muted">
+                    <b>Convert to Zoho Format</b> exports one monthly grouped row for each
+                    <code>Month + State Code + GST Rate</code>.
+                    Orders and returns are shown separately, along with net taxable, total tax, and net total.
+                    If Billing Region is blank and State Code exists, Billing Region is auto-filled from State Code.
+                    If any row has missing / invalid data, it is added to a separate <b>Errors</b> sheet.
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Chart -->
     <section class="gm-card p-3 p-md-4 mb-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
             <h6 class="m-0">Sales by State</h6>
             <div class="small text-muted">Aggregated from visible rows (Total Sales by State Code)</div>
         </div>
         <div class="chart-wrap">
-            <canvas id="stateSalesChart" height="120"></canvas>
+            <canvas height="120" id="stateSalesChart"></canvas>
         </div>
     </section>
 
-    <!-- Table -->
     <section class="gm-card p-3 p-md-4">
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover" id="reportTable">
@@ -146,6 +177,7 @@
                     <th data-col="22" data-type="num">Net Sales <span class="sort-ind"></span></th>
                     <th data-col="23" data-type="num">Taxes <span class="sort-ind"></span></th>
                     <th data-col="24" data-type="num">Total Sales <span class="sort-ind"></span></th>
+                    <th data-col="25" data-type="num">Zoho State Code<span class="sort-ind"></span></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -175,6 +207,7 @@
                     <td th:text="${r.netSales}"></td>
                     <td th:text="${r.taxes}"></td>
                     <td th:text="${r.totalSales}"></td>
+                    <td th:text="${r.zohoStateCode}"></td>
                 </tr>
                 </tbody>
             </table>
@@ -182,32 +215,169 @@
     </section>
 </main>
 
+<div class="gm-toast" id="gmToast"></div>
+
+<div aria-hidden="true" class="gm-loading" id="gmLoading">
+    <div class="box">
+        <div aria-label="Loading" class="spinner-border" role="status"></div>
+        <div>
+            <div class="fw-semibold">Loading report…</div>
+            <div class="small text-muted">Fetching /shopifyreport for selected dates</div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Header
     document.getElementById('btnBack').addEventListener('click', () => {
       if (history.length > 1) history.back(); else location.href = '/v1/home';
     });
 
-    // Date pickers — NO DEFAULT DATE (inputs start empty)
+    function showToast(msg){
+      const el = document.getElementById('gmToast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=>{ el.style.display='none'; }, 4500);
+    }
+
+    function setLoading(on){
+      const el = document.getElementById('gmLoading');
+      el.style.display = on ? 'flex' : 'none';
+      el.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
+
+    function num(v){
+      return Number(String(v ?? '').replace(/[^0-9.-]+/g,'')) || 0;
+    }
+
+    function round2(v){
+      return Number((Number(v || 0)).toFixed(2));
+    }
+
+    function normalizeDay(dayTxt){
+      const d = moment(dayTxt, ['YYYY-MM-DD','DD/MM/YYYY','MM/DD/YYYY'], true);
+      return d.isValid() ? d.format('YYYY-MM-DD') : '';
+    }
+
+    function normalizeMonth(dayTxt){
+      const d = moment(dayTxt, ['YYYY-MM-DD','DD/MM/YYYY','MM/DD/YYYY'], true);
+      return d.isValid() ? d.format('YYYY-MM') : '';
+    }
+
+    function isReturn(orderOrReturnTxt){
+      return String(orderOrReturnTxt || '').toLowerCase().includes('return');
+    }
+
+    function isBlankLike(v){
+      const t = String(v ?? '').trim().toLowerCase();
+      return t === '' || t === 'null' || t === 'nil' || t === 'undefined' || t === 'na' || t === 'n/a';
+    }
+
+    function getStateNameFromCode(stateCode){
+
+const map = {
+  'AN': '35-Andaman and Nicobar Islands',
+  'AD': '37-Andhra Pradesh',
+  'AR': '12-Arunachal Pradesh',
+  'AS': '18-Assam',
+  'BR': '10-Bihar',
+  'CG': '22-Chhattisgarh',
+  'CH': '04-Chandigarh',
+  'DD': '26-Daman and Diu',
+  'DH': '26-Dadra and Nagar Haveli and Daman and Diu',
+  'DL': '07-Delhi',
+  'GA': '30-Goa',
+  'GJ': '24-Gujarat',
+  'HP': '02-Himachal Pradesh',
+  'HR': '06-Haryana',
+  'JH': '20-Jharkhand',
+  'JK': '01-Jammu and Kashmir',
+  'KA': '29-Karnataka',
+  'KL': '32-Kerala',
+  'LA': '38-Ladakh',
+  'LD': '31-Lakshadweep',
+  'MH': '27-Maharashtra',
+  'ML': '17-Meghalaya',
+  'MN': '14-Manipur',
+  'MP': '23-Madhya Pradesh',
+  'MZ': '15-Mizoram',
+  'NL': '13-Nagaland',
+  'OD': '21-Odisha',
+  'OR': '21-Odisha',
+  'PB': '03-Punjab',
+  'PY': '34-Puducherry',
+  'RJ': '08-Rajasthan',
+  'SK': '11-Sikkim',
+  'TN': '33-Tamil Nadu',
+  'TR': '16-Tripura',
+  'TS': '36-Telangana',
+  'UK': '05-Uttarakhand',
+  'UP': '09-Uttar Pradesh',
+  'WB': '19-West Bengal'
+};
+      const code = String(stateCode || '').trim().toUpperCase();
+      return map[code] || code;
+    }
+
+    function resolveBillingRegion(billingRegion, stateCode){
+  const code = String(stateCode || '').trim().toUpperCase();
+
+  if (!isBlankLike(billingRegion)) return String(billingRegion).trim();
+
+  if (code === 'UK') return '05-Uttarakhand';
+
+  if (!isBlankLike(stateCode)) return getStateNameFromCode(stateCode);
+
+  return '';
+}
+
+    function goFetchShopifyReport(orderOrReturnParam = 'order'){
+      const endDate = ($('#endDate').val() || '').trim();
+      if (!endDate){
+        showToast('Please select an End Date.');
+        return;
+      }
+
+      let startDate = ($('#startDate').val() || '').trim();
+      if (!startDate) startDate = endDate;
+
+      const params = new URLSearchParams({ startDate, endDate,orderOrReturn: orderOrReturnParam });
+      const url = `/v1/report/shopifyreport?${params.toString()}`;
+
+      setLoading(true);
+      showToast(`Fetching report:\n${startDate} → ${endDate}\nType: ${orderOrReturnParam}`);
+
+      window.location.assign(url);
+    }
+
     $('#startDate').daterangepicker({
       singleDatePicker:true, showDropdowns:true, autoUpdateInput:false, autoApply:true,
       locale:{ cancelLabel:'Clear' }
     })
-    .on('apply.daterangepicker', function(ev,picker){ $(this).val(picker.startDate.format('YYYY-MM-DD')).trigger('change'); })
-    .on('cancel.daterangepicker', function(){ $(this).val('').trigger('change'); });
+    .on('apply.daterangepicker', function(ev,picker){
+      $(this).val(picker.startDate.format('YYYY-MM-DD')).trigger('change');
+    })
+    .on('cancel.daterangepicker', function(){
+      $(this).val('').trigger('change');
+    });
 
     $('#endDate').daterangepicker({
       singleDatePicker:true, showDropdowns:true, autoUpdateInput:false, autoApply:true,
       locale:{ cancelLabel:'Clear' }
     })
-    .on('apply.daterangepicker', function(ev,picker){ $(this).val(picker.startDate.format('YYYY-MM-DD')).trigger('change'); })
-    .on('cancel.daterangepicker', function(){ $(this).val('').trigger('change'); });
+    .on('apply.daterangepicker', function(ev,picker){
+      $(this).val(picker.startDate.format('YYYY-MM-DD'));
+      goFetchShopifyReport('order');
+    })
+    .on('cancel.daterangepicker', function(){
+      $(this).val('').trigger('change');
+    });
 
-    // Build filter options from table content
     function populateFilters(){
       const hsnSet = new Set();
       const typeSet = new Set();
+
       $('#reportTable tbody tr').each(function(){
         const $td = $(this).children('td');
         const type = ($td.eq(5).text() || '').trim();
@@ -215,27 +385,57 @@
         if (type) typeSet.add(type);
         if (hsn) hsnSet.add(hsn);
       });
+
       const $hsn = $('#filterHsn'), $type = $('#filterType');
       $hsn.find('option:not(:first)').remove();
       $type.find('option:not(:first)').remove();
+
       Array.from(hsnSet).sort().forEach(v=>$hsn.append(new Option(v,v)));
       Array.from(typeSet).sort().forEach(v=>$type.append(new Option(v,v)));
     }
 
-    // Highlight rows missing HSN, Product Type, or State Code
+    function getRowIssues($tr){
+      const $td = $tr.children('td');
+
+      const issues = [];
+
+      const orderId = ($td.eq(0).text() || '').trim();
+      const orderName = ($td.eq(1).text() || '').trim();
+      const productTitle = ($td.eq(2).text() || '').trim();
+      const productType = ($td.eq(5).text() || '').trim();
+      const orderOrReturn = ($td.eq(6).text() || '').trim();
+      const day = ($td.eq(7).text() || '').trim();
+      const rawBillingRegion = ($td.eq(8).text() || '').trim();
+      const stateCode = ($td.eq(9).text() || '').trim();
+      const billingRegion = resolveBillingRegion(rawBillingRegion, stateCode);
+      const hsnCode = ($td.eq(11).text() || '').trim();
+      const gstRateRaw = ($td.eq(12).text() || '').trim();
+      const taxesRaw = ($td.eq(23).text() || '').trim();
+      const totalSalesRaw = ($td.eq(24).text() || '').trim();
+
+      if (isBlankLike(orderId)) issues.push('Missing Order ID');
+      if (isBlankLike(orderName)) issues.push('Missing Order Name');
+      if (isBlankLike(productTitle)) issues.push('Missing Product Title');
+      if (isBlankLike(productType)) issues.push('Missing Product Type');
+      if (isBlankLike(orderOrReturn)) issues.push('Missing Order / Return');
+      if (!normalizeDay(day)) issues.push('Invalid Day');
+      if (isBlankLike(stateCode)) issues.push('Missing State Code');
+      if (isBlankLike(billingRegion)) issues.push('Missing Billing Region');
+      if (isBlankLike(hsnCode)) issues.push('Missing HSN Code');
+      if (isNaN(Number(gstRateRaw))) issues.push('Invalid GST Rate');
+      if (isNaN(num(taxesRaw))) issues.push('Invalid Taxes');
+      if (isNaN(num(totalSalesRaw))) issues.push('Invalid Total Sales');
+
+      return issues;
+    }
+
     function markMissingRows(){
       $('#reportTable tbody tr').each(function(){
-        const $td = $(this).children('td');
-        const typeTxt  = ($td.eq(5).text()||'').trim().toLowerCase();
-        const hsnTxt   = ($td.eq(11).text()||'').trim().toLowerCase();
-        const stateTxt = ($td.eq(9).text()||'').trim().toLowerCase();
-        const isEmpty = (v)=> v === '' || v === 'null' || v === 'nil' || v === 'undefined' || v === 'na' || v === 'n/a';
-        const missing = isEmpty(typeTxt) || isEmpty(hsnTxt) || isEmpty(stateTxt);
-        $(this).toggleClass('table-danger', missing);
+        const issues = getRowIssues($(this));
+        $(this).toggleClass('table-danger', issues.length > 0);
       });
     }
 
-    // Apply filters (no pagination)
     function applyFilters(){
       const sd = $('#startDate').val(), ed = $('#endDate').val();
       const start = sd ? moment(sd, 'YYYY-MM-DD', true) : null;
@@ -253,11 +453,12 @@
         if (start || end){
           const d = moment(dayTxt, ['YYYY-MM-DD','DD/MM/YYYY','MM/DD/YYYY'], true);
           if (d.isValid()){
-            if (start && !end)  dateOk = d.isSameOrAfter(start,'day');
-            else if (!start && end) dateOk = d.isSameOrBefore(end,'day');
-            else if (start && end)  dateOk = d.isSameOrAfter(start,'day') && d.isSameOrBefore(end,'day');
+            if (start && !end)       dateOk = d.isSameOrAfter(start,'day');
+            else if (!start && end)  dateOk = d.isSameOrBefore(end,'day');
+            else if (start && end)   dateOk = d.isSameOrAfter(start,'day') && d.isSameOrBefore(end,'day');
           }
         }
+
         const typeOk = typeVal ? (typeTxt === typeVal) : true;
         const hsnOk  = hsnVal ? (hsnTxt === hsnVal) : true;
 
@@ -265,7 +466,7 @@
       });
 
       markMissingRows();
-      updateChart(); // keep chart in sync with current filters
+      updateChart();
     }
 
     function resetFilters(){
@@ -279,42 +480,61 @@
       updateChart();
     }
 
-    // CSV of currently visible rows
     function downloadVisibleCsv(){
       const rows = [];
       const header = [];
+
       $('#reportTable thead th').each(function(){
         const textOnly = $(this).clone().children().remove().end().text().trim();
         header.push(textOnly);
       });
       rows.push(header.join(','));
+
       $('#reportTable tbody tr:visible').each(function(){
         const cols = [];
-        $(this).find('td').each(function(){
+        $(this).find('td').each(function(index){
           let t = $(this).text().trim();
+          if (index === 8) {
+            const stateCode = $(this).closest('tr').children('td').eq(9).text().trim();
+            t = resolveBillingRegion(t, stateCode);
+          }
           if (/[",\n]/.test(t)) t = '"' + t.replace(/"/g,'""') + '"';
           cols.push(t);
         });
         rows.push(cols.join(','));
       });
+
       const blob = new Blob([rows.join('\n')], {type:'text/csv'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'shopify_report.csv';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      a.href = url;
+      a.download = 'shopify_report.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
 
-    // Sorting on header click (sorts currently visible rows)
-    let sortState = { col: null, dir: 1 }; // 1 asc, -1 desc
+    let sortState = { col: null, dir: 1 };
+
     function clearSortIndicators(){
       $('#reportTable thead th .sort-ind').text('');
       sortState = { col:null, dir:1 };
     }
-    function getCellVal(tr, colIdx){ return $(tr).children('td').eq(colIdx).text().trim(); }
+
+    function getCellVal(tr, colIdx){
+      let value = $(tr).children('td').eq(colIdx).text().trim();
+      if (colIdx === 8) {
+        const stateCode = $(tr).children('td').eq(9).text().trim();
+        value = resolveBillingRegion(value, stateCode);
+      }
+      return value;
+    }
+
     function parseVal(val, type){
       if (type === 'num'){
-        const n = Number(String(val).replace(/[^0-9.-]+/g,'')); return isNaN(n) ? 0 : n;
+        const n = Number(String(val).replace(/[^0-9.-]+/g,''));
+        return isNaN(n) ? 0 : n;
       }
       if (type === 'date'){
         const d = moment(val, ['YYYY-MM-DD','DD/MM/YYYY','MM/DD/YYYY'], true);
@@ -322,12 +542,16 @@
       }
       return (val || '').toLowerCase();
     }
+
     function sortBy(colIdx, type){
       const $tbody = $('#reportTable tbody');
       const $rows = $tbody.find('tr:visible').get();
 
-      if (sortState.col === colIdx){ sortState.dir *= -1; }
-      else { sortState.col = colIdx; sortState.dir = 1; }
+      if (sortState.col === colIdx) sortState.dir *= -1;
+      else {
+        sortState.col = colIdx;
+        sortState.dir = 1;
+      }
 
       $rows.sort((a,b)=>{
         const av = parseVal(getCellVal(a,colIdx), type);
@@ -340,65 +564,47 @@
       $.each($rows, (_, row)=> $tbody.append(row));
 
       $('#reportTable thead th .sort-ind').text('');
-      const indicator = sortState.dir === 1 ? '▲' : '▼';
-      $(`#reportTable thead th[data-col="${colIdx}"] .sort-ind`).text(indicator);
+      $(`#reportTable thead th[data-col="${colIdx}"] .sort-ind`).text(sortState.dir === 1 ? '▲' : '▼');
 
       markMissingRows();
-      updateChart(); // keep chart updated after sorting too (order doesn't matter, but safe)
+      updateChart();
     }
 
-    // --- Chart (Sales by State) ---
     let stateChart = null;
 
     function collectStateSalesFromVisible(){
-      // State Code = col 9, Total Sales = col 24
       const totalsByState = {};
+
       $('#reportTable tbody tr:visible').each(function(){
         const $td = $(this).children('td');
         const state = ($td.eq(9).text()||'').trim() || 'Unknown';
-        const raw   = ($td.eq(24).text()||'').trim();
-        const val   = Number(String(raw).replace(/[^0-9.-]+/g,'')) || 0;
+        const val   = num($td.eq(24).text().trim());
         totalsByState[state] = (totalsByState[state] || 0) + val;
       });
-      // Sort states by total desc
+
       const entries = Object.entries(totalsByState).sort((a,b)=> b[1]-a[1]);
-      return {
-        labels: entries.map(e=>e[0]),
-        data: entries.map(e=>Number(e[1].toFixed(2)))
-      };
+      return { labels: entries.map(e=>e[0]), data: entries.map(e=>round2(e[1])) };
     }
 
     function renderChart(){
       const ctx = document.getElementById('stateSalesChart').getContext('2d');
       const ds = collectStateSalesFromVisible();
-      if (stateChart){ stateChart.destroy(); }
+
+      if (stateChart) stateChart.destroy();
+
       stateChart = new Chart(ctx, {
         type: 'bar',
-        data: {
-          labels: ds.labels,
-          datasets: [{
-            label: 'Total Sales',
-            data: ds.data
-            // No explicit colors to keep it clean; Chart.js uses defaults
-          }]
-        },
+        data: { labels: ds.labels, datasets: [{ label: 'Total Sales', data: ds.data }] },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins:{
-            legend:{ display:false },
-            tooltip:{ mode:'index', intersect:false }
-          },
-          scales:{
-            x:{ ticks:{ autoSkip:false, maxRotation:45, minRotation:0 } },
-            y:{ beginAtZero:true }
-          }
+          plugins:{ legend:{ display:false }, tooltip:{ mode:'index', intersect:false } },
+          scales:{ x:{ ticks:{ autoSkip:false, maxRotation:45, minRotation:0 } }, y:{ beginAtZero:true } }
         }
       });
     }
 
     function updateChart(){
-      // Rebuild data from visible rows
       const ds = collectStateSalesFromVisible();
       if (!stateChart){ renderChart(); return; }
       stateChart.data.labels = ds.labels;
@@ -406,13 +612,404 @@
       stateChart.update();
     }
 
-    // Bind events (LIVE filtering)
+    function getVisibleRowsForZoho(){
+      const out = [];
+
+      $('#reportTable tbody tr:visible').each(function(index){
+        const $td = $(this).children('td');
+        const rawBillingRegion = $td.eq(8).text().trim();
+        const stateCode = $td.eq(9).text().trim();
+        const zohoStateCode = $td.eq(25).text().trim();
+
+        out.push({
+          rowNumber: index + 2,
+          orderId: $td.eq(0).text().trim(),
+          orderName: $td.eq(1).text().trim(),
+          productTitle: $td.eq(2).text().trim(),
+          variantSku: $td.eq(3).text().trim(),
+          variantTitle: $td.eq(4).text().trim(),
+          productType: $td.eq(5).text().trim(),
+          orderOrReturn: $td.eq(6).text().trim(),
+          day: $td.eq(7).text().trim(),
+          billingRegion: resolveBillingRegion(rawBillingRegion, stateCode),
+          stateCode: stateCode,
+          zohoStateCode: zohoStateCode,
+          netItemsSold: $td.eq(10).text().trim(),
+          hsnCode: $td.eq(11).text().trim(),
+          gstRate: $td.eq(12).text().trim(),
+          igstPerc: $td.eq(13).text().trim(),
+          igstAmount: $td.eq(14).text().trim(),
+          sgstPerc: $td.eq(15).text().trim(),
+          sgstAmount: $td.eq(16).text().trim(),
+          cgstPerc: $td.eq(17).text().trim(),
+          cgstAmount: $td.eq(18).text().trim(),
+          grossSales: $td.eq(19).text().trim(),
+          discounts: $td.eq(20).text().trim(),
+          returns: $td.eq(21).text().trim(),
+          netSales: $td.eq(22).text().trim(),
+          taxes: $td.eq(23).text().trim(),
+          totalSales: $td.eq(24).text().trim()
+        });
+      });
+
+      return out;
+    }
+
+    function getMonthStart(monthStr){
+      return moment(monthStr + '-01', 'YYYY-MM-DD').format('YYYY-MM-DD');
+    }
+
+    function getMonthEnd(monthStr){
+      return moment(monthStr + '-01', 'YYYY-MM-DD').endOf('month').format('YYYY-MM-DD');
+    }
+
+    function getZohoItemTaxTypeByState(stateCode){
+      return stateCode == 'UK' ? 'Tax Group': 'ItemAmount';
+    }
+
+    function getTaxNameForGroup(gstRate,stateCode){
+      const rate = Number(gstRate) || 0;
+      if (rate === 0) return '';
+      return stateCode == 'UK' ?  `GST${rate}` : `IGST${rate}`;
+    }
+
+    function getSupplyType(gstRate){
+      return (Number(gstRate) || 0) === 0 ? 'Exempted' : 'Taxable';
+    }
+
+    function validateZohoRow(r){
+      const issues = [];
+      const resolvedBillingRegion = resolveBillingRegion(r.billingRegion, r.stateCode);
+
+      if (!normalizeMonth(r.day)) issues.push('Invalid month/day');
+      if (isBlankLike(r.stateCode)) issues.push('Missing State Code');
+      if (isBlankLike(resolvedBillingRegion)) issues.push('Missing Billing Region');
+      if (isBlankLike(r.hsnCode)) issues.push('Missing HSN Code');
+      if (isBlankLike(r.productType)) issues.push('Missing Product Type');
+      if (isNaN(Number(r.gstRate))) issues.push('Invalid GST Rate');
+
+      const taxes = num(r.taxes);
+      const totalSales = num(r.totalSales);
+      const netSales = num(r.netSales);
+      const taxFromComponents = round2(num(r.igstAmount) + num(r.sgstAmount) + num(r.cgstAmount));
+
+      if (Math.abs(round2(taxes) - round2(taxFromComponents)) > 0.5){
+        issues.push(`Taxes mismatch with IGST+SGST+CGST (${round2(taxes)} vs ${round2(taxFromComponents)})`);
+      }
+
+      if (Math.abs(round2(netSales + taxes) - round2(totalSales)) > 1){
+        issues.push(`Net Sales + Taxes mismatch Total Sales (${round2(netSales + taxes)} vs ${round2(totalSales)})`);
+      }
+
+      return issues;
+    }
+
+    function buildZohoMonthlySummary(rows){
+      const summaryMap = {};
+      const errors = [];
+
+      rows.forEach((r)=>{
+        r.billingRegion = resolveBillingRegion(r.billingRegion, r.stateCode);
+
+        const issues = validateZohoRow(r);
+        if (issues.length){
+          errors.push({
+            Row: r.rowNumber,
+            OrderID: r.orderId,
+            OrderName: r.orderName,
+            Day: r.day,
+            StateCode: r.stateCode,
+            ZohoStateCode: r.zohoStateCode,
+            BillingRegion: r.billingRegion,
+            ProductTitle: r.productTitle,
+            ProductType: r.productType,
+            HSNCode: r.hsnCode,
+            GSTRate: r.gstRate,
+            NetSales: round2(num(r.netSales)),
+            Taxes: round2(num(r.taxes)),
+            TotalSales: round2(num(r.totalSales)),
+            IssueDescription: issues.join(' | ')
+          });
+          return;
+        }
+
+        const month = normalizeMonth(r.day);
+        const stateCode = (r.stateCode || '').trim();
+        const zohoStateCode = (r.zohoStateCode || '').trim();
+        const gstRate = Number(r.gstRate || 0);
+        const key = `${month}|${stateCode}|${gstRate}`;
+
+        const netSales = round2(num(r.netSales));
+        const taxes = round2(num(r.taxes));
+        const totalSales = round2(num(r.totalSales));
+        const isRet = isReturn(r.orderOrReturn);
+
+        if (!summaryMap[key]){
+          summaryMap[key] = {
+            month,
+            stateCode,
+            zohoStateCode,
+            billingRegion: r.billingRegion,
+            gstRate,
+            sampleHsn: (r.hsnCode || '').trim(),
+            orderCount: 0,
+            returnCount: 0,
+            orderTaxable: 0,
+            returnTaxable: 0,
+            netTaxable: 0,
+            orderTax: 0,
+            returnTax: 0,
+            netTax: 0,
+            orderTotal: 0,
+            returnTotal: 0,
+            netTotal: 0
+          };
+        }
+
+        const g = summaryMap[key];
+
+        if (isRet){
+          g.returnCount += 1;
+          g.returnTaxable += Math.abs(netSales);
+          g.returnTax += Math.abs(taxes);
+          g.returnTotal += Math.abs(totalSales);
+        } else {
+          g.orderCount += 1;
+          g.orderTaxable += netSales;
+          g.orderTax += taxes;
+          g.orderTotal += totalSales;
+        }
+
+        g.netTaxable += netSales;
+        g.netTax += taxes;
+        g.netTotal += totalSales;
+      });
+
+      const summary = Object.values(summaryMap)
+        .map(x => ({
+          ...x,
+          billingRegion: resolveBillingRegion(x.billingRegion, x.stateCode),
+          orderTaxable: round2(x.orderTaxable),
+          returnTaxable: round2(x.returnTaxable),
+          netTaxable: round2(x.netTaxable),
+          orderTax: round2(x.orderTax),
+          returnTax: round2(x.returnTax),
+          netTax: round2(x.netTax),
+          orderTotal: round2(x.orderTotal),
+          returnTotal: round2(x.returnTotal),
+          netTotal: round2(x.netTotal)
+        }))
+        .sort((a,b)=>{
+          if (a.month < b.month) return -1;
+          if (a.month > b.month) return 1;
+          if (a.stateCode < b.stateCode) return -1;
+          if (a.stateCode > b.stateCode) return 1;
+          return a.gstRate - b.gstRate;
+        });
+
+      return { summary, errors };
+    }
+
+    function convertMonthlySummaryToZohoRows(summary){
+      return summary.map((s) => {
+        const resolvedBillingRegion = resolveBillingRegion(s.billingRegion, s.stateCode);
+
+const urlParams = new URLSearchParams(window.location.search);
+
+        const startDate = new Date(urlParams.get('startDate'));
+        const endDate = new Date(urlParams.get('endDate'));
+        const dateDifference = (endDate - startDate) / (1000 * 60 * 60 * 24);
+
+  invoiceNumber = dateDifference <= 1
+      ? `SPY-${urlParams.get('startDate')}-${s.stateCode}-${s.gstRate}`
+      : `SPY-${s.month.replace('-', '')}-${s.stateCode}-${s.gstRate}`;
+
+  invoiceNumber = invoiceNumber.replaceAll("-",""); // Replace any dots with dashes to ensure it's a valid invoice number
+const salesOrderNumber = dateDifference <= 1
+    ? `SHOPIFY-${urlParams.get('startDate')}-${s.stateCode}-${s.gstRate}`
+    : `SHOPIFY-${s.month.replace('-', '')}-${s.stateCode}-${s.gstRate}`;
+
+        //const salesOrderNumber = `SHOPIFY-${s.month.replace('-', '')}-${s.stateCode}-${s.gstRate}`;
+        const noteText =
+          `Month=${s.month}, State=${s.stateCode}, BillingRegion=${resolvedBillingRegion}, GST=${s.gstRate}%, ` +
+          `Orders=${s.orderCount}, Returns=${s.returnCount}, ` +
+          `OrderTaxable=${s.orderTaxable.toFixed(2)}, ReturnTaxable=${s.returnTaxable.toFixed(2)}, NetTaxable=${s.netTaxable.toFixed(2)}, ` +
+          `OrderTax=${s.orderTax.toFixed(2)}, ReturnTax=${s.returnTax.toFixed(2)}, TotalTax=${s.netTax.toFixed(2)}, ` +
+          `OrderTotal=${s.orderTotal.toFixed(2)}, ReturnTotal=${s.returnTotal.toFixed(2)}, NetTotal=${s.netTotal.toFixed(2)}`;
+
+        return {
+          'Order Date': getMonthStart(s.month),
+          'Expected Shipment Date': getMonthEnd(s.month),
+          'SalesOrder Number': salesOrderNumber,
+          'Status': 'Paid',
+          'Customer Name': `Shopify Sales`,
+          'PurchaseOrder': salesOrderNumber,
+          'Invoice Number': invoiceNumber,
+          'Template Name': 'Standard Template',
+          'Currency Code': 'INR',
+          'Place of Supply': s.stateCode,
+          'Place of Supply(With State Code)': s.zohoStateCode,
+          'GST Treatment': 'consumer',
+          'GST Identification Number (GSTIN)': '',
+          'Exchange Rate': '1',
+          'Discount Type': 'item_level',
+          'Is Discount Before Tax': 'TRUE',
+          'Entity Discount Percent': '0',
+          'Item Name': `Shopify Monthly Sales Summary - ${s.stateCode} - GST ${s.gstRate}%`,
+          'HSN/SAC': s.sampleHsn || '',
+          'SKU': `SHOPIFY-${s.stateCode}-${s.gstRate}-${s.month.replace('-', '')}`,
+          'Item Desc': `Monthly summary grouped by Month=${s.month}, State=${s.stateCode}, BillingRegion=${resolvedBillingRegion}, GST=${s.gstRate}% | Orders=${s.orderCount}, Returns=${s.returnCount}`,
+          'Quantity': '1',
+          'Usage unit': '',
+          'Warehouse Name': '',
+          'Item Price': s.netTaxable.toFixed(2),
+          'Is Inclusive Tax': 'TRUE',
+          'Discount': '0',
+          'Item Tax': s.gstRate === 0 ? '' : getTaxNameForGroup(s.gstRate,s.stateCode),
+          'Item Tax %': s.gstRate === 0 ? '' : String(s.gstRate),
+          'Item Tax Type': s.gstRate === 0 ? '' : getZohoItemTaxTypeByState(s.stateCode),
+          'Item Tax Exemption Reason': s.gstRate === 0 ? 'GST 0% / Exempt supply' : '',
+          'Item Type': 'goods',
+          'Project Name': '',
+          'Shipping Charge Tax Name': '',
+          'Shipping Charge Tax Type': '',
+          'Shipping Charge Tax %': '',
+          'Shipping Charge': '0',
+          'Shipping Charge Tax Exemption Code': '',
+          'Shipping Charge SAC Code': '',
+          'Adjustment': '0',
+          'Adjustment Description': 'Monthly Shopify grouped summary',
+          'Reverse Charge Tax Name': '',
+          'Reverse Charge Tax Rate': '',
+          'Reverse Charge Tax Type': '',
+          'Is Export Without LUT/Bond': '',
+          'Tax Collected From Customer': '',
+          'Supply Type': getSupplyType(s.gstRate),
+          'Sales person': '',
+          'Notes': noteText,
+          'Terms & Conditions': '',
+          'Delivery Method': '',
+
+          'Month': s.month,
+          'Billing Region': resolvedBillingRegion,
+          'State Code': s.stateCode,
+          'GST Rate': s.gstRate,
+          'Total Orders': s.orderCount,
+          'Total Returns': s.returnCount,
+          'Order Taxable': s.orderTaxable.toFixed(2),
+          'Return Taxable': s.returnTaxable.toFixed(2),
+          'Net Taxable': s.netTaxable.toFixed(2),
+          'Order Tax': s.orderTax.toFixed(2),
+          'Return Tax': s.returnTax.toFixed(2),
+          'Total Tax': s.netTax.toFixed(2),
+          'Order Total': s.orderTotal.toFixed(2),
+          'Return Total': s.returnTotal.toFixed(2),
+          'Net Total': s.netTotal.toFixed(2)
+        };
+      });
+    }
+
+    async function downloadZohoWorkbook(){
+      const rows = getVisibleRowsForZoho();
+
+      if (!rows.length){
+        showToast('No visible rows to export.');
+        return;
+      }
+
+      const { summary, errors } = buildZohoMonthlySummary(rows);
+
+      if (!summary.length && !errors.length){
+        showToast('No valid rows available for export.');
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+const orderOrReturn = (urlParams.get('orderOrReturn') || 'order').toLowerCase();
+
+let zohoRows;
+
+if (orderOrReturn === 'return'){
+  zohoRows = convertToZohoCreditNotes(summary);
+} else {
+  zohoRows = convertMonthlySummaryToZohoRows(summary);
+}
+
+
+     //validate zoho rows
+
+              try {
+    setLoading(true);
+
+    const response = await fetch('/v1/report/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        summary: zohoRows,
+        errors: errors
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.status !== 'SUCCESS') {
+      setLoading(false);
+      showToast(result.message || 'Validation failed. Download stopped.');
+      return;
+    }else{
+        zohoRows = result.zohoSummary;
+    }
+
+  } catch (err) {
+    setLoading(false);
+    showToast('Validation API error. Please try again.');
+    return;
+  }
+
+  setLoading(false);
+
+
+      // validation done
+      const wb = XLSX.utils.book_new();
+
+      const summarySheetData = zohoRows.length ? zohoRows : [{
+        Message: 'No valid grouped records found. Please check Errors sheet.'
+      }];
+      const summaryWs = XLSX.utils.json_to_sheet(summarySheetData);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Zoho Summary');
+
+      const errorSheetData = errors.length ? errors : [{
+        Message: 'No errors found'
+      }];
+      const errorsWs = XLSX.utils.json_to_sheet(errorSheetData);
+      XLSX.utils.book_append_sheet(wb, errorsWs, 'Errors');
+
+      const months = new Set(summary.map(x => x.month)).size;
+      const groups = summary.length;
+
+      showToast(
+        `Zoho workbook ready:\n` +
+        `Months: ${months}\n` +
+        `Groups: ${groups}\n` +
+        `Errors: ${errors.length}`
+      );
+
+      const fileName = orderOrReturn === 'return'
+  ? 'zoho_credit_notes.xlsx'
+  : 'zoho_monthly_state_gst_summary.xlsx';
+
+XLSX.writeFile(wb, fileName);
+
+    }
+
     $('#filterHsn, #filterType').on('change', applyFilters);
-    $('#startDate, #endDate').on('change', applyFilters);
+    $('#startDate').on('change', applyFilters);
     $('#resetFilters').on('click', resetFilters);
     $('#downloadCsv').on('click', downloadVisibleCsv);
+    $('#downloadZohoWorkbook').on('click', downloadZohoWorkbook);
 
-    // Sort headers
     $('#reportTable thead').on('click', 'th', function(){
       const colIdx = Number($(this).data('col'));
       if (Number.isNaN(colIdx)) return;
@@ -420,15 +1017,92 @@
       sortBy(colIdx, type);
     });
 
-    // Init
     $(function(){
       populateFilters();
       markMissingRows();
-      applyFilters();  // respects empty date inputs (no default)
-      renderChart();   // initial render
-    });
-</script>
-<div th:replace="~{fragments/chatbot :: chatbot}"></div>
+      applyFilters();
+      renderChart();
 
+      const qs = new URLSearchParams(window.location.search);
+      const sd = qs.get('startDate');
+      const ed = qs.get('endDate');
+      if (sd) $('#startDate').val(sd);
+      if (ed) $('#endDate').val(ed);
+    });
+
+    $('#downloadZohoReturnReport').on('click', function(){
+  goFetchShopifyReport('return');
+});
+
+    function convertToZohoCreditNotes(summary){
+  return summary.map((s) => {
+    const resolvedBillingRegion = resolveBillingRegion(s.billingRegion, s.stateCode);
+
+    const urlParams = new URLSearchParams(window.location.search);
+
+    const startDate = new Date(urlParams.get('startDate'));
+    const endDate = new Date(urlParams.get('endDate'));
+    const dateDifference = (endDate - startDate) / (1000 * 60 * 60 * 24);
+
+     invoiceNumber = dateDifference <= 1
+      ? `SPY-${urlParams.get('startDate')}-${s.stateCode}-${s.gstRate}`
+      : `SPY-${s.month.replace('-', '')}-${s.stateCode}-${s.gstRate}`;
+invoiceNumber = invoiceNumber.replaceAll("-","");
+
+    return {
+      'Credit Note Number': generateCreditNoteNumber(),
+      'Credit Note Date': getMonthEnd(s.month),
+      'Invoice Number': invoiceNumber,
+      'Credit Note Status': 'Open',
+      'Reason': 'Sales Return',
+
+      'Customer Name': `Shopify Sales`,
+      'GST Treatment': 'consumer',
+
+      'Place of Supply': s.stateCode,
+      'Place of Supply(With State Code)': s.zohoStateCode,
+
+      'Exchange Rate': '1',
+
+      'Item Name': `Shopify Monthly Sales Summary - ${s.stateCode} - GST ${s.gstRate}%`,
+      'Item Type': 'goods',
+      'Account': 'Sales',
+
+      'HSN/SAC': s.sampleHsn || '',
+
+      'Quantity': '1',
+      'Item Price': s.returnTaxable.toFixed(2),
+
+      'Adjustment': '0',
+      'Adjustment Description': 'credit',
+
+      'Subject': 'Sales Return',
+
+      'Reverse Charge Tax Name': s.gstRate === 0 ? '' : getTaxNameForGroup(s.gstRate, s.stateCode),
+
+      'GST Rate': s.gstRate,
+      'Month': s.month,
+      'State Code': s.stateCode,
+      'Billing Region': resolvedBillingRegion
+    };
+  });
+}
+
+    function generateCreditNoteNumber(){
+  const now = new Date();
+
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = String(now.getFullYear()).slice(-2); // last 2 digits
+
+  const unique = String(Math.floor(1000 + Math.random() * 9000)); // 4 digits
+
+  return `${day}${month}${year}${unique}`; // total 10 chars
+}
+
+
+</script>
+
+<div th:replace="~{fragments/chatbot :: chatbot}"></div>
 </body>
 </html>

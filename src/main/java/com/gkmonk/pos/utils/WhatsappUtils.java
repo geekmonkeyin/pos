@@ -11,7 +11,7 @@ import org.json.JSONObject;
 public class WhatsappUtils {
 
     public static final String ACCOUNT_SID = "ACf4c9e3eef60b8c7bfbb65a51d1813b67";
-    public static final String AUTH_TOKEN = "TmIwOTRKQ1ZfUmFKNms2STNJbjNnMkthTVBQTWxWTmpwOEtZNW5HT1FwSTo=";
+        public static final String AUTH_TOKEN = "TmIwOTRKQ1ZfUmFKNms2STNJbjNnMkthTVBQTWxWTmpwOEtZNW5HT1FwSTo=";
 
 
     public static void sendPaymentReceipt(String vendorName,String number,Double amount,String date,String remarks) {

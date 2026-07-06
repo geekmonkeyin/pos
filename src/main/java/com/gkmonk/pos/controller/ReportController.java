@@ -5,24 +5,29 @@ import com.gkmonk.pos.model.Inventory;
 import com.gkmonk.pos.model.ReportDetails;
 import com.gkmonk.pos.model.logs.TaskLogs;
 import com.gkmonk.pos.model.notification.OrderNotification;
+import com.gkmonk.pos.model.zoho.ZohoItem;
 import com.gkmonk.pos.services.GSTServiceImpl;
 import com.gkmonk.pos.services.InventoryServiceImpl;
 import com.gkmonk.pos.services.ReportServiceImpl;
 import com.gkmonk.pos.services.StateServiceImpl;
 import com.gkmonk.pos.services.logs.TaskLogsServiceImpl;
 import com.gkmonk.pos.services.notification.NotificationServiceImpl;
+import com.gkmonk.pos.services.zoho.ZohoServiceImpl;
 import com.gkmonk.pos.utils.GSTUtils;
 import com.gkmonk.pos.utils.MapperUtils;
 import com.gkmonk.pos.utils.TaskUtils;
+import org.apache.poi.ss.formula.functions.T;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,8 +35,14 @@ import org.springframework.web.servlet.ModelAndView;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -54,6 +65,9 @@ public class ReportController {
     private TaskLogsServiceImpl taskLogsService;
     @Autowired
     private NotificationServiceImpl notificationService;
+    @Autowired
+    private ZohoServiceImpl zohoServiceImpl;
+
     @PostMapping("/uploadJSONL")
     public String uploadJSONLReport(@RequestParam("file") MultipartFile file) {
         ModelAndView model = new ModelAndView();
@@ -81,18 +95,96 @@ public class ReportController {
         return "redirect:/v1/report/shopifyreport";
     }
 
+    @PostMapping("/validate")
+    public ResponseEntity<Map<String, Object>> validateZohoSummary(@RequestBody Map<String, Object> payload) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            List<Map<String, Object>> summary =
+                    (List<Map<String, Object>>) payload.get("summary");
+
+            List<Map<String, Object>> errors =
+                    (List<Map<String, Object>>) payload.get("errors");
+
+            // ❌ If frontend already found errors → fail fast
+            if (errors != null && !errors.isEmpty()) {
+                response.put("status", "FAIL");
+                response.put("message", "Validation failed: Errors sheet contains " + errors.size() + " issue(s)");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (summary == null || summary.isEmpty()) {
+                response.put("status", "FAIL");
+                response.put("message", "No summary data found");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // ✅ Perform backend validations
+            for (Map<String, Object> row : summary) {
+
+                String itemName = getString(row.get("Item Name"));
+                List<ZohoItem> zohoItems =  zohoServiceImpl.findAll();
+                Optional<ZohoItem> matched = zohoItems.stream()
+                        .filter(zohoItem -> itemName.equalsIgnoreCase(zohoItem.getItemName()))
+                        .findFirst();
+                if (matched.isPresent()) {
+                    row.put("SKU","");
+                    row.put("HSN/SAC","");
+                }
+            }
+
+            // ✅ All validations passed
+            response.put("status", "SUCCESS");
+            response.put("message", "Validation passed");
+            response.put("zohoSummary",summary);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("status", "FAIL");
+            response.put("message", "Server error during validation: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
     @GetMapping("/shopifyreport")
-    public ModelAndView getShopifyReport() {
-        ModelAndView model = new ModelAndView();
-        List<ReportDetails> reportDetailsList = reportServiceImpl.getReportDetailsByDate("2025-01-01","2025-10-31");
+    public ModelAndView getShopifyReport(
+            @RequestParam(value = "startDate", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDateParam,
+            @RequestParam(value = "orderOrReturn", required = false)String orderOrReturn,
+            @RequestParam(value = "endDate", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDateParam
+    ) {
+        ModelAndView model = new ModelAndView("shopifyreport");
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        // If params not provided, default to yesterday (same yyyy-MM-dd format)
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        LocalDate startDate = (startDateParam != null) ? startDateParam : yesterday;
+        LocalDate endDate   = (endDateParam != null)   ? endDateParam   : yesterday;
+
+        String startDateStr = startDate.format(formatter);
+        String endDateStr   = endDate.format(formatter);
+
+        List<ReportDetails> reportDetailsList =
+                reportServiceImpl.getReportDetailsByDate(startDateStr, endDateStr,orderOrReturn);
+
+
+        List<ZohoItem> zohoItems = zohoServiceImpl.findAll();
+
         stateServiceImpl.updateStateCodes(reportDetailsList);
         gstServiceImpl.updateHSNCode(reportDetailsList);
-        reportDetailsList.forEach(report -> report.setProductTitle(report.getProductTitle().replaceAll(",", "")));
+        reportDetailsList.forEach(r -> r.setProductTitle(r.getProductTitle().replaceAll(",", "")));
         reportDetailsList.forEach(GSTUtils::updateGST);
+
         model.addObject("reportDetailsList", reportDetailsList);
-        model.setViewName("shopifyreport");
+        model.addObject("startDate", startDateStr);
+        model.addObject("endDate", endDateStr);
+        model.addObject("zohoItems",zohoItems);
         return model;
     }
+
 
     @PostMapping("/upload")
     public ModelAndView uploadReport(@RequestParam("file") MultipartFile file) {
@@ -203,5 +295,9 @@ public class ReportController {
             log.info("No record found for:"+orderId);
             return ResponseEntity.notFound().build();
         }
+    }
+
+    private String getString(Object val) {
+        return val == null ? "" : val.toString().trim();
     }
 }
