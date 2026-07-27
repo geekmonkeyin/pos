@@ -8,12 +8,15 @@ import com.gkmonk.pos.model.outbound.OutboundOrder;
 import com.gkmonk.pos.model.pod.PackedOrder;
 import com.gkmonk.pos.pod.services.PODServiceImpl;
 import com.gkmonk.pos.services.OrderReportsServiceImpl;
+import com.gkmonk.pos.model.legacy.ShopifyOrders;
+import com.gkmonk.pos.services.shopify.ShopifyDBServiceImpl;
 import com.gkmonk.pos.services.shopify.ShopifyServiceImpl;
 import com.gkmonk.pos.services.logs.TaskLogsServiceImpl;
 import com.gkmonk.pos.services.marketing.MarketinServiceImpl;
 import com.gkmonk.pos.services.notification.NotificationServiceImpl;
 import com.gkmonk.pos.services.outbound.OutboundServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,6 +54,8 @@ public class OutboundController {
         private TaskLogsServiceImpl taskLogsService;
         @Autowired
     private ShopifyServiceImpl shopifyServiceImpl;
+        @Autowired
+        private ShopifyDBServiceImpl shopifyDBService;
 
     @GetMapping("/addAWBToManifest/{awb}")
     public ResponseEntity<List<OutboundOrder>> addAWBToManifestAsync(@PathVariable("awb") String awb) {
@@ -149,10 +154,19 @@ public class OutboundController {
                 outboundOrder.setPickedUpBy(pickedUpBy);
                 outboundOrder.setPhoneNo(phoneNo);
                 outboundOrder.setManifestId(LocalDate.now() + "-" + courier);
-                sendWhatsappMessage(outboundOrder);
+                //sendWhatsappMessage(outboundOrder);
             });
+        // save the record to cloud db ShopifyOrders
+        outboundService.saveManifest(outboundOrders);
 
-            outboundService.saveManifest(outboundOrders);
+        for (OutboundOrder outboundOrder : outboundOrders) {
+            if (StringUtils.hasText(outboundOrder.getOrderId())) {
+                ShopifyOrders shopifyOrder = shopifyDBService.getOrderById(outboundOrder.getOrderId());
+                if (shopifyOrder != null) {
+                    shopifyDBService.saveToCloudDb(shopifyOrder);
+                }
+            }
+        }
 
             // For now, just clear the list after saving
         taskLogsService.addLogs(TaskType.OUTBOUND_ORDER.name(), TaskStatusType.COMPLETED.name(), metaData,LocalDate.now().toString());

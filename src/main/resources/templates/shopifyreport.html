@@ -824,6 +824,8 @@ const urlParams = new URLSearchParams(window.location.search);
       ? `SPY-${urlParams.get('startDate')}-${s.stateCode}-${s.gstRate}`
       : `SPY-${s.month.replace('-', '')}-${s.stateCode}-${s.gstRate}`;
 
+const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
+
   invoiceNumber = invoiceNumber.replaceAll("-",""); // Replace any dots with dashes to ensure it's a valid invoice number
 const salesOrderNumber = dateDifference <= 1
     ? `SHOPIFY-${urlParams.get('startDate')}-${s.stateCode}-${s.gstRate}`
@@ -855,7 +857,7 @@ const salesOrderNumber = dateDifference <= 1
           'Discount Type': 'item_level',
           'Is Discount Before Tax': 'TRUE',
           'Entity Discount Percent': '0',
-          'Item Name': `Shopify Monthly Sales Summary - ${s.stateCode} - GST ${s.gstRate}%`,
+          'Item Name': `Shopify Monthly Sales Summary - ${s.stateCode} - GST ${s.gstRate}% - ${timestamp}`,
           'HSN/SAC': s.sampleHsn || '',
           'SKU': `SHOPIFY-${s.stateCode}-${s.gstRate}-${s.month.replace('-', '')}`,
           'Item Desc': `Monthly summary grouped by Month=${s.month}, State=${s.stateCode}, BillingRegion=${resolvedBillingRegion}, GST=${s.gstRate}% | Orders=${s.orderCount}, Returns=${s.returnCount}`,
@@ -1043,6 +1045,7 @@ XLSX.writeFile(wb, fileName);
     const startDate = new Date(urlParams.get('startDate'));
     const endDate = new Date(urlParams.get('endDate'));
     const dateDifference = (endDate - startDate) / (1000 * 60 * 60 * 24);
+const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
 
      invoiceNumber = dateDifference <= 1
       ? `SPY-${urlParams.get('startDate')}-${s.stateCode}-${s.gstRate}`
@@ -1064,7 +1067,7 @@ invoiceNumber = invoiceNumber.replaceAll("-","");
 
       'Exchange Rate': '1',
 
-      'Item Name': `Shopify Monthly Sales Summary - ${s.stateCode} - GST ${s.gstRate}%`,
+      'Item Name': `Shopify Monthly Sales Summary - ${s.stateCode} - GST ${s.gstRate}% - ${timestamp}`,
       'Item Type': 'goods',
       'Account': 'Sales',
 
