@@ -364,7 +364,9 @@
         .catch(err => console.error('Error fetching existing items:', err));
     }
 
-    function printPage(){ saveManifest(); window.print(); }
+    function printPage(){
+      saveManifest().finally(() => window.print());
+    }
 
     function saveManifest(){
       const courier = document.getElementById('courierSelect').value;
@@ -376,13 +378,22 @@
       const ok = confirm(`You selected ${courier}. Is this correct?`);
       if (!ok){
         new bootstrap.Modal(document.getElementById('courierModal')).show();
-        return;
+        return Promise.resolve();
       }
-      fetch('/v1/order/outbound/savemanifest', {
+      return fetch('/v1/order/outbound/savemanifest', {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ dateTime, courier, pickedUpBy: pickupBy, phoneNo: contactNumber, deviceName })
-      }).catch(()=>{});
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Manifest save failed');
+        }
+        return response.text();
+      })
+      .catch(err => {
+        console.error('Error saving manifest:', err);
+      });
     }
 
     function confirmCourier(){

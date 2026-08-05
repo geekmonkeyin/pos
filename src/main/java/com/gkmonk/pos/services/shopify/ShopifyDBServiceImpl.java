@@ -7,6 +7,7 @@ import com.gkmonk.pos.services.token.AllCredentialsService;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -27,7 +28,15 @@ public class ShopifyDBServiceImpl {
     @Autowired
     private AllCredentialsService credentialsService;
 
+    @Value("${spring.data.mongodbcloud.uri:}")
+    private String cloudMongoUri;
+
+    @Value("${spring.data.mongodbcloud.database:geekai}")
+    private String cloudMongoDatabase;
+
     private MongoTemplate cloudMongoTemplate;
+
+    private static final String CLOUD_SHOPIFY_COLLECTION = "shopifyorders_cloud";
 
     public ShopifyOrders saveToDb(ShopifyOrders shopifyOrder) {
         return shopifyOrderRepo.save(shopifyOrder);
@@ -47,24 +56,6 @@ public class ShopifyDBServiceImpl {
             return shopifyOrders.orElse(null);
     }
 
-    
-    private MongoTemplate getMongoCloudTemplate() {
-        if (cloudMongoTemplate == null) {
-            synchronized (this) {
-                if (cloudMongoTemplate == null) {
-                    Optional<String> mongoUri = credentialsService.getMongoUri();
-                    if (mongoUri.isPresent()) {
-                        String databaseName = credentialsService.getMongoDatabaseName().orElse("geekai");
-                        MongoClient mongoClient = MongoClients.create(mongoUri.get());
-                        SimpleMongoClientDatabaseFactory databaseFactory = new SimpleMongoClientDatabaseFactory(mongoClient, databaseName);
-                        cloudMongoTemplate = new MongoTemplate(databaseFactory);
-                    }
-                }
-            }
-        }
-        return cloudMongoTemplate;
-    }
-
     public ShopifyOrders getOrderById(String orderId) {
         Optional<ShopifyOrders> shopifyOrders = shopifyOrderRepo.findById(orderId);
         return shopifyOrders.orElse(null);
@@ -72,8 +63,29 @@ public class ShopifyDBServiceImpl {
 
     public void saveToCloudDb(ShopifyOrders shopifyOrder) {
         MongoTemplate mongoTemplate = getMongoCloudTemplate();
-        if (mongoTemplate != null) {
-            mongoTemplate.save(shopifyOrder, "shopifyorders_cloud");
+        if (mongoTemplate != null && shopifyOrder != null) {
+            mongoTemplate.save(shopifyOrder, CLOUD_SHOPIFY_COLLECTION);
         }
+    }
+
+    private MongoTemplate getMongoCloudTemplate() {
+        if (cloudMongoTemplate == null) {
+            synchronized (this) {
+                if (cloudMongoTemplate == null) {
+                    String mongoUri = StringUtils.hasText(cloudMongoUri)
+                            ? cloudMongoUri
+                            : credentialsService.getMongoUri().orElse(null);
+                    if (StringUtils.hasText(mongoUri)) {
+                        String databaseName = StringUtils.hasText(cloudMongoDatabase)
+                                ? cloudMongoDatabase
+                                : credentialsService.getMongoDatabaseName().orElse("geekai");
+                        MongoClient mongoClient = MongoClients.create(mongoUri);
+                        SimpleMongoClientDatabaseFactory databaseFactory = new SimpleMongoClientDatabaseFactory(mongoClient, databaseName);
+                        cloudMongoTemplate = new MongoTemplate(databaseFactory);
+                    }
+                }
+            }
+        }
+        return cloudMongoTemplate;
     }
 }
