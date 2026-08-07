@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -59,6 +60,37 @@ public class ShopifyDBServiceImpl {
     public ShopifyOrders getOrderById(String orderId) {
         Optional<ShopifyOrders> shopifyOrders = shopifyOrderRepo.findById(orderId);
         return shopifyOrders.orElse(null);
+    }
+
+    public ShopifyOrders getOrderForCloudDb(String orderId) {
+        if (!StringUtils.hasText(orderId)) {
+            return null;
+        }
+
+        ShopifyOrders shopifyOrder = getOrderById(orderId);
+        if (shopifyOrder != null) {
+            return shopifyOrder;
+        }
+
+        shopifyOrder = findInDatabase(orderId, "livemachine", "shopifyorders");
+        if (shopifyOrder != null) {
+            return shopifyOrder;
+        }
+
+        return findInDatabase(orderId, "live_orders", "shopifyorders");
+    }
+
+    private ShopifyOrders findInDatabase(String orderId, String databaseName, String collectionName) {
+        try {
+            MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
+            MongoTemplate mongoTemplate = new MongoTemplate(
+                    new SimpleMongoClientDatabaseFactory(mongoClient, databaseName)
+            );
+            Query query = new Query(Criteria.where("id").is(orderId));
+            return mongoTemplate.findOne(query, ShopifyOrders.class, collectionName);
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     public void saveToCloudDb(ShopifyOrders shopifyOrder) {

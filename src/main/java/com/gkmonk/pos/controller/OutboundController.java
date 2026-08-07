@@ -161,7 +161,7 @@ public class OutboundController {
 
         for (OutboundOrder outboundOrder : outboundOrders) {
             if (StringUtils.hasText(outboundOrder.getOrderId())) {
-                ShopifyOrders shopifyOrder = shopifyDBService.getOrderById(outboundOrder.getOrderId());
+                ShopifyOrders shopifyOrder = shopifyDBService.getOrderForCloudDb(outboundOrder.getOrderId());
                 if (shopifyOrder != null) {
                     shopifyDBService.saveToCloudDb(shopifyOrder);
                 }

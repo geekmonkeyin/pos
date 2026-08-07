@@ -50,7 +50,13 @@ public class PODServiceImpl {
         packedOrder.setOrderId(result.getString("_id"));
         packedOrder.setCustomerName(MapperUtils.getCustomerName(result));
         packedOrder.setCustomerInfo(MapperUtils.getContactInfo(result));
-        packedOrder.setTotalAmount(Double.valueOf(result.getString("total_price")));
+        if(result.get("total_price") != null){
+            if(result.get("total_price") instanceof Double){
+                packedOrder.setTotalAmount(result.getDouble("total_price"));
+            } else if(result.get("total_price") instanceof String){
+                packedOrder.setTotalAmount(Double.parseDouble(result.getString("total_price")));
+            }
+        }
         packedOrder.setProductDetails(MapperUtils.getProductDetailsFromDocument(result));
         packedOrder.setOrderStatusUrl(result.getString("order_status_url"));
         packedOrder.setPaymentMode(result.getBoolean("cod") ? "COD" : "Prepaid");
