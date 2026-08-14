@@ -154,7 +154,7 @@ public class OutboundController {
                 outboundOrder.setPickedUpBy(pickedUpBy);
                 outboundOrder.setPhoneNo(phoneNo);
                 outboundOrder.setManifestId(LocalDate.now() + "-" + courier);
-                //sendWhatsappMessage(outboundOrder);
+                sendWhatsappMessage(outboundOrder);
             });
         // save the record to cloud db ShopifyOrders
         outboundService.saveManifest(outboundOrders);
